@@ -3360,7 +3360,14 @@ int init_compiler(){
 #define top()	intArray_last(stack)
 #define pick(I)  stack->elements[I]
 
-
+void printStack(iptr stack)
+{
+	printf("Stack: \n");
+	for (int i = 0;  i < stack->size;  ++i) {
+		printf("%d %d\n", i, stack->elements[i]);
+	}
+	printf("\n");
+}
 
 
 iptr execute(iptr prog,iptr stack)
@@ -3370,6 +3377,7 @@ iptr execute(iptr prog,iptr stack)
 
     int pc = 0;
 	int rbp = 0; 
+	push(0);
 # define fetch()	code[pc++]
 
     for (;;) {
@@ -3406,14 +3414,14 @@ iptr execute(iptr prog,iptr stack)
 	    case iGETVAR:{
 			printOP(_iGETVAR_);
 			int symIndex = fetch(); // need to change
-			push(stack->elements[symIndex]);
-			printf("%d => %d\n", symIndex, stack->elements[symIndex]);
+			push(stack->elements[symIndex + rbp+1]); // get the variable value
+			printf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
 			continue;
 		}	    
 	    case iSETVAR:{
 			printOP(_iSETVAR_);
 			int symIndex = fetch();//need to change
-			stack->elements[symIndex ] = pop();
+			stack->elements[symIndex+rbp+1] = pop();
 			continue;
 		}
 		case iJUMP:{
@@ -3444,7 +3452,7 @@ iptr execute(iptr prog,iptr stack)
 				fatal("return without call");
 			}
 			int retValue = pop(); // get the return value
-			stack->size = rbp; // restore the stack size to the base pointer
+			stack->size = rbp+1; // restore the stack size to the base pointer
 			rbp = pop(); // restore the base pointer
 			pc = pop(); // restore the program counter
 			
@@ -3463,9 +3471,11 @@ iptr execute(iptr prog,iptr stack)
 			pc += l; // set program counter to the function position
 
 			push(rbp); // save the current base pointer
-			rbp = stack->size; // set the base pointer to the current stack size
+			rbp = stack->size-1; // set the base pointer to the current stack size
+			printf("rbp: %d, pc: %d\n", rbp, pc);
+
 			for (int i = 1;  i <= r;  ++i) {
-				push(pick((rbp - i -1)));
+				push(pick((rbp - i -1)));//pc
 			}
 			continue;
 		}
