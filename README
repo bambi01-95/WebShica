@@ -1,0 +1,60 @@
+Shica -W-
+
+# Shica - Web Test Framework
+web shica can use integer value
+
+TODO
+- arguments condtions
+- multiple event handlers
+
+
+
+NOT YET
+- strings
+- numbers
+- user-defined function
+- arrays
+
+
+
+# user-define function call
+
+func(1,2)
+
+s00: rbp s00
+s01: arg 2
+s02: arg 1
+s03: rpc x
+s04: rbp s00
+s05: var 1
+s06: var 2
+
+
+
+
+# MSGC
+
+# compile
+    step 0
+        define gc_markFunction_t    gc_markFunction    = markObject;
+        define gc_collectFunction_t gc_collectFunction = collectObjects;
+        set collectObjects() that includes
+            - bytefiles
+            - sysmbols
+    step 1
+        call markObject(webSize)
+    step 2
+
+
+# execute
+    step 1
+        define gc_markFunction_t gc_markFunction       = markIntarray;
+        define gc_collectFunction_t gc_collectFunction = collectIntArray;
+        set collectIntArray() that includes
+            - bytefiles
+            - vms
+    step 2
+        call gc_collect()
+
+
+

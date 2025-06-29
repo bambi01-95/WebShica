@@ -1,0 +1,1374 @@
+%{
+
+// comment out one or both of the next two lines to disable tagged integers and/or floats
+
+#define TAGINT	1			// tag bits value for Integer  ........1
+#define TAGFLT	2			// tag bits value for Float    .......10
+
+#define TAGBITS 2			// how many bits to use for tag bits
+#define TAGMASK ((1 << TAGBITS) - 1)	// mask to extract just the tag bits
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <assert.h>
+#include <math.h>
+#include <stdarg.h>
+#include <setjmp.h>
+
+int opt_i = 0;	// -i => use interpreter
+int opt_v = 0;	// -v => be more verbose
+
+void fatal(char *msg, ...)
+{
+    va_list ap;
+    va_start(ap, msg);
+    fprintf(stderr, "\n");
+    vfprintf(stderr, msg, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
+}
+
+union Object;
+typedef union Object Object;
+typedef Object *oop; // ordinary object pointer
+
+oop nil   = 0;
+oop false = 0;
+oop true  = 0;
+
+enum Type {
+    /*  0 */ Undefined = 0,
+    /*  1 */ Integer, Float, Symbol, Pair, Array, Closure, Function,
+    /*  8 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
+    /* 14 */ Call, Return, Break, Continue,
+    /* 18 */ Print, If, While, Block,
+};
+
+enum binop { ADD, SUB, MUL, DIV, MOD, LT, LE, GE, GT, EQ, NE, };
+enum unyop { NEG, NOT, AINC, BINC, ADEC, BDEC,};
+
+struct Undefined { enum Type _type; };
+struct Integer 	 { enum Type _type;  int _value;  };
+struct Float 	 { enum Type _type;  double _value;  };
+struct Symbol  	 { enum Type _type;  char *name;  oop value; };
+struct Pair  	 { enum Type _type;  oop a, b; };
+struct Array  	 { enum Type _type;  oop *elements;  int size, capacity; };
+struct Closure 	 { enum Type _type;  oop function, environment; };
+struct Function	 { enum Type _type;  oop parameters, body, code; };
+struct Binop   	 { enum Type _type;  enum binop op;  oop lhs, rhs; };
+struct Unyop   	 { enum Type _type;  enum unyop op;  oop rhs; };
+struct GetVar  	 { enum Type _type;  oop id; };
+struct SetVar  	 { enum Type _type;  oop id; oop rhs; };
+struct GetArray	 { enum Type _type;  oop array, index; };
+struct SetArray	 { enum Type _type;  oop array, index, value; };
+struct Call 	 { enum Type _type;  oop function, arguments; };
+struct Return 	 { enum Type _type;  oop value; };
+struct Break 	 { enum Type _type; };
+struct Continue	 { enum Type _type; };
+struct Print   	 { enum Type _type;  oop arguments; };
+struct If      	 { enum Type _type;  oop condition, statement1, statement2; };
+struct While   	 { enum Type _type;  oop condition, statement; };
+struct Block   	 { enum Type _type;  oop *statements;  int size; };
+
+union Object {
+    enum   Type     _type;
+    struct Integer  Integer;
+    struct Float    Float;
+    struct Symbol   Symbol;
+    struct Pair     Pair;
+    struct Array    Array;
+    struct Closure  Closure;
+    struct Function Function;
+    struct Binop    Binop;
+    struct Unyop    Unyop;
+    struct GetVar   GetVar;
+    struct SetVar   SetVar;
+    struct GetArray GetArray;
+    struct SetArray SetArray;
+    struct Call     Call;
+    struct Return   Return;
+    struct Break    Break;
+    struct Continue Continue;
+    struct Print    Print;
+    struct If       If;
+    struct While    While;
+    struct Block    Block;
+};
+
+int getType(oop o)
+{
+#if TAGINT
+    if ((((intptr_t)o) & TAGMASK) == TAGINT) return Integer;
+#endif
+#if TAGFLT
+    if ((((intptr_t)o) & TAGMASK) == TAGFLT) return Float;
+#endif
+    return o->_type;
+}
+
+oop _check(oop node, enum Type type, char *file, int line)
+{
+    if (getType(node) != type) {
+	fprintf(stderr, "\n%s:%d: expected type %d got type %d\n", file, line, type, getType(node));
+	exit(1);
+    }
+    return node;
+}
+
+#define get(PTR, TYPE, FIELD)	(_check((PTR), TYPE, __FILE__, __LINE__)->TYPE.FIELD)
+
+int nobj = 0;
+
+oop _newObject(size_t size, enum Type type)
+{
+    nobj++;
+    oop node = calloc(1, size);
+    node->_type = type;
+    return node;
+}
+
+#define newObject(TYPE)	_newObject(sizeof(struct TYPE), TYPE)
+
+oop newInteger(int value)
+{
+#if TAGINT
+    return (oop)(((intptr_t)value << TAGBITS) | TAGINT);
+#else
+    oop node = newObject(Integer);
+    node->Integer._value = value;
+    return node;
+#endif
+}
+
+int Integer_value(oop obj)
+{
+#if TAGINT
+    assert(Integer == getType(obj));
+    return (intptr_t)obj >> TAGBITS;
+#else
+    return get(obj, Integer,_value);
+#endif
+}
+
+oop newFloat(double value)
+{
+#if TAGFLT
+    union { double d;  intptr_t i; } u = { .d = value };
+    return (oop)(((intptr_t)u.i & ~TAGMASK) | TAGFLT);
+#else
+    oop node = newObject(Float);
+    node->Float._value = value;
+    return node;
+#endif
+}
+
+double Float_value(oop obj)
+{
+#if TAGFLT
+    assert(Float == getType(obj));
+    union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
+    return u.d;
+#else
+    return get(obj, Float,_value);
+#endif
+}
+
+oop newSymbol(char *name)
+{
+    oop sym = newObject(Symbol);
+    sym->Symbol.name  = strdup(name);
+    sym->Symbol.value = false;
+    return sym;
+}
+
+oop *symbols = 0;
+int nsymbols = 0;
+
+oop intern(char *name)
+{
+    // binary search for existing symbol
+    int lo = 0, hi = nsymbols - 1;
+    while (lo <= hi) {
+	int mid = (lo + hi) / 2;
+	int cmp = strcmp(name, get(symbols[mid], Symbol,name));
+	if      (cmp < 0) hi = mid - 1;
+	else if (cmp > 0) lo = mid + 1;
+	else    return symbols[mid];
+    }
+    symbols   = realloc(symbols,   sizeof(*symbols)   * (nsymbols + 1));
+    memmove(symbols + lo + 1,
+	    symbols + lo,
+	    sizeof(*symbols) * (nsymbols++ - lo));
+    return symbols[lo] = newSymbol(name);
+}
+
+void printlnObject(oop node, int indent);
+
+oop newPair(oop a, oop b)
+{
+    oop obj = newObject(Pair);
+    obj->Pair.a = a;
+    obj->Pair.b = b;
+    return obj;
+}
+
+oop newArray(int size)
+{
+    oop obj = newObject(Array);
+    if (size) {
+	obj->Array.elements = calloc(size, sizeof(oop));
+	obj->Array.size     = size;
+	obj->Array.capacity = size;
+	for (int i = 0;  i < size;  ++i)
+	    obj->Array.elements[i]= nil;
+    }
+    return obj;
+}
+
+oop Array_grow(oop array)
+{
+    int size  = get(array, Array,size);
+    int cap   = get(array, Array,capacity);
+    oop *elts = get(array, Array,elements);
+    while (size >= cap) {
+	cap = cap ? cap * 2 : 4;
+	elts = realloc(elts, sizeof(*elts) * cap);
+    }
+    get(array, Array,capacity) = cap;
+    get(array, Array,elements) = elts;
+    return array;
+}
+
+oop Array_append(oop array, oop element)
+{
+    int size = get(array, Array,size);
+    if (size >= get(array, Array,capacity)) Array_grow(array);
+    get(array, Array,elements)[size++] = element;
+    get(array, Array,size) = size;
+    return element;
+}
+
+oop Array_last(oop array)
+{
+    int size = get(array, Array,size);
+    if (size == 0) fatal("last: array is empty");
+    return get(array, Array,elements)[size-1];
+}
+
+oop Array_pop(oop array)
+{
+    int size = get(array, Array,size);
+    if (size == 0) fatal("pop: array is empty");
+    oop element = get(array, Array,elements)[--size];
+    get(array, Array,size) = size;
+    return element;
+}
+
+oop newClosure(oop func, oop env)
+{
+    oop node = newObject(Closure);
+    node->Closure.function    = func;
+    node->Closure.environment = env;
+    return node;
+}
+
+oop newFunction(oop parameters, oop body)
+{
+    oop node = newObject(Function);
+    node->Function.parameters = parameters;
+    node->Function.body       = body;
+    node->Function.code       = nil;
+    return node;
+}
+
+oop newBinop(enum binop op, oop lhs, oop rhs)
+{
+    oop node = newObject(Binop);
+    node->Binop.op  = op;
+    node->Binop.lhs = lhs;
+    node->Binop.rhs = rhs;
+    return node;
+}
+
+oop newUnyop(enum unyop op, oop rhs)
+{
+    oop node = newObject(Unyop);
+    node->Unyop.op  = op;
+    node->Unyop.rhs = rhs;
+    return node;
+}
+
+oop newGetVar(oop id)
+{
+    oop node = newObject(GetVar);
+    node->GetVar.id = id;
+    return node;
+}
+
+oop newSetVar(oop id, oop rhs)
+{
+    oop node = newObject(SetVar);
+    node->SetVar.id  = id;
+    node->SetVar.rhs = rhs;
+    return node;
+}
+
+oop newGetArray(oop array, oop index)
+{
+    oop node = newObject(GetArray);
+    node->GetArray.array = array;
+    node->GetArray.index = index;
+    return node;
+}
+
+oop newSetArray(oop array, oop index, oop value)
+{
+    oop node = newObject(SetArray);
+    node->SetArray.array = array;
+    node->SetArray.index = index;
+    node->SetArray.value = value;
+    return node;
+}
+
+oop newCall(oop arguments, oop function)
+{
+    oop node = newObject(Call);
+    node->Call.arguments = arguments;
+    node->Call.function  = function;
+    return node;
+}
+
+oop newReturn(oop value)
+{
+    oop node = newObject(Return);
+    node->Return.value = value;
+    return node;
+}
+
+oop newBreak(void)
+{
+    return newObject(Break);
+}
+
+oop newContinue(void)
+{
+    return newObject(Continue);
+}
+
+oop newPrint(oop arguments)
+{
+    oop node = newObject(Print);
+    node->Print.arguments = arguments;
+    return node;
+}
+
+oop newIf(oop condition, oop s1, oop s2)
+{
+    oop node = newObject(If);
+    node->If.condition = condition;
+    node->If.statement1 = s1;
+    node->If.statement2 = s2;
+    return node;
+}
+
+oop newWhile(oop condition, oop s)
+{
+    oop node = newObject(While);
+    node->While.condition = condition;
+    node->While.statement = s;
+    return node;
+}
+
+oop newBlock(void)
+{
+    oop node = newObject(Block);
+    node->Block.statements = 0;
+    node->Block.size = 0;
+    return node;
+}
+
+void Block_append(oop b, oop s)
+{
+    oop *ss = get(b, Block,statements);
+    int  sz = get(b, Block,size);
+    ss = realloc(ss, sizeof(oop) * (sz + 1));
+    ss[sz++] = s;
+    get(b, Block,statements) = ss;
+    get(b, Block,size) = sz;
+}
+
+void printlnObject(oop node, int indent)
+{
+    printf("%*s", indent*2, "");
+    switch (getType(node)) {
+	case Undefined:	printf("nil\n");				break;
+	case Integer:	printf("%d\n", Integer_value(node));		break;
+	case Float:	printf("%f\n", Float_value(node));		break;
+	case Symbol:	printf("%s\n", get(node, Symbol,name));		break;
+	case Pair: {
+	    printf("Pair\n");
+	    printlnObject(get(node, Pair,a), indent+1);
+	    printlnObject(get(node, Pair,b), indent+1);
+	    break;
+	}
+	case Array: {
+	    printf("Array\n");
+	    for (int i = 0;  i < get(node, Array,size);  ++i)
+		printlnObject(get(node, Array,elements)[i], indent+1);
+	    break;
+	}
+	case Closure: {
+	    printf("Closure\n");
+	    printlnObject(get(node, Closure,function), indent+1);
+	    break;
+	}
+	case Function: {
+	    printf("function()\n");
+	    printlnObject(get(node, Function,parameters), indent+2);
+	    printlnObject(get(node, Function,body), indent+1);
+	    break;
+	}
+	case Binop: {
+	    switch (get(node, Binop,op)) {
+		case NE:  printf("NE\n"); break;
+		case EQ:  printf("EQ\n"); break;
+		case LT:  printf("LT\n"); break;
+		case LE:  printf("LE\n"); break;
+		case GE:  printf("GE\n"); break;
+		case GT:  printf("GT\n"); break;
+		case ADD: printf("ADD\n"); break;
+		case SUB: printf("SUB\n"); break;
+		case MUL: printf("MUL\n"); break;
+		case DIV: printf("DIV\n"); break;
+		case MOD: printf("MOD\n"); break;
+		default:  assert(!"this cannot happen");
+	    }
+	    printlnObject(get(node, Binop,lhs), indent+1);
+	    printlnObject(get(node, Binop,rhs), indent+1);
+	    break;
+	}
+	case Unyop: {
+	    switch (get(node, Unyop,op)) {
+		case NEG: printf("NEG\n"); break;
+		case NOT: printf("NOT\n"); break;
+		default:  assert(!"this cannot happen");
+	    }
+	    printlnObject(get(node, Unyop,rhs), indent+1);
+	    break;
+	}
+	case GetVar: {
+	    printf("GetVar %s\n", get(get(node, GetVar,id), Symbol,name));
+	    break;
+	}
+	case SetVar: {
+	    printf("SetVar %s\n", get(get(node, SetVar,id), Symbol,name));
+	    printlnObject(get(node, SetVar,rhs), indent+1);
+	    break;
+	}
+	case GetArray: {
+	    printf("GetArray\n");
+	    printlnObject(get(node, GetArray,array), indent+1);
+	    printlnObject(get(node, GetArray,index), indent+1);
+	    break;
+	}
+	case SetArray: {
+	    printf("SetArray\n");
+	    printlnObject(get(node, SetArray,array), indent+1);
+	    printlnObject(get(node, SetArray,index), indent+1);
+	    printlnObject(get(node, SetArray,value), indent+1);
+	    break;
+	}
+	case Call: {
+	    printf("Call\n");
+	    printlnObject(get(node, Call,function), indent+1);
+	    printlnObject(get(node, Call,arguments), indent+1);
+	    break;
+	}
+	case Return: {
+	    printf("Return\n");
+	    printlnObject(get(node, Return,value), indent+1);
+	    break;
+	}
+	case Break: {
+	    printf("Break\n");
+	    break;
+	}
+	case Continue: {
+	    printf("Continue\n");
+	    break;
+	}
+	case Print: {
+	    printf("Print\n");
+	    printlnObject(get(node, Print,arguments), indent+1);
+	    break;
+	}
+	case If: {
+	    printf("If\n");
+	    printlnObject(get(node, If,condition), indent+1);
+	    printlnObject(get(node, If,statement1), indent+1);
+	    printlnObject(get(node, If,statement2), indent+1);
+	    break;
+	}
+	case While: {
+	    printf("While\n");
+	    printlnObject(get(node, While,condition), indent+1);
+	    printlnObject(get(node, While,statement), indent+1);
+	    break;
+	}
+	case Block: {
+	    printf("Block...\n");
+	    break;
+	}
+	default:
+	    assert(!"this cannot happen");
+    }
+}
+
+void println(oop obj)	{ printlnObject(obj, 0); }
+
+void print(oop node)
+{
+    switch (getType(node)) {
+	case Undefined:	printf("nil");				break;
+	case Integer:	printf("%d", Integer_value(node));	break;
+	case Float:	printf("%f", Float_value(node));	break;
+	case Symbol:	printf("%s", get(node, Symbol,name));	break;
+	default:	println(node);				break;
+    }
+}
+
+#define YYSTYPE oop
+
+YYSTYPE result;
+
+%}
+
+start	= - s:stmt			  { result = s }
+
+stmt	= PRINT a:args SEMI     	  { $$ = newPrint(a) }
+	| IF LPAR c:expr RPAR s:stmt
+	  ELSE t:stmt            	  { $$ = newIf(c, s, t) }
+	| IF LPAR c:expr RPAR s:stmt	  { $$ = newIf(c, s, false) }
+	| WHILE LPAR c:expr RPAR s:stmt	  { $$ = newWhile(c, s) }
+	| BREAK                           { $$ = newBreak() }
+	| CONTINUE                        { $$ = newContinue() }
+	| RETURN e:expr SEMI              { $$ = newReturn(e) }
+	| RETURN SEMI                     { $$ = newReturn(nil) }
+	| x:expr SEMI			  { $$ = x }
+	| SEMI				  { $$ = false }
+	| FUNCTION i:id p:params b:block  { $$ = newSetVar(i, newFunction(p, b)) }
+	| block
+	| !.                              { printf("\n%d objects allocated\n", nobj);exit(0) }
+	| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
+
+block   = LBRACE b:mkBlock
+	  (
+	    !RBRACE
+	    s:stmt                      { Block_append(b, s) }
+	  )+
+	  RBRACE			{ $$ = b }
+
+mkBlock =                               { $$ = newBlock() }
+
+expr	= assign
+
+assign  = i:id ASSIGN x:assign			{ $$ = newSetVar(i, x) }
+	| v:value i:index ASSIGN x:assign	{ $$ = newSetArray(v, i, x) }
+	| eqop
+
+eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }
+	  	   | NOTEQ rhs:ineq	{ lhs = newBinop(NE, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+ineq    = lhs:add ( GREATER rhs:add	{ lhs = newBinop(GT, lhs, rhs) }
+	          | GREATEQ rhs:add	{ lhs = newBinop(GE, lhs, rhs) }
+	          | LESSEQ  rhs:add	{ lhs = newBinop(LE, lhs, rhs) }
+	          | LESS    rhs:add	{ lhs = newBinop(LT, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+add	= lhs:mul ( PLUS   rhs:mul	{ lhs = newBinop(ADD, lhs, rhs) }
+	  	  | MINUS  rhs:mul	{ lhs = newBinop(SUB, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+mul	= lhs:prefix ( STAR  rhs:prefix	{ lhs = newBinop(MUL, lhs, rhs) }
+	  	     | SLASH rhs:prefix	{ lhs = newBinop(DIV, lhs, rhs) }
+	  	     | PCENT rhs:prefix	{ lhs = newBinop(MOD, lhs, rhs) }
+	  	     )*			{ $$ = lhs }
+
+prefix	= MINUS x:postfix		{ $$ = newUnyop(NEG, x) }
+		| PLING x:postfix		{ $$ = newUnyop(NOT, x) }
+		| PPLUS x:postfix		{ $$ = newUnyop(BINC, x) }
+		| MMINUS x:postfix		{ $$ = newUnyop(BDEC, x) }
+		| postfix
+
+postfix = PPULS v:value { $$ = newUnyop(AINC, v) }
+		| MMINS v:value { $$ = newUnyop(ADEC, v) }
+		|v:value ( a:args		{ v = newCall(a, v) }
+	    | i:index		{ v = newGetArray(v, i) }
+	  	  )*			{ $$ = v }
+
+args	= LPAR a:mkNil
+	  ( i:expr			{ a = newPair(i, a) }
+	    ( COMMA i:expr		{ a = newPair(i, a) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = a }
+
+index	= LBRAK e:expr RBRAK		{ $$ = e }
+
+value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
+	| FUNCTION p:params x:expr	{ $$ = newFunction(p, x) }
+	| float
+	| integer
+	| i:id				{ $$ = newGetVar(i) }
+	| block
+	| array
+
+params	= LPAR p:mkNil
+	  ( i:id			{ p = newPair(i, p) }
+	    ( COMMA i:id		{ p = newPair(i, p) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = p }
+
+mkNil	= 				{ $$ = nil }
+
+float	= < ( [0-9]+            expnt
+	    | [0-9]+ '.' [0-9]* expnt?
+	    | [0-9]* '.' [0-9]+ expnt?
+	    ) > -			{ $$ = newFloat(atof(yytext)) }
+
+expnt	= 'e' [-+]? [0-9]+
+
+integer	= < [0-9]+ > -  		{ $$ = newInteger(atoi(yytext)) }
+
+id	= < alpha alnum* > -		{ $$ = intern(yytext) }
+
+alpha	= [a-zA-Z_]
+alnum	= [a-zA-Z_0-9]
+
+array	= LBRAK a:mkArray
+	  ( e:expr			{ Array_append(a, e) }
+	    ( COMMA e:expr		{ Array_append(a, e) }
+	    )* )? RBRAK			{ $$ = a }
+
+mkArray	=      	  			{ $$ = newArray(0) }
+
+-	= blank*
+
+blank	= [ \t\n\r]
+	| '//' (![\n\r] .)*
+
+eol	= [\r\n]
+
+COMMA	= ","       -
+SEMI	= ";"       -
+ASSIGN	= "=" !"="  -
+EQUAL   = "=="	    -
+NOTEQ   = "!="      -
+LESS    = "<" ![=<] -
+LESSEQ  = "<="      -
+GREATEQ = ">="      -
+GREATER = ">" ![=>] -
+PLUS	= "+" 	    -
+MINUS	= "-" 	    -
+STAR	= "*" 	    -
+SLASH	= "/" 	    -
+PCENT	= "%" 	    -
+LPAR	= "(" 	    -
+RPAR	= ")" 	    -
+LBRACE  = "{" 	    -
+RBRACE  = "}" 	    -
+LBRAK   = "[" 	    -
+RBRAK   = "]" 	    -
+PLING	= "!" !"="  -
+
+FUNCTION = "function" !alnum -
+PRINT    = "print"    !alnum -
+IF       = "if"       !alnum -
+ELSE     = "else"     !alnum -
+WHILE    = "while"    !alnum -
+BREAK    = "break"    !alnum -
+CONTINUE = "continue" !alnum -
+RETURN   = "return"   !alnum -
+
+%%;
+
+int equal(oop l, oop r)
+{
+    if (l == r) return 1;
+    int lt = getType(l), rt = getType(r);
+    if (lt == rt) {
+	switch (lt) {
+	    Integer: return Integer_value(l) == Integer_value(r);
+	    default:
+		fatal("this cannot happen");
+	}
+    }
+    return 0;
+}
+
+int isTrue(oop condition)
+{
+    return getType(condition) != Integer
+	|| Integer_value(condition) != 0;
+}
+
+oop newBoolean(int flag) { return flag ? true : false; }
+
+oop eval(oop exp, oop env);
+
+oop evlist(oop list, oop env)
+{
+    if (getType(list) != Pair) return nil;
+    return newPair(eval(list->Pair.a, env), evlist(list->Pair.b, env));
+}
+
+oop revlist(oop list, oop env)
+{
+    result = nil;
+    while (getType(list) == Pair) {
+	result = newPair(eval(list->Pair.a, env), result);
+	list = list->Pair.b;
+    }
+    return result;
+}
+
+oop pairlist(oop keys, oop values, oop tail)
+{
+    oop result = tail;
+    while (getType(keys) == Pair && getType(values) == Pair) {
+	oop key = keys->Pair.a, value  = values->Pair.a;
+	keys    = keys->Pair.b, values = values->Pair.b;
+	oop assoc = newPair(key, value);
+	result = newPair(assoc, result);
+    }
+    while (getType(keys) == Pair) {
+	oop key = keys->Pair.a;
+	keys    = keys->Pair.b;
+	oop assoc = newPair(key, nil);
+	result = newPair(assoc, result);
+    }
+    return result;
+}
+
+oop lookup(oop alist, oop key) // find key in assoc-list, return assoc or nil
+{
+    while (getType(alist) == Pair) {
+	oop assoc = alist->Pair.a;
+	if (assoc->Pair.a == key)
+	    return assoc;
+	alist = alist->Pair.b;
+    }
+    return nil;  // not found
+}
+
+double floatValue(oop obj)
+{
+    switch (getType(obj)) {
+	case Integer:	return (double)Integer_value(obj);
+	case Float:	return Float_value(obj);
+	default:	fatal("non-numeric argument in binary operator");
+    }
+    return 0;
+}
+
+enum { NLR_SETUP, NLR_BREAK, NLR_CONTINUE, NLR_RETURN };
+
+jmp_buf *nlrs = 0;
+int nnlrs     = 0;
+oop nlrval    = 0;
+
+#define nlrPush() ({						\
+	    nlrs = realloc(nlrs, sizeof(*nlrs) * ++nnlrs);	\
+	    setjmp(nlrs[nnlrs-1]);				\
+	})
+
+#define nlrReturn(N) longjmp(nlrs[nnlrs-1], N)
+
+#define nlrPop() --nnlrs
+
+int compare(oop a, oop b)
+{
+    if (a == b) return 0;
+    enum Type ta = getType(a), tb = getType(b);
+    if (ta == tb) {
+	switch (ta) {
+	    case Undefined: 	break;
+	    case Integer:   	return Integer_value(a) - Integer_value(b);
+	    case Float:   	return Float_value(a) == Float_value(b) ? 0 : (Float_value(a) < Float_value(b) ? -1 : 1);
+	    case Symbol:	return strcmp(a->Symbol.name, b->Symbol.name);
+	    case Closure:
+	    case Function:	return a - b;
+	    default:		fatal("cannot compare types %d and %d", ta, tb);
+	}
+    }
+    if (ta == Integer && tb == Float  ) return Integer_value(a) - Float_value  (b);
+    if (ta == Float   && tb == Integer) return Float_value(a)   - Integer_value(b);
+    return ta - tb;
+}
+
+oop doadd(oop l, oop r)
+{
+    enum Type tl = getType(l), tr = getType(r);
+    if (tl == tr) {
+	switch (tl) {
+	    case Integer: return newInteger(Integer_value(l) + Integer_value(r));
+	    case Float:   return newFloat  (Float_value  (l) + Float_value  (r));
+	    case Array: {
+		int lsize = get(l, Array,size),     rsize = get(r, Array,size);
+		oop *lelt = get(l, Array,elements), *relt = get(r, Array,elements);
+		oop array = newArray(lsize+rsize);
+		oop *elts = get(array, Array,elements);
+		for (int i = 0;  i < lsize;  ++i) elts[      i] = lelt[i];
+		for (int i = 0;  i < rsize;  ++i) elts[lsize+i] = relt[i];
+		return array;
+	    }
+	    default: break;
+	}
+    }
+    if (tl == Integer && tr == Float  ) return newFloat(Integer_value(l) + Float_value  (r));
+    if (tl == Float   && tr == Integer) return newFloat(Float_value  (l) + Integer_value(r));
+    fatal("+: illegal operand types %d and %d", tl, tr);
+    return 0;
+}
+
+#define BINOP(NAME, OP)									\
+    oop NAME(oop l, oop r)								\
+    {											\
+	enum Type tl = getType(l), tr = getType(r);					\
+	switch (tl) {									\
+	    case Integer: switch (tr) {							\
+		case Integer: return newInteger(Integer_value(l) OP Integer_value(r));	\
+		case Float:   return newFloat  (Integer_value(l) OP Float_value  (r));	\
+		default: break;								\
+	    }										\
+	    case Float: switch (tr) {							\
+		case Integer: return newFloat  (Float_value  (l) OP Integer_value(r));	\
+		case Float:   return newFloat  (Float_value  (l) OP Float_value  (r));	\
+		default: break;								\
+	    }										\
+	    default: break;								\
+	}										\
+	fatal(#OP": illegal operand types %d and %d", tl, tr);				\
+	return 0;									\
+    }
+
+BINOP(dosub, -);
+BINOP(domul, *);
+BINOP(dodiv, /);
+
+#undef BINOP
+
+oop domod(oop l, oop r)
+{
+    enum Type tl = getType(l), tr = getType(r);
+    switch (tl) {
+	case Integer: switch (tr) {
+	    case Integer: return newInteger(Integer_value(l)  %  Integer_value(r));
+	    case Float:   return newFloat(fmod(Integer_value(l), Float_value(r)));
+	    default: break;
+	}
+	case Float: switch (tr) {
+	    case Integer: return newFloat(fmod(Float_value(l), Integer_value(r)));
+	    case Float:   return newFloat(fmod(Float_value(l), Float_value(r)));
+	    default: break;
+	}
+	default: break;
+    }
+    fatal("%: illegal operand types %d and %d", tl, tr);
+    return 0;
+}
+
+oop eval(oop exp, oop env) // expr, dynamic environment
+{
+    switch (getType(exp)) {
+	case Undefined:	break;
+	case Integer:	break;
+	case Float:	break;
+	case Symbol:	break;
+	case Pair:	break;
+	case Array: {
+	    int  size = get(exp, Array,size);
+	    oop *elts = get(exp, Array,elements);
+	    oop  arr  = newArray(size);
+	    oop *alts = get(arr, Array,elements);
+	    for (int i = 0;  i < size;  ++i)
+		alts[i] = eval(elts[i], env);
+	    return arr;
+	}
+	case Closure:	break;
+	case Function:	return newClosure(exp, env);
+	case Binop: {
+	    oop lhs = eval(get(exp, Binop,lhs), env);
+	    oop rhs = eval(get(exp, Binop,rhs), env);
+	    enum binop op = get(exp, Binop,op);
+	    assert(getType(lhs) < Binop);
+	    assert(getType(rhs) < Binop);
+	    switch (op) {
+		case EQ:  return newBoolean(compare(lhs, rhs) == 0);
+		case NE:  return newBoolean(compare(lhs, rhs) != 0);
+		case LT:  return newBoolean(compare(lhs, rhs) <  0);
+		case LE:  return newBoolean(compare(lhs, rhs) <= 0);
+		case GE:  return newBoolean(compare(lhs, rhs) >= 0);
+		case GT:  return newBoolean(compare(lhs, rhs) >  0);
+		case ADD: return doadd(lhs, rhs);
+		case SUB: return dosub(lhs, rhs);
+		case MUL: return domul(lhs, rhs);
+		case DIV: return dodiv(lhs, rhs);
+		case MOD: return domod(lhs, rhs);
+		default:
+		    fatal("binary operator %d not implemented (yet ;-))", op);
+	    }
+	    break;
+	}
+	case Unyop: {
+	    oop rhs = eval(get(exp, Unyop,rhs), env);
+	    if (getType(rhs) != Integer) fatal("non-integer in unary expression");
+	    int value = Integer_value(rhs);
+	    switch (get(exp, Unyop,op)) {
+		case NEG:	value = -value;		break;
+		case NOT:
+		default:	assert(!"this cannot happen");
+	    }
+	    return newInteger(value);
+	}
+	case GetVar: {
+	    oop sym = get(exp, GetVar,id);
+	    oop ass = lookup(env, sym);
+	    if (getType(ass) == Pair) return ass->Pair.b;
+	    return get(sym, Symbol,value);
+	}
+	case SetVar: {
+	    oop s = get(exp, SetVar,id);
+	    oop value = eval(get(exp, SetVar,rhs), env);
+	    oop ass = lookup(env, s);
+	    if (getType(ass) == Pair) return ass->Pair.b = value;
+	    get(s, Symbol,value) = value;
+	    return value;
+	}
+	case GetArray: {
+	    oop array = eval(get(exp, GetArray,array), env);
+	    oop index = eval(get(exp, GetArray,index), env);
+	    if (getType(array) != Array)   fatal("[]: object is not an array");
+	    if (getType(index) != Integer) fatal("[]: index is not an integer");
+	    int sz = get(array, Array,size);
+	    int ix = Integer_value(index);
+	    if (ix >= sz) fatal("[]: index %d is out of bounds (%d)", ix, sz);
+	    return get(array, Array,elements)[ix];
+	}
+	case SetArray: {
+	    oop array = eval(get(exp, SetArray,array), env);
+	    oop index = eval(get(exp, SetArray,index), env);
+	    oop value = eval(get(exp, SetArray,value), env);
+	    if (getType(array) != Array)   fatal("[]: object is not an array");
+	    if (getType(index) != Integer) fatal("[]: index is not an integer");
+	    int sz = get(array, Array,size);
+	    int ix = Integer_value(index);
+	    if (ix >= sz) fatal("[]: index %d is out of bounds (%d)", ix, sz);
+	    return get(array, Array,elements)[ix] = value;
+	}
+	case Call: {
+	    oop clo = eval(get(exp, Call,function), env);
+	    switch (getType(clo)) {
+		case Closure: {
+		    oop func   = get(clo, Closure,function);
+		    oop args   = evlist(get(exp, Call,arguments), env);
+		    oop params = get(func, Function,parameters);
+		    oop locals = pairlist(params, args, get(clo, Closure,environment));
+		    switch (nlrPush()) {
+			case NLR_SETUP:     break;
+			case NLR_BREAK:     fatal("break outside loop in fuction");
+			case NLR_CONTINUE:  fatal("continue outside loop in function");
+			case NLR_RETURN:    nlrPop();  return nlrval;
+		    }
+		    oop result = eval(get(func, Function,body), locals);
+		    nlrPop();
+		    return result;
+		}
+		default:
+		    printlnObject(clo, 0);
+		    fatal("cannot call non-function type %d", getType(clo));
+	    }
+	    break;
+	}
+	case Return: {
+	    oop value = eval(get(exp, Return,value), env);
+	    nlrval = value;
+	    nlrReturn(NLR_RETURN);
+	    break;
+	}
+	case Break: {
+	    nlrReturn(NLR_BREAK);
+	    break;
+	}
+	case Continue: {
+	    nlrReturn(NLR_CONTINUE);
+	    break;
+	}
+	case Print: {
+	    oop args  = revlist(get(exp, Print,arguments), env);
+	    oop value = nil;
+	    while (getType(args) == Pair) {
+		print(args->Pair.a);
+		args = args->Pair.b;
+		if (nil != args) printf(" ");
+	    }
+	    printf("\n");
+	    return value;
+	}
+	case If: {
+	    oop condition  = get(exp, If,condition);
+	    oop statement1 = get(exp, If,statement1);
+	    oop statement2 = get(exp, If,statement2);
+	    if (isTrue(eval(condition, env)))
+		return eval(statement1, env); // TRUE condition
+	    return eval(statement2, env);     // FALSE condition
+	}
+	case While: {
+	    oop condition = get(exp, While,condition);
+	    oop statement = get(exp, While,statement);
+	    oop result    = false;
+	    switch (nlrPush()) {
+		case NLR_SETUP:     break;                 	      // setup: run the loop
+		case NLR_BREAK:     nlrPop();  return result;  	      // break out of the loopx
+		case NLR_CONTINUE:  break;                     	      // continue the loop
+		case NLR_RETURN:    nlrPop();  nlrReturn(NLR_RETURN); // pop the stack and return again
+	    }
+	    while (isTrue(eval(condition, env)))
+		result = eval(statement, env);
+	    nlrPop();
+	    return result;
+	}
+	case Block: {
+	    oop *statements = get(exp, Block,statements);
+	    int  size       = get(exp, Block,size);
+	    oop  result     = false;
+	    for (int i = 0;  i < size;  ++i)
+		result = eval(statements[i], env);
+	    return result;
+	}
+	default:	assert(!"this cannot happen");
+    }
+    return exp;
+}
+
+// virtual machine
+
+enum {
+    iHALT, iPRINT, iPUSH, iDROP,
+    iGT, iGE, iEQ, iNE, iLE, iLT, iADD, iSUB, iMUL, iDIV, iMOD,
+    iGETVAR, iSETVAR,
+    iJUMP, iJUMPF, iJUMPT,
+    iCLOSURE, iCALL, iRETURN,
+};
+
+oop  stack = 0;
+oop rstack = 0;  // return stack for function calls
+
+#define push(O)	Array_append(stack, O)
+#define pop()	Array_pop(stack)
+#define top()	Array_last(stack)
+#define depth()	get(stack, Array,size)
+
+#define rpush(O)	Array_append(rstack, O)
+#define rpop()		Array_pop(rstack)
+
+oop execute(oop prog)
+{
+    oop  env  = nil;                        // local variables/parameters
+    oop *code = get(prog, Array,elements);
+//  int  size = get(prog, Array,size);
+
+    int pc = 0;
+# define fetch()	code[pc++]
+
+    for (;;) {
+//	if (pc >= size) fatal("illegal PC");
+	oop op = fetch();
+	switch (Integer_value(op)) {
+	    oop l = nil, r = nil;
+	    case iHALT:
+		if (1 == depth()) return pop();
+		printf("HALT %d\n", depth());
+		printf("stack contains: ");
+		while (get(stack, Array,size)) println(l = pop());
+		return l;
+	    case iPRINT: {
+		int nargs = Integer_value(fetch());
+		l = nil;
+		if (nargs) {
+		    print(l = pop());
+		    while (--nargs) print(pop());
+		}
+		printf("\n");
+		push(l);
+		continue;
+	    }
+	    case iPUSH:
+		l = fetch();
+		push(l);
+		continue;
+	    case iDROP:
+		pop();
+		continue;
+	    case iGT:   r = pop();  l = pop();  push(newBoolean(compare(l, r) >  0));  continue;
+	    case iGE:   r = pop();  l = pop();  push(newBoolean(compare(l, r) >= 0));  continue;
+	    case iEQ:   r = pop();  l = pop();  push(newBoolean(compare(l, r) == 0));  continue;
+	    case iNE:   r = pop();  l = pop();  push(newBoolean(compare(l, r) != 0));  continue;
+	    case iLE:   r = pop();  l = pop();  push(newBoolean(compare(l, r) <= 0));  continue;
+	    case iLT:   r = pop();  l = pop();  push(newBoolean(compare(l, r) <  0));  continue;
+	    case iADD:  r = pop();  l = pop();  push(doadd(l, r));  continue;
+	    case iSUB:  r = pop();  l = pop();  push(dosub(l, r));  continue;
+	    case iMUL:  r = pop();  l = pop();  push(domul(l, r));  continue;
+	    case iDIV:  r = pop();  l = pop();  push(dodiv(l, r));  continue;
+	    case iMOD:  r = pop();  l = pop();  push(domod(l, r));  continue;
+	    case iGETVAR:
+			l = fetch(); 			assert(Symbol == getType(l));
+			push(l->Symbol.value);
+			continue;
+	    case iSETVAR:
+		r = top();
+		l = fetch(); 			assert(Symbol == getType(l));
+		l->Symbol.value = r;
+		continue;
+	    case iJUMP:
+		l = fetch();  // destination offset
+		pc += Integer_value(l);
+		continue;
+	    case iJUMPF:
+		r = pop();
+		l = fetch();  // destination offset
+		if (false == r)
+		    pc += Integer_value(l);
+		continue;
+	    case iJUMPT:
+		r = pop();
+		l = fetch();  // destination offset
+		if (false != r)
+		    pc += Integer_value(l);
+		continue;
+	    case iCLOSURE: // iCLOSURE <Function>
+		l = fetch(); // Function
+		push(newClosure(l, env));
+		continue;
+	    case iCALL: {  // iCALL <nargs>
+		l = fetch(); // number of actual arguments
+		r = pop();   // closure to be called
+		oop func = get(r, Closure,function);
+		rpush(prog);           // save program being executed
+		rpush(newInteger(pc));
+		prog = get(func, Function,code);  // code to be executed = function implementation
+		code = get(prog, Array,elements); // instructions to be executed
+		pc   = 0;                         // start executing at first insn of function body
+		continue;
+	    }
+	    case iRETURN: { // undo the effect of iCALL, leaving result on top of stack
+		pc   = Integer_value(rpop());         // saved program counter
+		prog = rpop();                        // saved program
+		code = get(prog, Array,elements);     // instructions to be executed
+		continue;                             // resume execution in function caller
+	    }
+	    default:
+		fatal("illegal instruction");
+	}
+    }
+# undef fetch
+# undef push
+# undef pop
+    return nil;
+}
+
+// AST->VM compiler
+
+oop compile(oop ast, int haltOrReturn);
+
+void emitL (oop array, oop object) 	  { Array_append(array, object); }
+void emitI (oop array, int i     ) 	  { emitL(array, newInteger(i)); }
+void emitII(oop array, int i, int j)      { emitI(array, i); emitI(array, j); }
+void emitIL(oop array, int i, oop object) { emitI(array, i); emitL(array, object); }
+
+void emitOn(oop prog, oop ast)
+{
+    switch (getType(ast)) {
+	case Undefined:
+	case Integer:
+	case Float:
+	    emitIL(prog, iPUSH, ast);
+	    return;
+	case Symbol:	break;
+	case Pair:	break;
+	case Array:	break;
+	case Closure:	break;
+	case Function: { // parameters body
+	    oop body = compile(get(ast, Function,body), iRETURN); // do not halt, return instead
+	    get(ast, Function,code) = body;
+	    emitIL(prog, iCLOSURE, ast);
+	    return;
+	}
+	case Binop:
+	    emitOn(prog, get(ast, Binop,lhs));
+	    emitOn(prog, get(ast, Binop,rhs));
+	    switch (get(ast, Binop,op)) {
+		case GT:  emitI(prog, iGT );  return;
+		case GE:  emitI(prog, iGE );  return;
+		case EQ:  emitI(prog, iEQ );  return;
+		case NE:  emitI(prog, iNE );  return;
+		case LE:  emitI(prog, iLE );  return;
+		case LT:  emitI(prog, iLT );  return;
+		case ADD: emitI(prog, iADD);  return;
+		case SUB: emitI(prog, iSUB);  return;
+		case MUL: emitI(prog, iMUL);  return;
+		case DIV: emitI(prog, iDIV);  return;
+		case MOD: emitI(prog, iMOD);  return;
+	    }
+	    break;
+	case Unyop:
+	case GetVar: {
+	    oop sym = get(ast, GetVar,id);
+	    emitIL(prog, iGETVAR, sym);
+	    return;
+	}
+	case SetVar: {
+	    oop sym = get(ast, SetVar,id);
+	    oop rhs = get(ast, SetVar,rhs);
+	    emitOn(prog, rhs);
+	    emitIL(prog, iSETVAR, sym);
+	    return;
+	}
+	case GetArray:	break;
+	case SetArray:	break;
+	case Call: {
+	    emitOn(prog, get(ast, Call,function)); // evaluate function expression
+	    emitII(prog, iCALL, 0);                // call closure with 0 arguments
+	    return;
+	}
+	case Return:	break;
+	case Break:	break;
+	case Continue:	break;
+	case Print: {
+	    oop  args = get(ast, Print,arguments);
+	    int nargs = 0;
+	    while (Pair == getType(args)) {
+		emitOn(prog, args->Pair.a);
+		++nargs;
+		args = args->Pair.b;
+	    }
+	    emitII(prog, iPRINT, nargs);
+	    return;
+	}
+#define CURPC		get(prog, Array,size)  // current PC
+#define LABEL(L)	int L = CURPC
+#define PATCH(J, L)	get(prog, Array,elements)[(J)+1] = newInteger((L) - ((J)+2))
+	case If:	break;
+	case While: {
+	    oop condition = get(ast, While,condition);
+	    oop statement = get(ast, While,statement);
+#if 0
+	    		emitIL(prog, iPUSH, nil);	// push default result onto stack
+	    LABEL(L1);	emitOn(prog, condition);	// compute condition
+	    LABEL(J1);	emitII(prog, iJUMPF, 0);	// break from the loop if false
+	    		emitI (prog, iDROP);		// remove previous result from stack
+	    		emitOn(prog, statement);	// run body to compute and push new result
+	    LABEL(J2);	emitII(prog, iJUMP, 0);		// repeat from test
+	    PATCH(J1, CURPC);
+	    PATCH(J2, L1);
+#else
+	    		emitIL(prog, iPUSH, nil);	// push default result onto stack
+	    LABEL(J1);	emitII(prog, iJUMP, 0);		// jump to test
+	    LABEL(L1);	emitI (prog, iDROP);		// remove previous result from stack
+	    		emitOn(prog, statement);	// run body to compute and push new result
+	    PATCH(J1, CURPC);
+	    		emitOn(prog, condition);	// compute condition
+	    LABEL(J2);	emitII(prog, iJUMPT, 0);	// run body if true
+	    PATCH(J2, L1);
+#endif
+	    return;
+	}
+	case Block: {
+	    oop *statements = get(ast, Block,statements);
+	    int  size       = get(ast, Block,size);
+	    emitIL(prog, iPUSH, nil);          // result for an empty block
+	    for (int i = 0;  i < size;  ++i) {
+		emitI (prog, iDROP);           // discard previous result
+		emitOn(prog, statements[i]);   // new result for the block
+	    }
+	    return;
+	}
+    }
+    fatal("emitOn: unimplemented emitter for type %d", getType(ast));
+}
+
+oop compile(oop ast, int haltOrReturn)
+{
+    oop prog = newArray(0);   // program code goes here
+    emitOn(prog, ast);
+    emitI (prog, haltOrReturn);
+    return prog;
+}
+
+
+int main(int argc, char **argv)
+{
+#if TAGFLT
+    assert(sizeof(double) == sizeof(intptr_t));
+#endif
+
+    nil   = newObject(Undefined);
+    false = newInteger(0);
+    true  = newInteger(1);
+
+    nlrval = nil;
+
+     stack = newArray(0);
+    rstack = newArray(0);
+
+
+/*     emitII(prog, iPUSH, 0); */
+/* L1: emitII(prog, iPRINT, 1); */
+/*     emitII(prog, iPUSH, 1); */
+/*     emitI (prog, iADD); */
+/*     emitI (prog, iJUMP, L1);   // dest = fetch();  pc += dest; */
+/*     emitI (prog, HALT); */
+
+    for (int argn = 1;  argn < argc;  ++argn) {
+	if      (!strcmp(argv[argn], "-v"))	++opt_v;
+	else if (!strcmp(argv[argn], "-i"))	++opt_i;
+	else
+	    fatal("%s: unknown option '%s'", argv[0], argv[argn]);
+    }
+
+    if (!opt_i) {
+	while (yyparse()) {
+	    oop prog = compile(result, iHALT); // halt after running the expression/statement
+	    if (opt_v > 1) println(prog);
+	    oop result = execute(prog);
+	    if (opt_v > 0) println(result);
+	}
+	return 0;
+    }
+
+    switch (nlrPush()) {
+	case NLR_SETUP:     break;
+	case NLR_BREAK:     fatal("break outside loop");
+	case NLR_CONTINUE:  fatal("continue outside loop");
+	case NLR_RETURN:    fatal("return outside function");
+    }
+
+    while (yyparse()) {
+	assert(nnlrs == 1);
+	if (opt_v > 1) printlnObject(result, 0);
+	oop value = eval(result, nil);
+	if (opt_v > 0) { printf(" => ");  printlnObject(value, 0); }
+    }
+
+    assert(nnlrs == 1);
+    nlrPop();
+
+    printf("%d\n", nobj);
+
+    return 0;
+}
