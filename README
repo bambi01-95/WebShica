@@ -17,6 +17,16 @@ NOT YET
 
 
 
+# vms
+S num
+    C lib num
+        T pPC cPC
+        T pPC cPC
+    C lib num
+        T pPC cPC
+        T pPC cPC
+
+
 # user-define function call
 
 func(1,2)

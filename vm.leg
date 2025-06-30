@@ -44,7 +44,7 @@ void rprintf(char *msg, ...)
 	printf("\x1b[0m");
 	va_end(ap);
 }
-
+#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
 
 #ifdef __EMSCRIPTEN__
 
@@ -740,13 +740,12 @@ YYSTYPE result;
 int newline = 0;
 %}
 
-start	= - s:stmt { result = s; }
+start	= - s:state {result = s;}
 		| - s:define { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
 		| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
-		# - s:state {result = s;}
 
-#state = STATE i:id p:params e:events { $$ = newState(i, p, e); }
+state = STATE i:id p:params e:events { $$ = newState(i, p, e); }
 
 events = LBRACE b:mkBlock
 	  (
@@ -756,7 +755,14 @@ events = LBRACE b:mkBlock
 	  RBRACE			{ $$ = b }
 
 
-event = i:id p:params b:block { $$ = newEvent(i, p, b); }
+event = i:id p:eparams b:block { $$ = newEvent(i, p, b); }
+
+eparams	= LPAR p:mkNil
+	  ( i:id c:mkFalse (c:eqop)?			{ p = newPair(newPair(i,c), p) }
+	    ( COMMA i:id	c:mkFalse (c:eqop)	{ p = newPair(newPair(i,c), p) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = p }
 
 params	= LPAR p:mkNil
 	  ( i:id			{ p = newPair(i, p) }
@@ -791,6 +797,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
 		| x:expr SEMI			  { result = x; }
 		| - SEMI				  { result = false; }
+		| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
 
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newPair(i, a) }
@@ -891,7 +898,7 @@ LBRAK   = "[" 	    -
 RBRAK   = "]" 	    -
 PLING	= "!" !"="  -
 
-STATE = "state" -
+STATE = "stt" -
 IF    = "if" -
 ELSE  = "else" -
 PRINT = "print" -
@@ -982,11 +989,15 @@ enum {
 	iPRINT,
 	iJUMP, // jump to a position
 	iJUMPIF, // jump if top of stack is true
+	iJUDGE,  //for event condtion
 	iPCALL, iCALL, // call a function
 	iRETURN, // return from a function
 	iCLEAN,//
 	iSETSTATE,//NE: Number of events in the state
-	iSETEVENT,//ET: Event type, EPOS: Event position
+	iSETEVENT,//ET: Event type, NP: Number of process
+	iEOE,
+	iEOC,
+	iIMPL, // aPos, cPos
 };
 char *opnames[] = {
 	"HALT", "PUSH",
@@ -996,8 +1007,9 @@ char *opnames[] = {
 	"PRINT",
 	"JUMP",
 	"JUMPIF",
-	"SETSTATE",
+	"SETSTATE", 
 	"SETEVENT",
+	"IMPL",
 };
 
 
@@ -1037,14 +1049,48 @@ int dequeue3(struct IntQue3 *q)
 }
 
 typedef int (*opfunc)(struct IntQue3 *q);
+
+struct Thread{
+	int apos;
+	int cpos;
+	struct IntQue3 *queue;
+	iptr stack;
+	int rbp; // base pointer
+	int pc; // program counter
+}
+
 struct EventHandler{
 	int *data;
-	int pos;
-	int handler;
+	int size;
+	int EventID;
+	struct Thread **threads; // thread that this handler belongs to
+}; 
+
+struct Agent{
+	int id;
+	int isActive;
+	int nEvents;
 	int pc;
+	int rbp;
 	iptr stack;
-	struct IntQue3 *queue;
+	struct EventHandler **eventHandlers;
+}Agents[3] = {
+	{0, 0, 0, 0, 0, NULL}, // Agent 0
+	{1, 0, 0, 0, 0, NULL}, // Agent 1
+	{2, 0, 0, 0, 0, NULL}  // Agent 2
 };
+int nAgents = 1; // number of agents
+int onProcessID = 0;
+enum kind{
+
+} kind;
+union Entity{
+	kind kind;
+	struct Agent agent;
+	struct EventHandler eventHandler;
+	struct Thread thread;
+}
+
 
 struct EventHandler *eventHandler_init(int pos, int handler, int nArgs, int dataSize)
 {
@@ -1058,16 +1104,26 @@ struct EventHandler *eventHandler_init(int pos, int handler, int nArgs, int data
 	return eh;
 }
 
+
 /* ====== HANDLER FUNCTION ====== */
 
 /* ============================== */
 
+#define EVENT_EH        0x00 // Event Handler
 #define	TIMER_EH	    0x01
 #define	TOUCH_EH	    0x02
 #define	COLLISION_EH	0x03
 #define	SELF_STATE_EH	0x04
-
 // Event Handlers VM
+
+int event_handler(struct IntQue3 *q){
+	int event = 0;
+	if (q->head == q->tail) {
+		queue3(q, event); // enqueue a dummy event
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
 int timer_handler(struct IntQue3 *q)
 {
 	int time = 0;
@@ -1117,7 +1173,9 @@ int (*eventHandlers[])(struct IntQue3 *q) = {
 };
 int compile_event_init(){
 	oop EH = NULL;
-	
+	EH = intern("eventEH");
+	EH->Symbol.value = newEventID(EVENT_EH,1); // 1 argument
+
 	EH = intern("timerEH");
 	EH->Symbol.value = newEventID(TIMER_EH,1);
 
@@ -1141,7 +1199,7 @@ int init_compiler(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #if DEBUG
@@ -1192,6 +1250,7 @@ iptr execute(iptr prog,iptr stack)
 		}
 	    case iHALT:{
 			printOP(_iHALT\n_);
+			pop();//first rbp
 			for(int i = 0;  i < stack->size;  ++i) {
 				printf("%d ", stack->elements[i]);
 			}
@@ -1213,7 +1272,7 @@ iptr execute(iptr prog,iptr stack)
 			printOP(_iGETVAR_);
 			int symIndex = fetch(); // need to change
 			push(stack->elements[symIndex + rbp+1]); // get the variable value
-			printf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
+			dprintf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
 			continue;
 		}	    
 	    case iSETVAR:{
@@ -1270,7 +1329,7 @@ iptr execute(iptr prog,iptr stack)
 
 			push(rbp); // save the current base pointer
 			rbp = stack->size-1; // set the base pointer to the current stack size
-			printf("rbp: %d, pc: %d\n", rbp, pc);
+			dprintf("rbp: %d, pc: %d\n", rbp, pc);
 
 			for (int i = 1;  i <= r;  ++i) {
 				push(pick((rbp - i -1)));//pc
@@ -1307,17 +1366,43 @@ iptr execute(iptr prog,iptr stack)
 			continue;
 		}
 		case iSETSTATE:{
-			fatal("iSETSTATE is not implemented yet");
-			// printOP(_iSETSTATE_);
-			// int eventSize = fetch(); // number of events in the state
-			// struct EventHandler **ehs = (struct EventHandler**)malloc(sizeof(struct EventHandler*) * eventSize);
-			// for (int i = 0;  i < eventSize;  ++i)
-			// {
-			// 	int pos = fetch(); // position of the event handler
-			// 	int eventType = fetch(); // type of the event handler
-			// 	int nArgs = fetch(); // size of the arguments
-			// 	ehs[i] = eventHandler_init(pos, eventType, nArgs, 1); // create a new event handler
-			// }
+			printOP(_iSETSTATE_);
+			l = fetch(); // get the state position
+			continue;
+		}
+		case iSETEVENT:{
+			printOP(_iSETEVENT_);
+			l = fetch();// event id
+			r = fetch();// event action pc
+			int cpc = fetch(); // action pc
+			int isNew = 1;
+			for(int i=0; i<Agents[onProcessID].nEvents; i++) {
+				if(Agents[onProcessID].eventHandlers[i]->EventID == l) {
+					isNew = 0; // event handler already exists
+					EventHandler *eh = Agents[onProcessID].eventHandlers[i];
+					eh->threads = realloc(eh->threads, sizeof(struct Thread*) * (eh->size + 1));
+					eh->threads[eh->size] = (struct Thread*)malloc(sizeof(struct Thread));
+					eh->threads[eh->size]->apos = apc; // action pc
+					eh->threads[eh->size]->cpos = cpc; // codition pc
+					break;
+				}
+			}
+			if(isNew) {
+				// create a new event handler
+				Agents[onProcessID].eventHandlers = realloc(Agents[onProcessID].eventHandlers, sizeof(struct EventHandler*) * (Agents[onProcessID].nEvents + 1));
+				struct EventHandler *eh = Agents[onProcessID].eventHandler[Agents[onProcessID].nEvents] = (struct EventHandler*)malloc(sizeof(struct EventHandler));
+				eh->EventID = l;
+				eh->threads = (struct Thread**)malloc(sizeof(struct Thread*));
+				eh->threads[0] = (struct Thread*)malloc(sizeof(struct Thread));
+				eh->threads[0]->apos = apc; // action pc
+				eh->threads[0]->cpos = cpc; // codition pc
+				Agents[onProcessID].nEvents++;
+			}
+			continue;
+		}
+		case iIMPL:{
+			printOP(_iIMPL_);
+			Agents[onProcessId].active = 0;
 			continue;
 		}
 	    default:fatal("illegal instruction %d", op);
@@ -1425,8 +1510,8 @@ oop appendS0T1(oop name, int pos,int type)
 		printf("type must be 0 or 1, got %d\n", type);
 		exit(1);
 	}
-	oop *lists = type == 0 ? states : transitions;
-	int *listSize = type == 0 ? &nstates : &ntransitions;
+	oop *lists = type == APSTATE ? states : transitions;
+	int *listSize = type == APSTATE ? &nstates : &ntransitions;
 	for (int i = 0;  i < *listSize;  ++i) {
 		oop state = lists[i];
 		oop stateName = get(state, Pair,a);
@@ -1435,8 +1520,11 @@ oop appendS0T1(oop name, int pos,int type)
 			return state;
 		}
 	}
-
+	lists = realloc(lists, sizeof(oop) * (*listSize + 1));
+	gc_pushRoot((void*)&lists);
+	gc_pushRoot((void*)&name);
 	oop newState = newPair(name, newInteger(pos));
+	gc_popRoots(2);
 	lists[*listSize] = newState;
 	(*listSize)++;
 	return newState;
@@ -1784,9 +1872,7 @@ void emitOn(iptr prog,oop vars, oop ast)
 			// compile events
 			oop *eventList = events->Block.statements;
 			int nEvents = events->Block.size;
-			int *eventsPos = malloc(sizeof(int) * nEvents);
 			for (int i = 0;  i < nEvents;  ++i){
-				eventsPos[i] = prog->size; // remember position of each event
 				emitOn(prog, vars, eventList[i]); // compile each event
 			}
 			// state initialization
@@ -1796,16 +1882,17 @@ void emitOn(iptr prog,oop vars, oop ast)
 				oop event = eventList[i];
 				oop id = get(event, Event,id);
 				oop eh = get(id,Symbol,value);
+				oop posPair = get(event, Event,block);
 				int eventID = eh->EventID.id; // get event ID
-				int nArgs = eh->EventID.nArgs; // get argument size
-				emitIII(prog, eventsPos[i], eventID, nArgs); // set the event ID and position
+				emitII(prog,iSETEVENT, eventID); // set the event ID and position
+				emitII(prog, Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
 			}
-			free(eventsPos); // free the events position array
-			emitOn(prog, vars, events); // compile events
+			emitI(prog, iIMPL);
 			return;
 		}
 		case Event:{
 			printTYPE(_Event_);
+
 			oop id = get(ast, Event,id);
 			oop eh = get(id,Symbol,value);
 			if(getType(eh) != EventID) {
@@ -1819,24 +1906,40 @@ void emitOn(iptr prog,oop vars, oop ast)
 			
 			int nArgs = eh->EventID.nArgs;
 			int paramSize =0;
-			while(params != nil) {
+			int cPos      = 0;
+			while(params != nil) {//a:id-b:cond
 				oop param = get(params, Pair,a);
-				insertVariable(eventLocalVariables, param); // add parameter to local variables
+				insertVariable(eventLocalVariables, get(param,Pair,a)); // add parameter to local variables
+				if(get(param, Pair, b)!= false){
+					if(cPos==0)cPos = prog->size; // remember the position of the condition
+					emitOn(prog, eventLocalVariables, get(param, Pair,b)); // compile condition if exists
+					emitI(prog,iJUDGE); // emit JUDGE instruction
+				}
 				params = get(params, Pair,b);
+				paramSize++;
+			}
+			if(cPos != 0){
+				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
 				printf("event %s has %d parameters, but expected %d\n", get(id, Symbol,name), paramSize, nArgs);
 				exit(1);
 			}
-
-			emitIL(prog, iMKSPACE, 0); // reserve space for local variables
+			int aPos = prog->size; // remember the position of the event handler
+			emitII(prog, iMKSPACE, 0); // reserve space for local variables
 			int mkspacepos = prog->size - 1; // remember the position of MKSPACE
 
 			// emitOn(prog, vars, params); // compile parameters
+
 			emitOn(prog, eventLocalVariables, block); // compile block
 
 			prog->elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
 			GC_POP(eventLocalVariables); // pop local variables from GC roots
+			GC_PUSH(oop,apos, newInteger(aPos));
+			GC_PUSH(oop,cpos,newInteger(cPos));
+			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
+			GC_POP(cpos);
+			GC_POP(apos);
 			return;
 		}
 		default:break;
@@ -1884,6 +1987,9 @@ void printCode(iptr code){
 				printf("%03d: JUMPIF  %03d(%3d)\n", i-1, code->elements[i], code->elements[i] + (i+1));
 				break;
 			}
+			case iJUDGE: printf("%03d: JUDGE\n", i); break;
+			case iEOC:   printf("%03d: EOC\n", i); break;
+			case iEOE:  printf("%03d: EOE\n", i); break;
 			case iRETURN: printf("%03d: RETURN\n", i); break;
 			case iCLEAN: {
 				++i;
@@ -1902,6 +2008,23 @@ void printCode(iptr code){
 				int pos = code->elements[++i];
 				int nArgs = code->elements[++i];
 				printf("%03d: CALL    %03d(%3d) %03d\n", i-2, pos, (i+1)+pos, nArgs);
+				break;
+			}
+			case iSETSTATE: {
+				++i;
+				int nEvents = code->elements[i];
+				printf("%03d: SETSTATE %03d\n", i-1, nEvents);
+				break;
+			}
+			case iSETEVENT:{
+				int eventID = code->elements[++i];
+				int apos = code->elements[++i];
+				int cpos = code->elements[++i];
+				printf("%03d: SETEVENT %03d %3d %03d\n", i-2, eventID, apos, cpos);
+				break;
+			}
+			case iIMPL:{
+				printf("%03d: IMPL\n", i-1);
 				break;
 			}
 			default:
@@ -2253,6 +2376,15 @@ void collectExecutors(void)
 			gc_markOnly(code->elements); // mark the code elements
 		}
 	}
+	// collect agents
+	if(nAgents != 0){
+		for(int i = 0;  i < nAgents;  ++i)
+		{
+			gc_markOnly(Agents[i]); // mark the agents
+			iptr code = Agents[i]->Agent.code; // get the code of the agent
+
+		}
+	}
 	dprintf("collectExecutors done\n");
 }
 
@@ -2298,7 +2430,7 @@ int main(int argc, char **argv)
 #if TAGFLT
     assert(sizeof(double) == sizeof(intptr_t));
 #endif
-	gc_init(1024 * 1024); // initialize garbage collector with 10MB heap size
+	gc_init(1024 * 1024);// initialize the garbage collector with 1MB of memory 
 
     nil   = newObject(Undefined);	gc_pushRoot(nil);
     false = newInteger(0);			gc_pushRoot(false);
@@ -2307,6 +2439,7 @@ int main(int argc, char **argv)
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
 	rprintf("Compiling code:\n");
+	compile_event_init(); // initialize the event system
 	// compile code
 	iptr code = compile();
 
@@ -2322,6 +2455,10 @@ int main(int argc, char **argv)
 	nroots = 0; // reset the number of roots
 	gc_collect();
 
+	printf("end of compilation\n");
+	return 0;
+
+
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
 
 	// execute code
@@ -2332,19 +2469,6 @@ int main(int argc, char **argv)
 	execute(code, globalVariables);
 	GC_POP(globalVariables); // pop global variables from GC roots
 
-	// 	gc_collect();
-
-    // GC_PUSH(iptr, second, intArray_init());
-	// printf("nroots[%d] g:%p\n",nroots, second);
-	// execute(code, second);
-	// GC_POP(second); // pop global variables from GC roots
-
-	// 	gc_collect();
-
-	// GC_PUSH(iptr, third, intArray_init());
-	// printf("nroots[%d] g:%p\n",nroots, third);
-	// execute(code, third);
-	// GC_POP(third); // pop global variables from GC roots
 
 	rprintf("Execution finished.\n");
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now

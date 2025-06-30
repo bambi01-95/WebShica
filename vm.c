@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define YYRULECOUNT 61
+#define YYRULECOUNT 63
 #line 1 "./vm.leg"
 
 
@@ -51,7 +51,7 @@ void rprintf(char *msg, ...)
 	printf("\x1b[0m");
 	va_end(ap);
 }
-
+#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
 
 #ifdef __EMSCRIPTEN__
 
@@ -1014,65 +1014,67 @@ YY_LOCAL(void) yySet(yycontext *yy, char *text, int count)   { yy->__val[count]=
 
 #define	YYACCEPT	yyAccept(yy, yythunkpos0)
 
-YY_RULE(int) yy_STATE(yycontext *yy); /* 61 */
-YY_RULE(int) yy_blank(yycontext *yy); /* 60 */
-YY_RULE(int) yy_alnum(yycontext *yy); /* 59 */
-YY_RULE(int) yy_alpha(yycontext *yy); /* 58 */
-YY_RULE(int) yy_mkArray(yycontext *yy); /* 57 */
-YY_RULE(int) yy_array(yycontext *yy); /* 56 */
-YY_RULE(int) yy_integer(yycontext *yy); /* 55 */
-YY_RULE(int) yy_RBRAK(yycontext *yy); /* 54 */
-YY_RULE(int) yy_LBRAK(yycontext *yy); /* 53 */
-YY_RULE(int) yy_MMINUS(yycontext *yy); /* 52 */
-YY_RULE(int) yy_PPLUS(yycontext *yy); /* 51 */
-YY_RULE(int) yy_PLING(yycontext *yy); /* 50 */
-YY_RULE(int) yy_postfix(yycontext *yy); /* 49 */
-YY_RULE(int) yy_PCENT(yycontext *yy); /* 48 */
-YY_RULE(int) yy_SLASH(yycontext *yy); /* 47 */
-YY_RULE(int) yy_STAR(yycontext *yy); /* 46 */
-YY_RULE(int) yy_prefix(yycontext *yy); /* 45 */
-YY_RULE(int) yy_MINUS(yycontext *yy); /* 44 */
-YY_RULE(int) yy_PLUS(yycontext *yy); /* 43 */
-YY_RULE(int) yy_mul(yycontext *yy); /* 42 */
-YY_RULE(int) yy_LESS(yycontext *yy); /* 41 */
-YY_RULE(int) yy_LESSEQ(yycontext *yy); /* 40 */
-YY_RULE(int) yy_GREATEQ(yycontext *yy); /* 39 */
-YY_RULE(int) yy_GREATER(yycontext *yy); /* 38 */
-YY_RULE(int) yy_add(yycontext *yy); /* 37 */
-YY_RULE(int) yy_NOTEQ(yycontext *yy); /* 36 */
-YY_RULE(int) yy_EQUAL(yycontext *yy); /* 35 */
-YY_RULE(int) yy_ineq(yycontext *yy); /* 34 */
-YY_RULE(int) yy_eqop(yycontext *yy); /* 33 */
-YY_RULE(int) yy_index(yycontext *yy); /* 32 */
-YY_RULE(int) yy_value(yycontext *yy); /* 31 */
-YY_RULE(int) yy_ASSIGN(yycontext *yy); /* 30 */
-YY_RULE(int) yy_assignment(yycontext *yy); /* 29 */
-YY_RULE(int) yy_RET(yycontext *yy); /* 28 */
-YY_RULE(int) yy_FOR(yycontext *yy); /* 27 */
-YY_RULE(int) yy_WHILE(yycontext *yy); /* 26 */
-YY_RULE(int) yy_ELSE(yycontext *yy); /* 25 */
-YY_RULE(int) yy_expr(yycontext *yy); /* 24 */
-YY_RULE(int) yy_IF(yycontext *yy); /* 23 */
-YY_RULE(int) yy_SEMI(yycontext *yy); /* 22 */
-YY_RULE(int) yy_args(yycontext *yy); /* 21 */
-YY_RULE(int) yy_PRINT(yycontext *yy); /* 20 */
-YY_RULE(int) yy_FUNC(yycontext *yy); /* 19 */
+YY_RULE(int) yy_blank(yycontext *yy); /* 63 */
+YY_RULE(int) yy_alnum(yycontext *yy); /* 62 */
+YY_RULE(int) yy_alpha(yycontext *yy); /* 61 */
+YY_RULE(int) yy_mkArray(yycontext *yy); /* 60 */
+YY_RULE(int) yy_array(yycontext *yy); /* 59 */
+YY_RULE(int) yy_integer(yycontext *yy); /* 58 */
+YY_RULE(int) yy_RBRAK(yycontext *yy); /* 57 */
+YY_RULE(int) yy_LBRAK(yycontext *yy); /* 56 */
+YY_RULE(int) yy_MMINUS(yycontext *yy); /* 55 */
+YY_RULE(int) yy_PPLUS(yycontext *yy); /* 54 */
+YY_RULE(int) yy_PLING(yycontext *yy); /* 53 */
+YY_RULE(int) yy_postfix(yycontext *yy); /* 52 */
+YY_RULE(int) yy_PCENT(yycontext *yy); /* 51 */
+YY_RULE(int) yy_SLASH(yycontext *yy); /* 50 */
+YY_RULE(int) yy_STAR(yycontext *yy); /* 49 */
+YY_RULE(int) yy_prefix(yycontext *yy); /* 48 */
+YY_RULE(int) yy_MINUS(yycontext *yy); /* 47 */
+YY_RULE(int) yy_PLUS(yycontext *yy); /* 46 */
+YY_RULE(int) yy_mul(yycontext *yy); /* 45 */
+YY_RULE(int) yy_LESS(yycontext *yy); /* 44 */
+YY_RULE(int) yy_LESSEQ(yycontext *yy); /* 43 */
+YY_RULE(int) yy_GREATEQ(yycontext *yy); /* 42 */
+YY_RULE(int) yy_GREATER(yycontext *yy); /* 41 */
+YY_RULE(int) yy_add(yycontext *yy); /* 40 */
+YY_RULE(int) yy_NOTEQ(yycontext *yy); /* 39 */
+YY_RULE(int) yy_EQUAL(yycontext *yy); /* 38 */
+YY_RULE(int) yy_ineq(yycontext *yy); /* 37 */
+YY_RULE(int) yy_index(yycontext *yy); /* 36 */
+YY_RULE(int) yy_value(yycontext *yy); /* 35 */
+YY_RULE(int) yy_ASSIGN(yycontext *yy); /* 34 */
+YY_RULE(int) yy_assignment(yycontext *yy); /* 33 */
+YY_RULE(int) yy_RET(yycontext *yy); /* 32 */
+YY_RULE(int) yy_FOR(yycontext *yy); /* 31 */
+YY_RULE(int) yy_WHILE(yycontext *yy); /* 30 */
+YY_RULE(int) yy_ELSE(yycontext *yy); /* 29 */
+YY_RULE(int) yy_expr(yycontext *yy); /* 28 */
+YY_RULE(int) yy_IF(yycontext *yy); /* 27 */
+YY_RULE(int) yy_SEMI(yycontext *yy); /* 26 */
+YY_RULE(int) yy_args(yycontext *yy); /* 25 */
+YY_RULE(int) yy_PRINT(yycontext *yy); /* 24 */
+YY_RULE(int) yy_FUNC(yycontext *yy); /* 23 */
+YY_RULE(int) yy_stmt(yycontext *yy); /* 22 */
+YY_RULE(int) yy_RPAR(yycontext *yy); /* 21 */
+YY_RULE(int) yy_COMMA(yycontext *yy); /* 20 */
+YY_RULE(int) yy_eqop(yycontext *yy); /* 19 */
 YY_RULE(int) yy_mkFalse(yycontext *yy); /* 18 */
-YY_RULE(int) yy_RPAR(yycontext *yy); /* 17 */
-YY_RULE(int) yy_COMMA(yycontext *yy); /* 16 */
-YY_RULE(int) yy_mkNil(yycontext *yy); /* 15 */
-YY_RULE(int) yy_LPAR(yycontext *yy); /* 14 */
-YY_RULE(int) yy_block(yycontext *yy); /* 13 */
-YY_RULE(int) yy_params(yycontext *yy); /* 12 */
-YY_RULE(int) yy_id(yycontext *yy); /* 11 */
-YY_RULE(int) yy_event(yycontext *yy); /* 10 */
-YY_RULE(int) yy_RBRACE(yycontext *yy); /* 9 */
-YY_RULE(int) yy_mkBlock(yycontext *yy); /* 8 */
-YY_RULE(int) yy_LBRACE(yycontext *yy); /* 7 */
-YY_RULE(int) yy_events(yycontext *yy); /* 6 */
+YY_RULE(int) yy_mkNil(yycontext *yy); /* 17 */
+YY_RULE(int) yy_LPAR(yycontext *yy); /* 16 */
+YY_RULE(int) yy_block(yycontext *yy); /* 15 */
+YY_RULE(int) yy_eparams(yycontext *yy); /* 14 */
+YY_RULE(int) yy_event(yycontext *yy); /* 13 */
+YY_RULE(int) yy_RBRACE(yycontext *yy); /* 12 */
+YY_RULE(int) yy_mkBlock(yycontext *yy); /* 11 */
+YY_RULE(int) yy_LBRACE(yycontext *yy); /* 10 */
+YY_RULE(int) yy_events(yycontext *yy); /* 9 */
+YY_RULE(int) yy_params(yycontext *yy); /* 8 */
+YY_RULE(int) yy_id(yycontext *yy); /* 7 */
+YY_RULE(int) yy_STATE(yycontext *yy); /* 6 */
 YY_RULE(int) yy_eol(yycontext *yy); /* 5 */
 YY_RULE(int) yy_define(yycontext *yy); /* 4 */
-YY_RULE(int) yy_stmt(yycontext *yy); /* 3 */
+YY_RULE(int) yy_state(yycontext *yy); /* 3 */
 YY_RULE(int) yy__(yycontext *yy); /* 2 */
 YY_RULE(int) yy_start(yycontext *yy); /* 1 */
 
@@ -1083,7 +1085,7 @@ YY_ACTION(void) yy_1_id(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_id\n"));
   {
-#line 856
+#line 863
    __ = intern(yytext) ;
   }
 #undef yythunkpos
@@ -1097,7 +1099,7 @@ YY_ACTION(void) yy_1_integer(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_integer\n"));
   {
-#line 854
+#line 861
    __ = newInteger(atoi(yytext)) ;
   }
 #undef yythunkpos
@@ -1111,7 +1113,7 @@ YY_ACTION(void) yy_1_mkArray(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkArray\n"));
   {
-#line 852
+#line 859
    __ = newArray(0) ;
   }
 #undef yythunkpos
@@ -1127,7 +1129,7 @@ YY_ACTION(void) yy_3_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_array\n"));
   {
-#line 851
+#line 858
    __ = a ;
   }
 #undef yythunkpos
@@ -1145,7 +1147,7 @@ YY_ACTION(void) yy_2_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_array\n"));
   {
-#line 850
+#line 857
    Array_append(a, e) ;
   }
 #undef yythunkpos
@@ -1163,7 +1165,7 @@ YY_ACTION(void) yy_1_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_array\n"));
   {
-#line 849
+#line 856
    Array_append(a, e) ;
   }
 #undef yythunkpos
@@ -1181,7 +1183,7 @@ YY_ACTION(void) yy_2_value(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_value\n"));
   {
-#line 844
+#line 851
    __ = newGetVar(i) ;
   }
 #undef yythunkpos
@@ -1199,7 +1201,7 @@ YY_ACTION(void) yy_1_value(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_value\n"));
   {
-#line 842
+#line 849
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1216,7 +1218,7 @@ YY_ACTION(void) yy_1_index(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_index\n"));
   {
-#line 840
+#line 847
    __ = e ;
   }
 #undef yythunkpos
@@ -1234,7 +1236,7 @@ YY_ACTION(void) yy_5_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_postfix\n"));
   {
-#line 838
+#line 845
    __ = v ;
   }
 #undef yythunkpos
@@ -1254,7 +1256,7 @@ YY_ACTION(void) yy_4_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_postfix\n"));
   {
-#line 837
+#line 844
    v = newGetArray(v, i) ;
   }
 #undef yythunkpos
@@ -1274,7 +1276,7 @@ YY_ACTION(void) yy_3_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_postfix\n"));
   {
-#line 836
+#line 843
    v = newCall(a, v) ;
   }
 #undef yythunkpos
@@ -1294,7 +1296,7 @@ YY_ACTION(void) yy_2_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_postfix\n"));
   {
-#line 835
+#line 842
    __ = newUnyop(ADEC, v) ;
   }
 #undef yythunkpos
@@ -1314,7 +1316,7 @@ YY_ACTION(void) yy_1_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_postfix\n"));
   {
-#line 834
+#line 841
    __ = newUnyop(AINC, v) ;
   }
 #undef yythunkpos
@@ -1332,7 +1334,7 @@ YY_ACTION(void) yy_4_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_prefix\n"));
   {
-#line 831
+#line 838
    __ = newUnyop(BDEC, x) ;
   }
 #undef yythunkpos
@@ -1348,7 +1350,7 @@ YY_ACTION(void) yy_3_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_prefix\n"));
   {
-#line 830
+#line 837
    __ = newUnyop(BINC, x) ;
   }
 #undef yythunkpos
@@ -1364,7 +1366,7 @@ YY_ACTION(void) yy_2_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_prefix\n"));
   {
-#line 829
+#line 836
    __ = newUnyop(NOT, x) ;
   }
 #undef yythunkpos
@@ -1380,7 +1382,7 @@ YY_ACTION(void) yy_1_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_prefix\n"));
   {
-#line 828
+#line 835
    __ = newUnyop(NEG, x) ;
   }
 #undef yythunkpos
@@ -1397,7 +1399,7 @@ YY_ACTION(void) yy_4_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_mul\n"));
   {
-#line 825
+#line 832
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1415,7 +1417,7 @@ YY_ACTION(void) yy_3_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_mul\n"));
   {
-#line 824
+#line 831
    lhs = newBinop(MOD, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1433,7 +1435,7 @@ YY_ACTION(void) yy_2_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_mul\n"));
   {
-#line 823
+#line 830
    lhs = newBinop(DIV, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1451,7 +1453,7 @@ YY_ACTION(void) yy_1_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mul\n"));
   {
-#line 822
+#line 829
    lhs = newBinop(MUL, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1469,7 +1471,7 @@ YY_ACTION(void) yy_3_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_add\n"));
   {
-#line 820
+#line 827
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1487,7 +1489,7 @@ YY_ACTION(void) yy_2_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_add\n"));
   {
-#line 819
+#line 826
    lhs = newBinop(SUB, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1505,7 +1507,7 @@ YY_ACTION(void) yy_1_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_add\n"));
   {
-#line 818
+#line 825
    lhs = newBinop(ADD, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1523,7 +1525,7 @@ YY_ACTION(void) yy_5_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_ineq\n"));
   {
-#line 816
+#line 823
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1541,7 +1543,7 @@ YY_ACTION(void) yy_4_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_ineq\n"));
   {
-#line 815
+#line 822
    lhs = newBinop(LT, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1559,7 +1561,7 @@ YY_ACTION(void) yy_3_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_ineq\n"));
   {
-#line 814
+#line 821
    lhs = newBinop(LE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1577,7 +1579,7 @@ YY_ACTION(void) yy_2_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_ineq\n"));
   {
-#line 813
+#line 820
    lhs = newBinop(GE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1595,7 +1597,7 @@ YY_ACTION(void) yy_1_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_ineq\n"));
   {
-#line 812
+#line 819
    lhs = newBinop(GT, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1613,7 +1615,7 @@ YY_ACTION(void) yy_3_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_eqop\n"));
   {
-#line 810
+#line 817
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1631,7 +1633,7 @@ YY_ACTION(void) yy_2_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_eqop\n"));
   {
-#line 809
+#line 816
    lhs = newBinop(NE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1649,7 +1651,7 @@ YY_ACTION(void) yy_1_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_eqop\n"));
   {
-#line 808
+#line 815
    lhs = newBinop(EQ, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1668,7 +1670,7 @@ YY_ACTION(void) yy_2_assignment(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_assignment\n"));
   {
-#line 805
+#line 812
    __ = newSetArray(v, i, x) ;
   }
 #undef yythunkpos
@@ -1688,7 +1690,7 @@ YY_ACTION(void) yy_1_assignment(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_assignment\n"));
   {
-#line 804
+#line 811
    __ = newSetVar(i, x) ;
   }
 #undef yythunkpos
@@ -1707,7 +1709,7 @@ YY_ACTION(void) yy_3_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_args\n"));
   {
-#line 800
+#line 807
    __ = a ;
   }
 #undef yythunkpos
@@ -1725,7 +1727,7 @@ YY_ACTION(void) yy_2_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_args\n"));
   {
-#line 797
+#line 804
    a = newPair(i, a) ;
   }
 #undef yythunkpos
@@ -1743,13 +1745,41 @@ YY_ACTION(void) yy_1_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_args\n"));
   {
-#line 796
+#line 803
    a = newPair(i, a) ;
   }
 #undef yythunkpos
 #undef yypos
 #undef yy
 #undef i
+#undef a
+}
+YY_ACTION(void) yy_9_stmt(yycontext *yy, char *yytext, int yyleng)
+{
+#define x yy->__val[-1]
+#define k yy->__val[-2]
+#define i yy->__val[-3]
+#define t yy->__val[-4]
+#define s yy->__val[-5]
+#define c yy->__val[-6]
+#define a yy->__val[-7]
+#define __ yy->__
+#define yypos yy->__pos
+#define yythunkpos yy->__thunkpos
+  yyprintf((stderr, "do yy_9_stmt\n"));
+  {
+#line 800
+   fatal("syntax error: %s", yytext); ;
+  }
+#undef yythunkpos
+#undef yypos
+#undef yy
+#undef x
+#undef k
+#undef i
+#undef t
+#undef s
+#undef c
 #undef a
 }
 YY_ACTION(void) yy_8_stmt(yycontext *yy, char *yytext, int yyleng)
@@ -1766,7 +1796,7 @@ YY_ACTION(void) yy_8_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_8_stmt\n"));
   {
-#line 793
+#line 799
    result = false; ;
   }
 #undef yythunkpos
@@ -1794,7 +1824,7 @@ YY_ACTION(void) yy_7_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_7_stmt\n"));
   {
-#line 792
+#line 798
    result = x; ;
   }
 #undef yythunkpos
@@ -1822,7 +1852,7 @@ YY_ACTION(void) yy_6_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_6_stmt\n"));
   {
-#line 791
+#line 797
    __ = newReturn(x); ;
   }
 #undef yythunkpos
@@ -1850,7 +1880,7 @@ YY_ACTION(void) yy_5_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_stmt\n"));
   {
-#line 790
+#line 796
    __ = newLoop(i, c, t, s) ;
   }
 #undef yythunkpos
@@ -1878,7 +1908,7 @@ YY_ACTION(void) yy_4_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_stmt\n"));
   {
-#line 786
+#line 792
    __ = newLoop(false, c,false, s) ;
   }
 #undef yythunkpos
@@ -1906,7 +1936,7 @@ YY_ACTION(void) yy_3_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_stmt\n"));
   {
-#line 785
+#line 791
    __ = newIf(c, s, false) ;
   }
 #undef yythunkpos
@@ -1934,7 +1964,7 @@ YY_ACTION(void) yy_2_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_stmt\n"));
   {
-#line 784
+#line 790
    __ = newIf(c, s, t) ;
   }
 #undef yythunkpos
@@ -1962,7 +1992,7 @@ YY_ACTION(void) yy_1_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_stmt\n"));
   {
-#line 782
+#line 788
    __ = newPrint(a) ;
   }
 #undef yythunkpos
@@ -1986,7 +2016,7 @@ YY_ACTION(void) yy_1_define(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_define\n"));
   {
-#line 780
+#line 786
    __ = newSetVar(i, newFunction(p, b)); ;
   }
 #undef yythunkpos
@@ -2003,7 +2033,7 @@ YY_ACTION(void) yy_1_mkBlock(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkBlock\n"));
   {
-#line 778
+#line 784
    __ = newBlock() ;
   }
 #undef yythunkpos
@@ -2019,7 +2049,7 @@ YY_ACTION(void) yy_2_block(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_block\n"));
   {
-#line 776
+#line 782
    __ = b ;
   }
 #undef yythunkpos
@@ -2037,7 +2067,7 @@ YY_ACTION(void) yy_1_block(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_block\n"));
   {
-#line 774
+#line 780
    Block_append(b, s) ;
   }
 #undef yythunkpos
@@ -2053,7 +2083,7 @@ YY_ACTION(void) yy_1_mkFalse(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkFalse\n"));
   {
-#line 769
+#line 775
    __ = false ;
   }
 #undef yythunkpos
@@ -2067,7 +2097,7 @@ YY_ACTION(void) yy_1_mkNil(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkNil\n"));
   {
-#line 768
+#line 774
    __ = nil ;
   }
 #undef yythunkpos
@@ -2083,7 +2113,7 @@ YY_ACTION(void) yy_3_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_params\n"));
   {
-#line 766
+#line 772
    __ = p ;
   }
 #undef yythunkpos
@@ -2101,7 +2131,7 @@ YY_ACTION(void) yy_2_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_params\n"));
   {
-#line 763
+#line 769
    p = newPair(i, p) ;
   }
 #undef yythunkpos
@@ -2119,12 +2149,72 @@ YY_ACTION(void) yy_1_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_params\n"));
   {
-#line 762
+#line 768
    p = newPair(i, p) ;
   }
 #undef yythunkpos
 #undef yypos
 #undef yy
+#undef i
+#undef p
+}
+YY_ACTION(void) yy_3_eparams(yycontext *yy, char *yytext, int yyleng)
+{
+#define c yy->__val[-1]
+#define i yy->__val[-2]
+#define p yy->__val[-3]
+#define __ yy->__
+#define yypos yy->__pos
+#define yythunkpos yy->__thunkpos
+  yyprintf((stderr, "do yy_3_eparams\n"));
+  {
+#line 765
+   __ = p ;
+  }
+#undef yythunkpos
+#undef yypos
+#undef yy
+#undef c
+#undef i
+#undef p
+}
+YY_ACTION(void) yy_2_eparams(yycontext *yy, char *yytext, int yyleng)
+{
+#define c yy->__val[-1]
+#define i yy->__val[-2]
+#define p yy->__val[-3]
+#define __ yy->__
+#define yypos yy->__pos
+#define yythunkpos yy->__thunkpos
+  yyprintf((stderr, "do yy_2_eparams\n"));
+  {
+#line 762
+   p = newPair(newPair(i,c), p) ;
+  }
+#undef yythunkpos
+#undef yypos
+#undef yy
+#undef c
+#undef i
+#undef p
+}
+YY_ACTION(void) yy_1_eparams(yycontext *yy, char *yytext, int yyleng)
+{
+#define c yy->__val[-1]
+#define i yy->__val[-2]
+#define p yy->__val[-3]
+#define __ yy->__
+#define yypos yy->__pos
+#define yythunkpos yy->__thunkpos
+  yyprintf((stderr, "do yy_1_eparams\n"));
+  {
+#line 761
+   p = newPair(newPair(i,c), p) ;
+  }
+#undef yythunkpos
+#undef yypos
+#undef yy
+#undef c
 #undef i
 #undef p
 }
@@ -2138,7 +2228,7 @@ YY_ACTION(void) yy_1_event(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_event\n"));
   {
-#line 759
+#line 758
    __ = newEvent(i, p, b); ;
   }
 #undef yythunkpos
@@ -2157,7 +2247,7 @@ YY_ACTION(void) yy_2_events(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_events\n"));
   {
-#line 756
+#line 755
    __ = b ;
   }
 #undef yythunkpos
@@ -2175,7 +2265,7 @@ YY_ACTION(void) yy_1_events(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_events\n"));
   {
-#line 754
+#line 753
    Block_append(b, e) ;
   }
 #undef yythunkpos
@@ -2183,6 +2273,26 @@ YY_ACTION(void) yy_1_events(yycontext *yy, char *yytext, int yyleng)
 #undef yy
 #undef e
 #undef b
+}
+YY_ACTION(void) yy_1_state(yycontext *yy, char *yytext, int yyleng)
+{
+#define e yy->__val[-1]
+#define p yy->__val[-2]
+#define i yy->__val[-3]
+#define __ yy->__
+#define yypos yy->__pos
+#define yythunkpos yy->__thunkpos
+  yyprintf((stderr, "do yy_1_state\n"));
+  {
+#line 748
+   __ = newState(i, p, e); ;
+  }
+#undef yythunkpos
+#undef yypos
+#undef yy
+#undef e
+#undef p
+#undef i
 }
 YY_ACTION(void) yy_4_start(yycontext *yy, char *yytext, int yyleng)
 {
@@ -2241,7 +2351,7 @@ YY_ACTION(void) yy_1_start(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_1_start\n"));
   {
 #line 743
-   result = s; ;
+  result = s;;
   }
 #undef yythunkpos
 #undef yypos
@@ -2249,50 +2359,41 @@ YY_ACTION(void) yy_1_start(yycontext *yy, char *yytext, int yyleng)
 #undef s
 }
 
-YY_RULE(int) yy_STATE(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "STATE"));  if (!yymatchString(yy, "state")) goto l1;  if (!yy__(yy)) goto l1;
-  yyprintf((stderr, "  ok   %s @ %s\n", "STATE", yy->__buf+yy->__pos));
-  return 1;
-  l1:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "STATE", yy->__buf+yy->__pos));
-  return 0;
-}
 YY_RULE(int) yy_blank(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
   yyprintf((stderr, "%s\n", "blank"));
-  {  int yypos3= yy->__pos, yythunkpos3= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\046\000\000\001\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l4;  goto l3;
-  l4:;	  yy->__pos= yypos3; yy->__thunkpos= yythunkpos3;  if (!yymatchString(yy, "//")) goto l2;
-  l5:;	
-  {  int yypos6= yy->__pos, yythunkpos6= yy->__thunkpos;
-  {  int yypos7= yy->__pos, yythunkpos7= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\044\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l7;  goto l6;
-  l7:;	  yy->__pos= yypos7; yy->__thunkpos= yythunkpos7;
-  }  if (!yymatchDot(yy)) goto l6;  goto l5;
+  {  int yypos2= yy->__pos, yythunkpos2= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\046\000\000\001\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l3;  goto l2;
+  l3:;	  yy->__pos= yypos2; yy->__thunkpos= yythunkpos2;  if (!yymatchString(yy, "//")) goto l1;
+  l4:;	
+  {  int yypos5= yy->__pos, yythunkpos5= yy->__thunkpos;
+  {  int yypos6= yy->__pos, yythunkpos6= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\044\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l6;  goto l5;
   l6:;	  yy->__pos= yypos6; yy->__thunkpos= yythunkpos6;
+  }  if (!yymatchDot(yy)) goto l5;  goto l4;
+  l5:;	  yy->__pos= yypos5; yy->__thunkpos= yythunkpos5;
   }
   }
-  l3:;	
+  l2:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "blank", yy->__buf+yy->__pos));
   return 1;
-  l2:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l1:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "blank", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_alnum(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "alnum"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l8;
+  yyprintf((stderr, "%s\n", "alnum"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l7;
   yyprintf((stderr, "  ok   %s @ %s\n", "alnum", yy->__buf+yy->__pos));
   return 1;
-  l8:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l7:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "alnum", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_alpha(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "alpha"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l9;
+  yyprintf((stderr, "%s\n", "alpha"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l8;
   yyprintf((stderr, "  ok   %s @ %s\n", "alpha", yy->__buf+yy->__pos));
   return 1;
-  l9:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l8:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "alpha", yy->__buf+yy->__pos));
   return 0;
 }
@@ -2301,24 +2402,24 @@ YY_RULE(int) yy_mkArray(yycontext *yy)
   yyprintf((stderr, "%s\n", "mkArray"));  yyDo(yy, yy_1_mkArray, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "mkArray", yy->__buf+yy->__pos));
   return 1;
-  l10:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l9:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "mkArray", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_array(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "array"));  if (!yy_LBRACE(yy)) goto l11;  if (!yy_mkArray(yy)) goto l11;  yyDo(yy, yySet, -2, 0);
-  {  int yypos12= yy->__pos, yythunkpos12= yy->__thunkpos;  if (!yy_expr(yy)) goto l12;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_array, yy->__begin, yy->__end);
-  l14:;	
-  {  int yypos15= yy->__pos, yythunkpos15= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l15;  if (!yy_expr(yy)) goto l15;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_array, yy->__begin, yy->__end);  goto l14;
-  l15:;	  yy->__pos= yypos15; yy->__thunkpos= yythunkpos15;
-  }  goto l13;
-  l12:;	  yy->__pos= yypos12; yy->__thunkpos= yythunkpos12;
+  yyprintf((stderr, "%s\n", "array"));  if (!yy_LBRACE(yy)) goto l10;  if (!yy_mkArray(yy)) goto l10;  yyDo(yy, yySet, -2, 0);
+  {  int yypos11= yy->__pos, yythunkpos11= yy->__thunkpos;  if (!yy_expr(yy)) goto l11;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_array, yy->__begin, yy->__end);
+  l13:;	
+  {  int yypos14= yy->__pos, yythunkpos14= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l14;  if (!yy_expr(yy)) goto l14;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_array, yy->__begin, yy->__end);  goto l13;
+  l14:;	  yy->__pos= yypos14; yy->__thunkpos= yythunkpos14;
+  }  goto l12;
+  l11:;	  yy->__pos= yypos11; yy->__thunkpos= yythunkpos11;
   }
-  l13:;	  if (!yy_RBRACE(yy)) goto l11;  yyDo(yy, yy_3_array, yy->__begin, yy->__end);
+  l12:;	  if (!yy_RBRACE(yy)) goto l10;  yyDo(yy, yy_3_array, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "array", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l11:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l10:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "array", yy->__buf+yy->__pos));
   return 0;
 }
@@ -2327,446 +2428,541 @@ YY_RULE(int) yy_integer(yycontext *yy)
   yyprintf((stderr, "%s\n", "integer"));  yyText(yy, yy->__begin, yy->__end);  {
 #define yytext yy->__text
 #define yyleng yy->__textlen
-if (!(YY_BEGIN)) goto l16;
+if (!(YY_BEGIN)) goto l15;
 #undef yytext
 #undef yyleng
-  }  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l16;
-  l17:;	
-  {  int yypos18= yy->__pos, yythunkpos18= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l18;  goto l17;
-  l18:;	  yy->__pos= yypos18; yy->__thunkpos= yythunkpos18;
+  }  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l15;
+  l16:;	
+  {  int yypos17= yy->__pos, yythunkpos17= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\377\003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l17;  goto l16;
+  l17:;	  yy->__pos= yypos17; yy->__thunkpos= yythunkpos17;
   }  yyText(yy, yy->__begin, yy->__end);  {
 #define yytext yy->__text
 #define yyleng yy->__textlen
-if (!(YY_END)) goto l16;
+if (!(YY_END)) goto l15;
 #undef yytext
 #undef yyleng
-  }  if (!yy__(yy)) goto l16;  yyDo(yy, yy_1_integer, yy->__begin, yy->__end);
+  }  if (!yy__(yy)) goto l15;  yyDo(yy, yy_1_integer, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "integer", yy->__buf+yy->__pos));
   return 1;
-  l16:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l15:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "integer", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_RBRAK(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "RBRAK"));  if (!yymatchChar(yy, ']')) goto l19;  if (!yy__(yy)) goto l19;
+  yyprintf((stderr, "%s\n", "RBRAK"));  if (!yymatchChar(yy, ']')) goto l18;  if (!yy__(yy)) goto l18;
   yyprintf((stderr, "  ok   %s @ %s\n", "RBRAK", yy->__buf+yy->__pos));
   return 1;
-  l19:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l18:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "RBRAK", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_LBRAK(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "LBRAK"));  if (!yymatchChar(yy, '[')) goto l20;  if (!yy__(yy)) goto l20;
+  yyprintf((stderr, "%s\n", "LBRAK"));  if (!yymatchChar(yy, '[')) goto l19;  if (!yy__(yy)) goto l19;
   yyprintf((stderr, "  ok   %s @ %s\n", "LBRAK", yy->__buf+yy->__pos));
   return 1;
-  l20:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l19:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "LBRAK", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_MMINUS(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "MMINUS"));  if (!yymatchString(yy, "--")) goto l21;
-  {  int yypos22= yy->__pos, yythunkpos22= yy->__thunkpos;  if (!yymatchChar(yy, '-')) goto l22;  goto l21;
-  l22:;	  yy->__pos= yypos22; yy->__thunkpos= yythunkpos22;
+  yyprintf((stderr, "%s\n", "MMINUS"));  if (!yymatchString(yy, "--")) goto l20;
+  {  int yypos21= yy->__pos, yythunkpos21= yy->__thunkpos;  if (!yymatchChar(yy, '-')) goto l21;  goto l20;
+  l21:;	  yy->__pos= yypos21; yy->__thunkpos= yythunkpos21;
   }
   yyprintf((stderr, "  ok   %s @ %s\n", "MMINUS", yy->__buf+yy->__pos));
   return 1;
-  l21:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l20:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "MMINUS", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_PPLUS(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "PPLUS"));  if (!yymatchString(yy, "++")) goto l23;
-  {  int yypos24= yy->__pos, yythunkpos24= yy->__thunkpos;  if (!yymatchChar(yy, '+')) goto l24;  goto l23;
-  l24:;	  yy->__pos= yypos24; yy->__thunkpos= yythunkpos24;
+  yyprintf((stderr, "%s\n", "PPLUS"));  if (!yymatchString(yy, "++")) goto l22;
+  {  int yypos23= yy->__pos, yythunkpos23= yy->__thunkpos;  if (!yymatchChar(yy, '+')) goto l23;  goto l22;
+  l23:;	  yy->__pos= yypos23; yy->__thunkpos= yythunkpos23;
   }
   yyprintf((stderr, "  ok   %s @ %s\n", "PPLUS", yy->__buf+yy->__pos));
   return 1;
-  l23:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l22:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "PPLUS", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_PLING(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "PLING"));  if (!yymatchChar(yy, '!')) goto l25;
-  {  int yypos26= yy->__pos, yythunkpos26= yy->__thunkpos;  if (!yymatchChar(yy, '=')) goto l26;  goto l25;
-  l26:;	  yy->__pos= yypos26; yy->__thunkpos= yythunkpos26;
-  }  if (!yy__(yy)) goto l25;
+  yyprintf((stderr, "%s\n", "PLING"));  if (!yymatchChar(yy, '!')) goto l24;
+  {  int yypos25= yy->__pos, yythunkpos25= yy->__thunkpos;  if (!yymatchChar(yy, '=')) goto l25;  goto l24;
+  l25:;	  yy->__pos= yypos25; yy->__thunkpos= yythunkpos25;
+  }  if (!yy__(yy)) goto l24;
   yyprintf((stderr, "  ok   %s @ %s\n", "PLING", yy->__buf+yy->__pos));
   return 1;
-  l25:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l24:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "PLING", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_postfix(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
   yyprintf((stderr, "%s\n", "postfix"));
-  {  int yypos28= yy->__pos, yythunkpos28= yy->__thunkpos;  if (!yy_value(yy)) goto l29;  yyDo(yy, yySet, -3, 0);  if (!yy_PPLUS(yy)) goto l29;  yyDo(yy, yy_1_postfix, yy->__begin, yy->__end);  goto l28;
-  l29:;	  yy->__pos= yypos28; yy->__thunkpos= yythunkpos28;  if (!yy_value(yy)) goto l30;  yyDo(yy, yySet, -3, 0);  if (!yy_MMINUS(yy)) goto l30;  yyDo(yy, yy_2_postfix, yy->__begin, yy->__end);  goto l28;
-  l30:;	  yy->__pos= yypos28; yy->__thunkpos= yythunkpos28;  if (!yy_value(yy)) goto l27;  yyDo(yy, yySet, -3, 0);
-  l31:;	
-  {  int yypos32= yy->__pos, yythunkpos32= yy->__thunkpos;
-  {  int yypos33= yy->__pos, yythunkpos33= yy->__thunkpos;  if (!yy_args(yy)) goto l34;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_3_postfix, yy->__begin, yy->__end);  goto l33;
-  l34:;	  yy->__pos= yypos33; yy->__thunkpos= yythunkpos33;  if (!yy_index(yy)) goto l32;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_postfix, yy->__begin, yy->__end);
+  {  int yypos27= yy->__pos, yythunkpos27= yy->__thunkpos;  if (!yy_value(yy)) goto l28;  yyDo(yy, yySet, -3, 0);  if (!yy_PPLUS(yy)) goto l28;  yyDo(yy, yy_1_postfix, yy->__begin, yy->__end);  goto l27;
+  l28:;	  yy->__pos= yypos27; yy->__thunkpos= yythunkpos27;  if (!yy_value(yy)) goto l29;  yyDo(yy, yySet, -3, 0);  if (!yy_MMINUS(yy)) goto l29;  yyDo(yy, yy_2_postfix, yy->__begin, yy->__end);  goto l27;
+  l29:;	  yy->__pos= yypos27; yy->__thunkpos= yythunkpos27;  if (!yy_value(yy)) goto l26;  yyDo(yy, yySet, -3, 0);
+  l30:;	
+  {  int yypos31= yy->__pos, yythunkpos31= yy->__thunkpos;
+  {  int yypos32= yy->__pos, yythunkpos32= yy->__thunkpos;  if (!yy_args(yy)) goto l33;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_3_postfix, yy->__begin, yy->__end);  goto l32;
+  l33:;	  yy->__pos= yypos32; yy->__thunkpos= yythunkpos32;  if (!yy_index(yy)) goto l31;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_postfix, yy->__begin, yy->__end);
   }
-  l33:;	  goto l31;
-  l32:;	  yy->__pos= yypos32; yy->__thunkpos= yythunkpos32;
+  l32:;	  goto l30;
+  l31:;	  yy->__pos= yypos31; yy->__thunkpos= yythunkpos31;
   }  yyDo(yy, yy_5_postfix, yy->__begin, yy->__end);
   }
-  l28:;	
+  l27:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "postfix", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l27:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l26:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "postfix", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_PCENT(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "PCENT"));  if (!yymatchChar(yy, '%')) goto l35;  if (!yy__(yy)) goto l35;
+  yyprintf((stderr, "%s\n", "PCENT"));  if (!yymatchChar(yy, '%')) goto l34;  if (!yy__(yy)) goto l34;
   yyprintf((stderr, "  ok   %s @ %s\n", "PCENT", yy->__buf+yy->__pos));
   return 1;
-  l35:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l34:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "PCENT", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_SLASH(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "SLASH"));  if (!yymatchChar(yy, '/')) goto l36;  if (!yy__(yy)) goto l36;
+  yyprintf((stderr, "%s\n", "SLASH"));  if (!yymatchChar(yy, '/')) goto l35;  if (!yy__(yy)) goto l35;
   yyprintf((stderr, "  ok   %s @ %s\n", "SLASH", yy->__buf+yy->__pos));
   return 1;
-  l36:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l35:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "SLASH", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_STAR(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "STAR"));  if (!yymatchChar(yy, '*')) goto l37;  if (!yy__(yy)) goto l37;
+  yyprintf((stderr, "%s\n", "STAR"));  if (!yymatchChar(yy, '*')) goto l36;  if (!yy__(yy)) goto l36;
   yyprintf((stderr, "  ok   %s @ %s\n", "STAR", yy->__buf+yy->__pos));
   return 1;
-  l37:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l36:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "STAR", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_prefix(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 1, 0);
   yyprintf((stderr, "%s\n", "prefix"));
-  {  int yypos39= yy->__pos, yythunkpos39= yy->__thunkpos;  if (!yy_MINUS(yy)) goto l40;  if (!yy_postfix(yy)) goto l40;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_prefix, yy->__begin, yy->__end);  goto l39;
-  l40:;	  yy->__pos= yypos39; yy->__thunkpos= yythunkpos39;  if (!yy_PLING(yy)) goto l41;  if (!yy_postfix(yy)) goto l41;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_prefix, yy->__begin, yy->__end);  goto l39;
-  l41:;	  yy->__pos= yypos39; yy->__thunkpos= yythunkpos39;  if (!yy_PPLUS(yy)) goto l42;  if (!yy_postfix(yy)) goto l42;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_prefix, yy->__begin, yy->__end);  goto l39;
-  l42:;	  yy->__pos= yypos39; yy->__thunkpos= yythunkpos39;  if (!yy_MMINUS(yy)) goto l43;  if (!yy_postfix(yy)) goto l43;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_prefix, yy->__begin, yy->__end);  goto l39;
-  l43:;	  yy->__pos= yypos39; yy->__thunkpos= yythunkpos39;  if (!yy_postfix(yy)) goto l38;
+  {  int yypos38= yy->__pos, yythunkpos38= yy->__thunkpos;  if (!yy_MINUS(yy)) goto l39;  if (!yy_postfix(yy)) goto l39;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_prefix, yy->__begin, yy->__end);  goto l38;
+  l39:;	  yy->__pos= yypos38; yy->__thunkpos= yythunkpos38;  if (!yy_PLING(yy)) goto l40;  if (!yy_postfix(yy)) goto l40;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_prefix, yy->__begin, yy->__end);  goto l38;
+  l40:;	  yy->__pos= yypos38; yy->__thunkpos= yythunkpos38;  if (!yy_PPLUS(yy)) goto l41;  if (!yy_postfix(yy)) goto l41;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_prefix, yy->__begin, yy->__end);  goto l38;
+  l41:;	  yy->__pos= yypos38; yy->__thunkpos= yythunkpos38;  if (!yy_MMINUS(yy)) goto l42;  if (!yy_postfix(yy)) goto l42;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_prefix, yy->__begin, yy->__end);  goto l38;
+  l42:;	  yy->__pos= yypos38; yy->__thunkpos= yythunkpos38;  if (!yy_postfix(yy)) goto l37;
   }
-  l39:;	
+  l38:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "prefix", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 1, 0);
   return 1;
-  l38:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l37:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "prefix", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_MINUS(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "MINUS"));  if (!yymatchChar(yy, '-')) goto l44;
-  {  int yypos45= yy->__pos, yythunkpos45= yy->__thunkpos;  if (!yymatchChar(yy, '-')) goto l45;  goto l44;
-  l45:;	  yy->__pos= yypos45; yy->__thunkpos= yythunkpos45;
-  }  if (!yy__(yy)) goto l44;
+  yyprintf((stderr, "%s\n", "MINUS"));  if (!yymatchChar(yy, '-')) goto l43;
+  {  int yypos44= yy->__pos, yythunkpos44= yy->__thunkpos;  if (!yymatchChar(yy, '-')) goto l44;  goto l43;
+  l44:;	  yy->__pos= yypos44; yy->__thunkpos= yythunkpos44;
+  }  if (!yy__(yy)) goto l43;
   yyprintf((stderr, "  ok   %s @ %s\n", "MINUS", yy->__buf+yy->__pos));
   return 1;
-  l44:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l43:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "MINUS", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_PLUS(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "PLUS"));  if (!yymatchChar(yy, '+')) goto l46;
-  {  int yypos47= yy->__pos, yythunkpos47= yy->__thunkpos;  if (!yymatchChar(yy, '+')) goto l47;  goto l46;
-  l47:;	  yy->__pos= yypos47; yy->__thunkpos= yythunkpos47;
-  }  if (!yy__(yy)) goto l46;
+  yyprintf((stderr, "%s\n", "PLUS"));  if (!yymatchChar(yy, '+')) goto l45;
+  {  int yypos46= yy->__pos, yythunkpos46= yy->__thunkpos;  if (!yymatchChar(yy, '+')) goto l46;  goto l45;
+  l46:;	  yy->__pos= yypos46; yy->__thunkpos= yythunkpos46;
+  }  if (!yy__(yy)) goto l45;
   yyprintf((stderr, "  ok   %s @ %s\n", "PLUS", yy->__buf+yy->__pos));
   return 1;
-  l46:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l45:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "PLUS", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_mul(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "mul"));  if (!yy_prefix(yy)) goto l48;  yyDo(yy, yySet, -2, 0);
-  l49:;	
-  {  int yypos50= yy->__pos, yythunkpos50= yy->__thunkpos;
-  {  int yypos51= yy->__pos, yythunkpos51= yy->__thunkpos;  if (!yy_STAR(yy)) goto l52;  if (!yy_prefix(yy)) goto l52;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_mul, yy->__begin, yy->__end);  goto l51;
-  l52:;	  yy->__pos= yypos51; yy->__thunkpos= yythunkpos51;  if (!yy_SLASH(yy)) goto l53;  if (!yy_prefix(yy)) goto l53;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_mul, yy->__begin, yy->__end);  goto l51;
-  l53:;	  yy->__pos= yypos51; yy->__thunkpos= yythunkpos51;  if (!yy_PCENT(yy)) goto l50;  if (!yy_prefix(yy)) goto l50;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_mul, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "mul"));  if (!yy_prefix(yy)) goto l47;  yyDo(yy, yySet, -2, 0);
+  l48:;	
+  {  int yypos49= yy->__pos, yythunkpos49= yy->__thunkpos;
+  {  int yypos50= yy->__pos, yythunkpos50= yy->__thunkpos;  if (!yy_STAR(yy)) goto l51;  if (!yy_prefix(yy)) goto l51;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_mul, yy->__begin, yy->__end);  goto l50;
+  l51:;	  yy->__pos= yypos50; yy->__thunkpos= yythunkpos50;  if (!yy_SLASH(yy)) goto l52;  if (!yy_prefix(yy)) goto l52;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_mul, yy->__begin, yy->__end);  goto l50;
+  l52:;	  yy->__pos= yypos50; yy->__thunkpos= yythunkpos50;  if (!yy_PCENT(yy)) goto l49;  if (!yy_prefix(yy)) goto l49;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_mul, yy->__begin, yy->__end);
   }
-  l51:;	  goto l49;
-  l50:;	  yy->__pos= yypos50; yy->__thunkpos= yythunkpos50;
+  l50:;	  goto l48;
+  l49:;	  yy->__pos= yypos49; yy->__thunkpos= yythunkpos49;
   }  yyDo(yy, yy_4_mul, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "mul", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l48:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l47:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "mul", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_LESS(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "LESS"));  if (!yymatchChar(yy, '<')) goto l54;
-  {  int yypos55= yy->__pos, yythunkpos55= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\060\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l55;  goto l54;
-  l55:;	  yy->__pos= yypos55; yy->__thunkpos= yythunkpos55;
-  }  if (!yy__(yy)) goto l54;
+  yyprintf((stderr, "%s\n", "LESS"));  if (!yymatchChar(yy, '<')) goto l53;
+  {  int yypos54= yy->__pos, yythunkpos54= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\060\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l54;  goto l53;
+  l54:;	  yy->__pos= yypos54; yy->__thunkpos= yythunkpos54;
+  }  if (!yy__(yy)) goto l53;
   yyprintf((stderr, "  ok   %s @ %s\n", "LESS", yy->__buf+yy->__pos));
   return 1;
-  l54:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l53:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "LESS", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_LESSEQ(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "LESSEQ"));  if (!yymatchString(yy, "<=")) goto l56;  if (!yy__(yy)) goto l56;
+  yyprintf((stderr, "%s\n", "LESSEQ"));  if (!yymatchString(yy, "<=")) goto l55;  if (!yy__(yy)) goto l55;
   yyprintf((stderr, "  ok   %s @ %s\n", "LESSEQ", yy->__buf+yy->__pos));
   return 1;
-  l56:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l55:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "LESSEQ", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_GREATEQ(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "GREATEQ"));  if (!yymatchString(yy, ">=")) goto l57;  if (!yy__(yy)) goto l57;
+  yyprintf((stderr, "%s\n", "GREATEQ"));  if (!yymatchString(yy, ">=")) goto l56;  if (!yy__(yy)) goto l56;
   yyprintf((stderr, "  ok   %s @ %s\n", "GREATEQ", yy->__buf+yy->__pos));
   return 1;
-  l57:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l56:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "GREATEQ", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_GREATER(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "GREATER"));  if (!yymatchChar(yy, '>')) goto l58;
-  {  int yypos59= yy->__pos, yythunkpos59= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\140\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l59;  goto l58;
-  l59:;	  yy->__pos= yypos59; yy->__thunkpos= yythunkpos59;
-  }  if (!yy__(yy)) goto l58;
+  yyprintf((stderr, "%s\n", "GREATER"));  if (!yymatchChar(yy, '>')) goto l57;
+  {  int yypos58= yy->__pos, yythunkpos58= yy->__thunkpos;  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\140\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l58;  goto l57;
+  l58:;	  yy->__pos= yypos58; yy->__thunkpos= yythunkpos58;
+  }  if (!yy__(yy)) goto l57;
   yyprintf((stderr, "  ok   %s @ %s\n", "GREATER", yy->__buf+yy->__pos));
   return 1;
-  l58:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l57:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "GREATER", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_add(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "add"));  if (!yy_mul(yy)) goto l60;  yyDo(yy, yySet, -2, 0);
-  l61:;	
-  {  int yypos62= yy->__pos, yythunkpos62= yy->__thunkpos;
-  {  int yypos63= yy->__pos, yythunkpos63= yy->__thunkpos;  if (!yy_PLUS(yy)) goto l64;  if (!yy_mul(yy)) goto l64;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_add, yy->__begin, yy->__end);  goto l63;
-  l64:;	  yy->__pos= yypos63; yy->__thunkpos= yythunkpos63;  if (!yy_MINUS(yy)) goto l62;  if (!yy_mul(yy)) goto l62;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_add, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "add"));  if (!yy_mul(yy)) goto l59;  yyDo(yy, yySet, -2, 0);
+  l60:;	
+  {  int yypos61= yy->__pos, yythunkpos61= yy->__thunkpos;
+  {  int yypos62= yy->__pos, yythunkpos62= yy->__thunkpos;  if (!yy_PLUS(yy)) goto l63;  if (!yy_mul(yy)) goto l63;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_add, yy->__begin, yy->__end);  goto l62;
+  l63:;	  yy->__pos= yypos62; yy->__thunkpos= yythunkpos62;  if (!yy_MINUS(yy)) goto l61;  if (!yy_mul(yy)) goto l61;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_add, yy->__begin, yy->__end);
   }
-  l63:;	  goto l61;
-  l62:;	  yy->__pos= yypos62; yy->__thunkpos= yythunkpos62;
+  l62:;	  goto l60;
+  l61:;	  yy->__pos= yypos61; yy->__thunkpos= yythunkpos61;
   }  yyDo(yy, yy_3_add, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "add", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l60:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l59:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "add", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_NOTEQ(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "NOTEQ"));  if (!yymatchString(yy, "!=")) goto l65;  if (!yy__(yy)) goto l65;
+  yyprintf((stderr, "%s\n", "NOTEQ"));  if (!yymatchString(yy, "!=")) goto l64;  if (!yy__(yy)) goto l64;
   yyprintf((stderr, "  ok   %s @ %s\n", "NOTEQ", yy->__buf+yy->__pos));
   return 1;
-  l65:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l64:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "NOTEQ", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_EQUAL(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "EQUAL"));  if (!yymatchString(yy, "==")) goto l66;  if (!yy__(yy)) goto l66;
+  yyprintf((stderr, "%s\n", "EQUAL"));  if (!yymatchString(yy, "==")) goto l65;  if (!yy__(yy)) goto l65;
   yyprintf((stderr, "  ok   %s @ %s\n", "EQUAL", yy->__buf+yy->__pos));
   return 1;
-  l66:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l65:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "EQUAL", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_ineq(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "ineq"));  if (!yy_add(yy)) goto l67;  yyDo(yy, yySet, -2, 0);
-  l68:;	
-  {  int yypos69= yy->__pos, yythunkpos69= yy->__thunkpos;
-  {  int yypos70= yy->__pos, yythunkpos70= yy->__thunkpos;  if (!yy_GREATER(yy)) goto l71;  if (!yy_add(yy)) goto l71;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_ineq, yy->__begin, yy->__end);  goto l70;
-  l71:;	  yy->__pos= yypos70; yy->__thunkpos= yythunkpos70;  if (!yy_GREATEQ(yy)) goto l72;  if (!yy_add(yy)) goto l72;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_ineq, yy->__begin, yy->__end);  goto l70;
-  l72:;	  yy->__pos= yypos70; yy->__thunkpos= yythunkpos70;  if (!yy_LESSEQ(yy)) goto l73;  if (!yy_add(yy)) goto l73;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_ineq, yy->__begin, yy->__end);  goto l70;
-  l73:;	  yy->__pos= yypos70; yy->__thunkpos= yythunkpos70;  if (!yy_LESS(yy)) goto l69;  if (!yy_add(yy)) goto l69;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_ineq, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "ineq"));  if (!yy_add(yy)) goto l66;  yyDo(yy, yySet, -2, 0);
+  l67:;	
+  {  int yypos68= yy->__pos, yythunkpos68= yy->__thunkpos;
+  {  int yypos69= yy->__pos, yythunkpos69= yy->__thunkpos;  if (!yy_GREATER(yy)) goto l70;  if (!yy_add(yy)) goto l70;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_ineq, yy->__begin, yy->__end);  goto l69;
+  l70:;	  yy->__pos= yypos69; yy->__thunkpos= yythunkpos69;  if (!yy_GREATEQ(yy)) goto l71;  if (!yy_add(yy)) goto l71;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_ineq, yy->__begin, yy->__end);  goto l69;
+  l71:;	  yy->__pos= yypos69; yy->__thunkpos= yythunkpos69;  if (!yy_LESSEQ(yy)) goto l72;  if (!yy_add(yy)) goto l72;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_3_ineq, yy->__begin, yy->__end);  goto l69;
+  l72:;	  yy->__pos= yypos69; yy->__thunkpos= yythunkpos69;  if (!yy_LESS(yy)) goto l68;  if (!yy_add(yy)) goto l68;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_4_ineq, yy->__begin, yy->__end);
   }
-  l70:;	  goto l68;
-  l69:;	  yy->__pos= yypos69; yy->__thunkpos= yythunkpos69;
+  l69:;	  goto l67;
+  l68:;	  yy->__pos= yypos68; yy->__thunkpos= yythunkpos68;
   }  yyDo(yy, yy_5_ineq, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "ineq", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l67:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l66:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "ineq", yy->__buf+yy->__pos));
-  return 0;
-}
-YY_RULE(int) yy_eqop(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "eqop"));  if (!yy_ineq(yy)) goto l74;  yyDo(yy, yySet, -2, 0);
-  l75:;	
-  {  int yypos76= yy->__pos, yythunkpos76= yy->__thunkpos;
-  {  int yypos77= yy->__pos, yythunkpos77= yy->__thunkpos;  if (!yy_EQUAL(yy)) goto l78;  if (!yy_ineq(yy)) goto l78;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_eqop, yy->__begin, yy->__end);  goto l77;
-  l78:;	  yy->__pos= yypos77; yy->__thunkpos= yythunkpos77;  if (!yy_NOTEQ(yy)) goto l76;  if (!yy_ineq(yy)) goto l76;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_eqop, yy->__begin, yy->__end);
-  }
-  l77:;	  goto l75;
-  l76:;	  yy->__pos= yypos76; yy->__thunkpos= yythunkpos76;
-  }  yyDo(yy, yy_3_eqop, yy->__begin, yy->__end);
-  yyprintf((stderr, "  ok   %s @ %s\n", "eqop", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
-  return 1;
-  l74:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "eqop", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_index(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 1, 0);
-  yyprintf((stderr, "%s\n", "index"));  if (!yy_LBRAK(yy)) goto l79;  if (!yy_expr(yy)) goto l79;  yyDo(yy, yySet, -1, 0);  if (!yy_RBRAK(yy)) goto l79;  yyDo(yy, yy_1_index, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "index"));  if (!yy_LBRAK(yy)) goto l73;  if (!yy_expr(yy)) goto l73;  yyDo(yy, yySet, -1, 0);  if (!yy_RBRAK(yy)) goto l73;  yyDo(yy, yy_1_index, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "index", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 1, 0);
   return 1;
-  l79:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l73:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "index", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_value(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
   yyprintf((stderr, "%s\n", "value"));
-  {  int yypos81= yy->__pos, yythunkpos81= yy->__thunkpos;  if (!yy_LPAR(yy)) goto l82;  if (!yy_expr(yy)) goto l82;  yyDo(yy, yySet, -2, 0);  if (!yy_RPAR(yy)) goto l82;  yyDo(yy, yy_1_value, yy->__begin, yy->__end);  goto l81;
-  l82:;	  yy->__pos= yypos81; yy->__thunkpos= yythunkpos81;  if (!yy_integer(yy)) goto l83;  goto l81;
-  l83:;	  yy->__pos= yypos81; yy->__thunkpos= yythunkpos81;  if (!yy_id(yy)) goto l84;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_value, yy->__begin, yy->__end);  goto l81;
-  l84:;	  yy->__pos= yypos81; yy->__thunkpos= yythunkpos81;  if (!yy_array(yy)) goto l80;
+  {  int yypos75= yy->__pos, yythunkpos75= yy->__thunkpos;  if (!yy_LPAR(yy)) goto l76;  if (!yy_expr(yy)) goto l76;  yyDo(yy, yySet, -2, 0);  if (!yy_RPAR(yy)) goto l76;  yyDo(yy, yy_1_value, yy->__begin, yy->__end);  goto l75;
+  l76:;	  yy->__pos= yypos75; yy->__thunkpos= yythunkpos75;  if (!yy_integer(yy)) goto l77;  goto l75;
+  l77:;	  yy->__pos= yypos75; yy->__thunkpos= yythunkpos75;  if (!yy_id(yy)) goto l78;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_value, yy->__begin, yy->__end);  goto l75;
+  l78:;	  yy->__pos= yypos75; yy->__thunkpos= yythunkpos75;  if (!yy_array(yy)) goto l74;
   }
-  l81:;	
+  l75:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "value", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l80:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l74:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "value", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_ASSIGN(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "ASSIGN"));  if (!yymatchChar(yy, '=')) goto l85;
-  {  int yypos86= yy->__pos, yythunkpos86= yy->__thunkpos;  if (!yymatchChar(yy, '=')) goto l86;  goto l85;
-  l86:;	  yy->__pos= yypos86; yy->__thunkpos= yythunkpos86;
-  }  if (!yy__(yy)) goto l85;
+  yyprintf((stderr, "%s\n", "ASSIGN"));  if (!yymatchChar(yy, '=')) goto l79;
+  {  int yypos80= yy->__pos, yythunkpos80= yy->__thunkpos;  if (!yymatchChar(yy, '=')) goto l80;  goto l79;
+  l80:;	  yy->__pos= yypos80; yy->__thunkpos= yythunkpos80;
+  }  if (!yy__(yy)) goto l79;
   yyprintf((stderr, "  ok   %s @ %s\n", "ASSIGN", yy->__buf+yy->__pos));
   return 1;
-  l85:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l79:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "ASSIGN", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_assignment(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
   yyprintf((stderr, "%s\n", "assignment"));
-  {  int yypos88= yy->__pos, yythunkpos88= yy->__thunkpos;  if (!yy_id(yy)) goto l89;  yyDo(yy, yySet, -3, 0);  if (!yy_ASSIGN(yy)) goto l89;  if (!yy_assignment(yy)) goto l89;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_1_assignment, yy->__begin, yy->__end);  goto l88;
-  l89:;	  yy->__pos= yypos88; yy->__thunkpos= yythunkpos88;  if (!yy_value(yy)) goto l90;  yyDo(yy, yySet, -1, 0);  if (!yy_index(yy)) goto l90;  yyDo(yy, yySet, -3, 0);  if (!yy_ASSIGN(yy)) goto l90;  if (!yy_assignment(yy)) goto l90;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_2_assignment, yy->__begin, yy->__end);  goto l88;
-  l90:;	  yy->__pos= yypos88; yy->__thunkpos= yythunkpos88;  if (!yy_eqop(yy)) goto l87;
+  {  int yypos82= yy->__pos, yythunkpos82= yy->__thunkpos;  if (!yy_id(yy)) goto l83;  yyDo(yy, yySet, -3, 0);  if (!yy_ASSIGN(yy)) goto l83;  if (!yy_assignment(yy)) goto l83;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_1_assignment, yy->__begin, yy->__end);  goto l82;
+  l83:;	  yy->__pos= yypos82; yy->__thunkpos= yythunkpos82;  if (!yy_value(yy)) goto l84;  yyDo(yy, yySet, -1, 0);  if (!yy_index(yy)) goto l84;  yyDo(yy, yySet, -3, 0);  if (!yy_ASSIGN(yy)) goto l84;  if (!yy_assignment(yy)) goto l84;  yyDo(yy, yySet, -2, 0);  yyDo(yy, yy_2_assignment, yy->__begin, yy->__end);  goto l82;
+  l84:;	  yy->__pos= yypos82; yy->__thunkpos= yythunkpos82;  if (!yy_eqop(yy)) goto l81;
   }
-  l88:;	
+  l82:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "assignment", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l87:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l81:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "assignment", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_RET(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "RET"));  if (!yymatchString(yy, "return")) goto l91;  if (!yy__(yy)) goto l91;
+  yyprintf((stderr, "%s\n", "RET"));  if (!yymatchString(yy, "return")) goto l85;  if (!yy__(yy)) goto l85;
   yyprintf((stderr, "  ok   %s @ %s\n", "RET", yy->__buf+yy->__pos));
   return 1;
-  l91:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l85:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "RET", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_FOR(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "FOR"));  if (!yymatchString(yy, "for")) goto l92;  if (!yy__(yy)) goto l92;
+  yyprintf((stderr, "%s\n", "FOR"));  if (!yymatchString(yy, "for")) goto l86;  if (!yy__(yy)) goto l86;
   yyprintf((stderr, "  ok   %s @ %s\n", "FOR", yy->__buf+yy->__pos));
   return 1;
-  l92:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l86:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "FOR", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_WHILE(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "WHILE"));  if (!yymatchString(yy, "while")) goto l93;  if (!yy__(yy)) goto l93;
+  yyprintf((stderr, "%s\n", "WHILE"));  if (!yymatchString(yy, "while")) goto l87;  if (!yy__(yy)) goto l87;
   yyprintf((stderr, "  ok   %s @ %s\n", "WHILE", yy->__buf+yy->__pos));
   return 1;
-  l93:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l87:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "WHILE", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_ELSE(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "ELSE"));  if (!yymatchString(yy, "else")) goto l94;  if (!yy__(yy)) goto l94;
+  yyprintf((stderr, "%s\n", "ELSE"));  if (!yymatchString(yy, "else")) goto l88;  if (!yy__(yy)) goto l88;
   yyprintf((stderr, "  ok   %s @ %s\n", "ELSE", yy->__buf+yy->__pos));
   return 1;
-  l94:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l88:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "ELSE", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_expr(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "expr"));  if (!yy_assignment(yy)) goto l95;
+  yyprintf((stderr, "%s\n", "expr"));  if (!yy_assignment(yy)) goto l89;
   yyprintf((stderr, "  ok   %s @ %s\n", "expr", yy->__buf+yy->__pos));
   return 1;
-  l95:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l89:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "expr", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_IF(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "IF"));  if (!yymatchString(yy, "if")) goto l96;  if (!yy__(yy)) goto l96;
+  yyprintf((stderr, "%s\n", "IF"));  if (!yymatchString(yy, "if")) goto l90;  if (!yy__(yy)) goto l90;
   yyprintf((stderr, "  ok   %s @ %s\n", "IF", yy->__buf+yy->__pos));
   return 1;
-  l96:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l90:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "IF", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_SEMI(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "SEMI"));  if (!yymatchChar(yy, ';')) goto l97;  if (!yy__(yy)) goto l97;
+  yyprintf((stderr, "%s\n", "SEMI"));  if (!yymatchChar(yy, ';')) goto l91;  if (!yy__(yy)) goto l91;
   yyprintf((stderr, "  ok   %s @ %s\n", "SEMI", yy->__buf+yy->__pos));
   return 1;
-  l97:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l91:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "SEMI", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_args(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "args"));  if (!yy_LPAR(yy)) goto l98;  if (!yy_mkNil(yy)) goto l98;  yyDo(yy, yySet, -2, 0);
-  {  int yypos99= yy->__pos, yythunkpos99= yy->__thunkpos;  if (!yy_expr(yy)) goto l99;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_args, yy->__begin, yy->__end);
-  l101:;	
-  {  int yypos102= yy->__pos, yythunkpos102= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l102;  if (!yy_expr(yy)) goto l102;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_args, yy->__begin, yy->__end);  goto l101;
-  l102:;	  yy->__pos= yypos102; yy->__thunkpos= yythunkpos102;
-  }  goto l100;
-  l99:;	  yy->__pos= yypos99; yy->__thunkpos= yythunkpos99;
+  yyprintf((stderr, "%s\n", "args"));  if (!yy_LPAR(yy)) goto l92;  if (!yy_mkNil(yy)) goto l92;  yyDo(yy, yySet, -2, 0);
+  {  int yypos93= yy->__pos, yythunkpos93= yy->__thunkpos;  if (!yy_expr(yy)) goto l93;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_args, yy->__begin, yy->__end);
+  l95:;	
+  {  int yypos96= yy->__pos, yythunkpos96= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l96;  if (!yy_expr(yy)) goto l96;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_args, yy->__begin, yy->__end);  goto l95;
+  l96:;	  yy->__pos= yypos96; yy->__thunkpos= yythunkpos96;
+  }  goto l94;
+  l93:;	  yy->__pos= yypos93; yy->__thunkpos= yythunkpos93;
   }
-  l100:;	  if (!yy_RPAR(yy)) goto l98;  yyDo(yy, yy_3_args, yy->__begin, yy->__end);
+  l94:;	  if (!yy_RPAR(yy)) goto l92;  yyDo(yy, yy_3_args, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "args", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l98:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l92:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "args", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_PRINT(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "PRINT"));  if (!yymatchString(yy, "print")) goto l103;  if (!yy__(yy)) goto l103;
+  yyprintf((stderr, "%s\n", "PRINT"));  if (!yymatchString(yy, "print")) goto l97;  if (!yy__(yy)) goto l97;
   yyprintf((stderr, "  ok   %s @ %s\n", "PRINT", yy->__buf+yy->__pos));
   return 1;
-  l103:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l97:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "PRINT", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_FUNC(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "FUNC"));  if (!yymatchString(yy, "fn")) goto l104;  if (!yy__(yy)) goto l104;
+  yyprintf((stderr, "%s\n", "FUNC"));  if (!yymatchString(yy, "fn")) goto l98;  if (!yy__(yy)) goto l98;
   yyprintf((stderr, "  ok   %s @ %s\n", "FUNC", yy->__buf+yy->__pos));
   return 1;
-  l104:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l98:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "FUNC", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_stmt(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 7, 0);
+  yyprintf((stderr, "%s\n", "stmt"));
+  {  int yypos100= yy->__pos, yythunkpos100= yy->__thunkpos;  if (!yy_PRINT(yy)) goto l101;  if (!yy_args(yy)) goto l101;  yyDo(yy, yySet, -7, 0);  if (!yy_SEMI(yy)) goto l101;  yyDo(yy, yy_1_stmt, yy->__begin, yy->__end);  goto l100;
+  l101:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_IF(yy)) goto l102;  if (!yy_LPAR(yy)) goto l102;  if (!yy_expr(yy)) goto l102;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l102;
+  {  int yypos103= yy->__pos, yythunkpos103= yy->__thunkpos;  if (!yy_expr(yy)) goto l104;  yyDo(yy, yySet, -5, 0);  goto l103;
+  l104:;	  yy->__pos= yypos103; yy->__thunkpos= yythunkpos103;  if (!yy_block(yy)) goto l102;  yyDo(yy, yySet, -5, 0);
+  }
+  l103:;	  if (!yy_ELSE(yy)) goto l102;
+  {  int yypos105= yy->__pos, yythunkpos105= yy->__thunkpos;  if (!yy_expr(yy)) goto l106;  yyDo(yy, yySet, -4, 0);  goto l105;
+  l106:;	  yy->__pos= yypos105; yy->__thunkpos= yythunkpos105;  if (!yy_block(yy)) goto l102;  yyDo(yy, yySet, -4, 0);
+  }
+  l105:;	  yyDo(yy, yy_2_stmt, yy->__begin, yy->__end);  goto l100;
+  l102:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_IF(yy)) goto l107;  if (!yy_LPAR(yy)) goto l107;  if (!yy_expr(yy)) goto l107;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l107;
+  {  int yypos108= yy->__pos, yythunkpos108= yy->__thunkpos;  if (!yy_block(yy)) goto l109;  yyDo(yy, yySet, -5, 0);  goto l108;
+  l109:;	  yy->__pos= yypos108; yy->__thunkpos= yythunkpos108;  if (!yy_expr(yy)) goto l107;  yyDo(yy, yySet, -5, 0);
+  }
+  l108:;	  yyDo(yy, yy_3_stmt, yy->__begin, yy->__end);  goto l100;
+  l107:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_WHILE(yy)) goto l110;  if (!yy_LPAR(yy)) goto l110;  if (!yy_expr(yy)) goto l110;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l110;
+  {  int yypos111= yy->__pos, yythunkpos111= yy->__thunkpos;  if (!yy_stmt(yy)) goto l112;  yyDo(yy, yySet, -5, 0);  goto l111;
+  l112:;	  yy->__pos= yypos111; yy->__thunkpos= yythunkpos111;  if (!yy_block(yy)) goto l110;  yyDo(yy, yySet, -5, 0);
+  }
+  l111:;	  yyDo(yy, yy_4_stmt, yy->__begin, yy->__end);  goto l100;
+  l110:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_FOR(yy)) goto l113;  if (!yy_LPAR(yy)) goto l113;
+  {  int yypos114= yy->__pos, yythunkpos114= yy->__thunkpos;  if (!yy_expr(yy)) goto l115;  yyDo(yy, yySet, -3, 0);  goto l114;
+  l115:;	  yy->__pos= yypos114; yy->__thunkpos= yythunkpos114;  if (!yy_mkFalse(yy)) goto l113;  yyDo(yy, yySet, -3, 0);
+  }
+  l114:;	  if (!yy_SEMI(yy)) goto l113;
+  {  int yypos116= yy->__pos, yythunkpos116= yy->__thunkpos;  if (!yy_expr(yy)) goto l117;  yyDo(yy, yySet, -6, 0);  goto l116;
+  l117:;	  yy->__pos= yypos116; yy->__thunkpos= yythunkpos116;  if (!yy_mkFalse(yy)) goto l113;  yyDo(yy, yySet, -6, 0);
+  }
+  l116:;	  if (!yy_SEMI(yy)) goto l113;
+  {  int yypos118= yy->__pos, yythunkpos118= yy->__thunkpos;  if (!yy_expr(yy)) goto l119;  yyDo(yy, yySet, -4, 0);  goto l118;
+  l119:;	  yy->__pos= yypos118; yy->__thunkpos= yythunkpos118;  if (!yy_mkFalse(yy)) goto l113;  yyDo(yy, yySet, -2, 0);
+  }
+  l118:;	  if (!yy_RPAR(yy)) goto l113;
+  {  int yypos120= yy->__pos, yythunkpos120= yy->__thunkpos;  if (!yy_block(yy)) goto l121;  yyDo(yy, yySet, -5, 0);  goto l120;
+  l121:;	  yy->__pos= yypos120; yy->__thunkpos= yythunkpos120;  if (!yy_expr(yy)) goto l113;  yyDo(yy, yySet, -5, 0);
+  }
+  l120:;	  yyDo(yy, yy_5_stmt, yy->__begin, yy->__end);  goto l100;
+  l113:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_RET(yy)) goto l122;
+  {  int yypos123= yy->__pos, yythunkpos123= yy->__thunkpos;  if (!yy_expr(yy)) goto l124;  yyDo(yy, yySet, -1, 0);  goto l123;
+  l124:;	  yy->__pos= yypos123; yy->__thunkpos= yythunkpos123;  if (!yy_mkFalse(yy)) goto l122;  yyDo(yy, yySet, -1, 0);
+  }
+  l123:;	  if (!yy_SEMI(yy)) goto l122;  yyDo(yy, yy_6_stmt, yy->__begin, yy->__end);  goto l100;
+  l122:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy_expr(yy)) goto l125;  yyDo(yy, yySet, -1, 0);  if (!yy_SEMI(yy)) goto l125;  yyDo(yy, yy_7_stmt, yy->__begin, yy->__end);  goto l100;
+  l125:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  if (!yy__(yy)) goto l126;  if (!yy_SEMI(yy)) goto l126;  yyDo(yy, yy_8_stmt, yy->__begin, yy->__end);  goto l100;
+  l126:;	  yy->__pos= yypos100; yy->__thunkpos= yythunkpos100;  yyText(yy, yy->__begin, yy->__end);  {
+#define yytext yy->__text
+#define yyleng yy->__textlen
+if (!(YY_BEGIN)) goto l99;
+#undef yytext
+#undef yyleng
+  }
+  l127:;	
+  {  int yypos128= yy->__pos, yythunkpos128= yy->__thunkpos;
+  {  int yypos129= yy->__pos, yythunkpos129= yy->__thunkpos;  if (!yy_eol(yy)) goto l129;  goto l128;
+  l129:;	  yy->__pos= yypos129; yy->__thunkpos= yythunkpos129;
+  }
+  {  int yypos130= yy->__pos, yythunkpos130= yy->__thunkpos;  if (!yymatchDot(yy)) goto l128;  yy->__pos= yypos130; yy->__thunkpos= yythunkpos130;
+  }  if (!yymatchDot(yy)) goto l128;  goto l127;
+  l128:;	  yy->__pos= yypos128; yy->__thunkpos= yythunkpos128;
+  }  yyText(yy, yy->__begin, yy->__end);  {
+#define yytext yy->__text
+#define yyleng yy->__textlen
+if (!(YY_END)) goto l99;
+#undef yytext
+#undef yyleng
+  }  yyDo(yy, yy_9_stmt, yy->__begin, yy->__end);
+  }
+  l100:;	
+  yyprintf((stderr, "  ok   %s @ %s\n", "stmt", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 7, 0);
+  return 1;
+  l99:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "stmt", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_RPAR(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
+  yyprintf((stderr, "%s\n", "RPAR"));  if (!yymatchChar(yy, ')')) goto l131;  if (!yy__(yy)) goto l131;
+  yyprintf((stderr, "  ok   %s @ %s\n", "RPAR", yy->__buf+yy->__pos));
+  return 1;
+  l131:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "RPAR", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_COMMA(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
+  yyprintf((stderr, "%s\n", "COMMA"));  if (!yymatchChar(yy, ',')) goto l132;  if (!yy__(yy)) goto l132;
+  yyprintf((stderr, "  ok   %s @ %s\n", "COMMA", yy->__buf+yy->__pos));
+  return 1;
+  l132:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "COMMA", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_eqop(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
+  yyprintf((stderr, "%s\n", "eqop"));  if (!yy_ineq(yy)) goto l133;  yyDo(yy, yySet, -2, 0);
+  l134:;	
+  {  int yypos135= yy->__pos, yythunkpos135= yy->__thunkpos;
+  {  int yypos136= yy->__pos, yythunkpos136= yy->__thunkpos;  if (!yy_EQUAL(yy)) goto l137;  if (!yy_ineq(yy)) goto l137;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_eqop, yy->__begin, yy->__end);  goto l136;
+  l137:;	  yy->__pos= yypos136; yy->__thunkpos= yythunkpos136;  if (!yy_NOTEQ(yy)) goto l135;  if (!yy_ineq(yy)) goto l135;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_eqop, yy->__begin, yy->__end);
+  }
+  l136:;	  goto l134;
+  l135:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;
+  }  yyDo(yy, yy_3_eqop, yy->__begin, yy->__end);
+  yyprintf((stderr, "  ok   %s @ %s\n", "eqop", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
+  return 1;
+  l133:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "eqop", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_mkFalse(yycontext *yy)
@@ -2774,26 +2970,8 @@ YY_RULE(int) yy_mkFalse(yycontext *yy)
   yyprintf((stderr, "%s\n", "mkFalse"));  yyDo(yy, yy_1_mkFalse, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "mkFalse", yy->__buf+yy->__pos));
   return 1;
-  l105:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l138:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "mkFalse", yy->__buf+yy->__pos));
-  return 0;
-}
-YY_RULE(int) yy_RPAR(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "RPAR"));  if (!yymatchChar(yy, ')')) goto l106;  if (!yy__(yy)) goto l106;
-  yyprintf((stderr, "  ok   %s @ %s\n", "RPAR", yy->__buf+yy->__pos));
-  return 1;
-  l106:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "RPAR", yy->__buf+yy->__pos));
-  return 0;
-}
-YY_RULE(int) yy_COMMA(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "COMMA"));  if (!yymatchChar(yy, ',')) goto l107;  if (!yy__(yy)) goto l107;
-  yyprintf((stderr, "  ok   %s @ %s\n", "COMMA", yy->__buf+yy->__pos));
-  return 1;
-  l107:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "COMMA", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_mkNil(yycontext *yy)
@@ -2801,95 +2979,74 @@ YY_RULE(int) yy_mkNil(yycontext *yy)
   yyprintf((stderr, "%s\n", "mkNil"));  yyDo(yy, yy_1_mkNil, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "mkNil", yy->__buf+yy->__pos));
   return 1;
-  l108:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l139:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "mkNil", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_LPAR(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "LPAR"));  if (!yymatchChar(yy, '(')) goto l109;  if (!yy__(yy)) goto l109;
+  yyprintf((stderr, "%s\n", "LPAR"));  if (!yymatchChar(yy, '(')) goto l140;  if (!yy__(yy)) goto l140;
   yyprintf((stderr, "  ok   %s @ %s\n", "LPAR", yy->__buf+yy->__pos));
   return 1;
-  l109:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l140:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "LPAR", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_block(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "block"));  if (!yy_LBRACE(yy)) goto l110;  if (!yy_mkBlock(yy)) goto l110;  yyDo(yy, yySet, -2, 0);
-  {  int yypos113= yy->__pos, yythunkpos113= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l113;  goto l110;
-  l113:;	  yy->__pos= yypos113; yy->__thunkpos= yythunkpos113;
-  }  if (!yy_stmt(yy)) goto l110;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_block, yy->__begin, yy->__end);
-  l111:;	
-  {  int yypos112= yy->__pos, yythunkpos112= yy->__thunkpos;
-  {  int yypos114= yy->__pos, yythunkpos114= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l114;  goto l112;
-  l114:;	  yy->__pos= yypos114; yy->__thunkpos= yythunkpos114;
-  }  if (!yy_stmt(yy)) goto l112;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_block, yy->__begin, yy->__end);  goto l111;
-  l112:;	  yy->__pos= yypos112; yy->__thunkpos= yythunkpos112;
-  }  if (!yy_RBRACE(yy)) goto l110;  yyDo(yy, yy_2_block, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "block"));  if (!yy_LBRACE(yy)) goto l141;  if (!yy_mkBlock(yy)) goto l141;  yyDo(yy, yySet, -2, 0);
+  {  int yypos144= yy->__pos, yythunkpos144= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l144;  goto l141;
+  l144:;	  yy->__pos= yypos144; yy->__thunkpos= yythunkpos144;
+  }  if (!yy_stmt(yy)) goto l141;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_block, yy->__begin, yy->__end);
+  l142:;	
+  {  int yypos143= yy->__pos, yythunkpos143= yy->__thunkpos;
+  {  int yypos145= yy->__pos, yythunkpos145= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l145;  goto l143;
+  l145:;	  yy->__pos= yypos145; yy->__thunkpos= yythunkpos145;
+  }  if (!yy_stmt(yy)) goto l143;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_block, yy->__begin, yy->__end);  goto l142;
+  l143:;	  yy->__pos= yypos143; yy->__thunkpos= yythunkpos143;
+  }  if (!yy_RBRACE(yy)) goto l141;  yyDo(yy, yy_2_block, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "block", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l110:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l141:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "block", yy->__buf+yy->__pos));
   return 0;
 }
-YY_RULE(int) yy_params(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "params"));  if (!yy_LPAR(yy)) goto l115;  if (!yy_mkNil(yy)) goto l115;  yyDo(yy, yySet, -2, 0);
-  {  int yypos116= yy->__pos, yythunkpos116= yy->__thunkpos;  if (!yy_id(yy)) goto l116;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_params, yy->__begin, yy->__end);
-  l118:;	
-  {  int yypos119= yy->__pos, yythunkpos119= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l119;  if (!yy_id(yy)) goto l119;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_params, yy->__begin, yy->__end);  goto l118;
-  l119:;	  yy->__pos= yypos119; yy->__thunkpos= yythunkpos119;
-  }  goto l117;
-  l116:;	  yy->__pos= yypos116; yy->__thunkpos= yythunkpos116;
+YY_RULE(int) yy_eparams(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
+  yyprintf((stderr, "%s\n", "eparams"));  if (!yy_LPAR(yy)) goto l146;  if (!yy_mkNil(yy)) goto l146;  yyDo(yy, yySet, -3, 0);
+  {  int yypos147= yy->__pos, yythunkpos147= yy->__thunkpos;  if (!yy_id(yy)) goto l147;  yyDo(yy, yySet, -2, 0);  if (!yy_mkFalse(yy)) goto l147;  yyDo(yy, yySet, -1, 0);
+  {  int yypos149= yy->__pos, yythunkpos149= yy->__thunkpos;  if (!yy_eqop(yy)) goto l149;  yyDo(yy, yySet, -1, 0);  goto l150;
+  l149:;	  yy->__pos= yypos149; yy->__thunkpos= yythunkpos149;
   }
-  l117:;	  if (!yy_RPAR(yy)) goto l115;  yyDo(yy, yy_3_params, yy->__begin, yy->__end);
-  yyprintf((stderr, "  ok   %s @ %s\n", "params", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
+  l150:;	  yyDo(yy, yy_1_eparams, yy->__begin, yy->__end);
+  l151:;	
+  {  int yypos152= yy->__pos, yythunkpos152= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l152;  if (!yy_id(yy)) goto l152;  yyDo(yy, yySet, -2, 0);  if (!yy_mkFalse(yy)) goto l152;  yyDo(yy, yySet, -1, 0);  if (!yy_eqop(yy)) goto l152;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_eparams, yy->__begin, yy->__end);  goto l151;
+  l152:;	  yy->__pos= yypos152; yy->__thunkpos= yythunkpos152;
+  }  goto l148;
+  l147:;	  yy->__pos= yypos147; yy->__thunkpos= yythunkpos147;
+  }
+  l148:;	  if (!yy_RPAR(yy)) goto l146;  yyDo(yy, yy_3_eparams, yy->__begin, yy->__end);
+  yyprintf((stderr, "  ok   %s @ %s\n", "eparams", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l115:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "params", yy->__buf+yy->__pos));
-  return 0;
-}
-YY_RULE(int) yy_id(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "id"));  yyText(yy, yy->__begin, yy->__end);  {
-#define yytext yy->__text
-#define yyleng yy->__textlen
-if (!(YY_BEGIN)) goto l120;
-#undef yytext
-#undef yyleng
-  }  if (!yy_alpha(yy)) goto l120;
-  l121:;	
-  {  int yypos122= yy->__pos, yythunkpos122= yy->__thunkpos;  if (!yy_alnum(yy)) goto l122;  goto l121;
-  l122:;	  yy->__pos= yypos122; yy->__thunkpos= yythunkpos122;
-  }  yyText(yy, yy->__begin, yy->__end);  {
-#define yytext yy->__text
-#define yyleng yy->__textlen
-if (!(YY_END)) goto l120;
-#undef yytext
-#undef yyleng
-  }  if (!yy__(yy)) goto l120;  yyDo(yy, yy_1_id, yy->__begin, yy->__end);
-  yyprintf((stderr, "  ok   %s @ %s\n", "id", yy->__buf+yy->__pos));
-  return 1;
-  l120:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "id", yy->__buf+yy->__pos));
+  l146:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "eparams", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_event(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
-  yyprintf((stderr, "%s\n", "event"));  if (!yy_id(yy)) goto l123;  yyDo(yy, yySet, -3, 0);  if (!yy_params(yy)) goto l123;  yyDo(yy, yySet, -2, 0);  if (!yy_block(yy)) goto l123;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_event, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "event"));  if (!yy_id(yy)) goto l153;  yyDo(yy, yySet, -3, 0);  if (!yy_eparams(yy)) goto l153;  yyDo(yy, yySet, -2, 0);  if (!yy_block(yy)) goto l153;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_event, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "event", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l123:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l153:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "event", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_RBRACE(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "RBRACE"));  if (!yymatchChar(yy, '}')) goto l124;  if (!yy__(yy)) goto l124;
+  yyprintf((stderr, "%s\n", "RBRACE"));  if (!yymatchChar(yy, '}')) goto l154;  if (!yy__(yy)) goto l154;
   yyprintf((stderr, "  ok   %s @ %s\n", "RBRACE", yy->__buf+yy->__pos));
   return 1;
-  l124:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l154:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "RBRACE", yy->__buf+yy->__pos));
   return 0;
 }
@@ -2898,117 +3055,122 @@ YY_RULE(int) yy_mkBlock(yycontext *yy)
   yyprintf((stderr, "%s\n", "mkBlock"));  yyDo(yy, yy_1_mkBlock, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "mkBlock", yy->__buf+yy->__pos));
   return 1;
-  l125:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l155:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "mkBlock", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_LBRACE(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "LBRACE"));  if (!yymatchChar(yy, '{')) goto l126;  if (!yy__(yy)) goto l126;
+  yyprintf((stderr, "%s\n", "LBRACE"));  if (!yymatchChar(yy, '{')) goto l156;  if (!yy__(yy)) goto l156;
   yyprintf((stderr, "  ok   %s @ %s\n", "LBRACE", yy->__buf+yy->__pos));
   return 1;
-  l126:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l156:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "LBRACE", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_events(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
-  yyprintf((stderr, "%s\n", "events"));  if (!yy_LBRACE(yy)) goto l127;  if (!yy_mkBlock(yy)) goto l127;  yyDo(yy, yySet, -2, 0);
-  {  int yypos130= yy->__pos, yythunkpos130= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l130;  goto l127;
-  l130:;	  yy->__pos= yypos130; yy->__thunkpos= yythunkpos130;
-  }  if (!yy_event(yy)) goto l127;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_events, yy->__begin, yy->__end);
-  l128:;	
-  {  int yypos129= yy->__pos, yythunkpos129= yy->__thunkpos;
-  {  int yypos131= yy->__pos, yythunkpos131= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l131;  goto l129;
-  l131:;	  yy->__pos= yypos131; yy->__thunkpos= yythunkpos131;
-  }  if (!yy_event(yy)) goto l129;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_events, yy->__begin, yy->__end);  goto l128;
-  l129:;	  yy->__pos= yypos129; yy->__thunkpos= yythunkpos129;
-  }  if (!yy_RBRACE(yy)) goto l127;  yyDo(yy, yy_2_events, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "events"));  if (!yy_LBRACE(yy)) goto l157;  if (!yy_mkBlock(yy)) goto l157;  yyDo(yy, yySet, -2, 0);
+  {  int yypos160= yy->__pos, yythunkpos160= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l160;  goto l157;
+  l160:;	  yy->__pos= yypos160; yy->__thunkpos= yythunkpos160;
+  }  if (!yy_event(yy)) goto l157;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_events, yy->__begin, yy->__end);
+  l158:;	
+  {  int yypos159= yy->__pos, yythunkpos159= yy->__thunkpos;
+  {  int yypos161= yy->__pos, yythunkpos161= yy->__thunkpos;  if (!yy_RBRACE(yy)) goto l161;  goto l159;
+  l161:;	  yy->__pos= yypos161; yy->__thunkpos= yythunkpos161;
+  }  if (!yy_event(yy)) goto l159;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_events, yy->__begin, yy->__end);  goto l158;
+  l159:;	  yy->__pos= yypos159; yy->__thunkpos= yythunkpos159;
+  }  if (!yy_RBRACE(yy)) goto l157;  yyDo(yy, yy_2_events, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "events", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
   return 1;
-  l127:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l157:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "events", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_params(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 2, 0);
+  yyprintf((stderr, "%s\n", "params"));  if (!yy_LPAR(yy)) goto l162;  if (!yy_mkNil(yy)) goto l162;  yyDo(yy, yySet, -2, 0);
+  {  int yypos163= yy->__pos, yythunkpos163= yy->__thunkpos;  if (!yy_id(yy)) goto l163;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_params, yy->__begin, yy->__end);
+  l165:;	
+  {  int yypos166= yy->__pos, yythunkpos166= yy->__thunkpos;  if (!yy_COMMA(yy)) goto l166;  if (!yy_id(yy)) goto l166;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_params, yy->__begin, yy->__end);  goto l165;
+  l166:;	  yy->__pos= yypos166; yy->__thunkpos= yythunkpos166;
+  }  goto l164;
+  l163:;	  yy->__pos= yypos163; yy->__thunkpos= yythunkpos163;
+  }
+  l164:;	  if (!yy_RPAR(yy)) goto l162;  yyDo(yy, yy_3_params, yy->__begin, yy->__end);
+  yyprintf((stderr, "  ok   %s @ %s\n", "params", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 2, 0);
+  return 1;
+  l162:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "params", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_id(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
+  yyprintf((stderr, "%s\n", "id"));  yyText(yy, yy->__begin, yy->__end);  {
+#define yytext yy->__text
+#define yyleng yy->__textlen
+if (!(YY_BEGIN)) goto l167;
+#undef yytext
+#undef yyleng
+  }  if (!yy_alpha(yy)) goto l167;
+  l168:;	
+  {  int yypos169= yy->__pos, yythunkpos169= yy->__thunkpos;  if (!yy_alnum(yy)) goto l169;  goto l168;
+  l169:;	  yy->__pos= yypos169; yy->__thunkpos= yythunkpos169;
+  }  yyText(yy, yy->__begin, yy->__end);  {
+#define yytext yy->__text
+#define yyleng yy->__textlen
+if (!(YY_END)) goto l167;
+#undef yytext
+#undef yyleng
+  }  if (!yy__(yy)) goto l167;  yyDo(yy, yy_1_id, yy->__begin, yy->__end);
+  yyprintf((stderr, "  ok   %s @ %s\n", "id", yy->__buf+yy->__pos));
+  return 1;
+  l167:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "id", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_STATE(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
+  yyprintf((stderr, "%s\n", "STATE"));  if (!yymatchString(yy, "stt")) goto l170;  if (!yy__(yy)) goto l170;
+  yyprintf((stderr, "  ok   %s @ %s\n", "STATE", yy->__buf+yy->__pos));
+  return 1;
+  l170:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "STATE", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_eol(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "eol"));  if (!yymatchClass(yy, (unsigned char *)"\000\044\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l132;
+  yyprintf((stderr, "%s\n", "eol"));  if (!yymatchClass(yy, (unsigned char *)"\000\044\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l171;
   yyprintf((stderr, "  ok   %s @ %s\n", "eol", yy->__buf+yy->__pos));
   return 1;
-  l132:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l171:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "eol", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_define(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
-  yyprintf((stderr, "%s\n", "define"));  if (!yy_FUNC(yy)) goto l133;  if (!yy_id(yy)) goto l133;  yyDo(yy, yySet, -3, 0);  if (!yy_params(yy)) goto l133;  yyDo(yy, yySet, -2, 0);  if (!yy_block(yy)) goto l133;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_define, yy->__begin, yy->__end);
+  yyprintf((stderr, "%s\n", "define"));  if (!yy_FUNC(yy)) goto l172;  if (!yy_id(yy)) goto l172;  yyDo(yy, yySet, -3, 0);  if (!yy_params(yy)) goto l172;  yyDo(yy, yySet, -2, 0);  if (!yy_block(yy)) goto l172;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_define, yy->__begin, yy->__end);
   yyprintf((stderr, "  ok   %s @ %s\n", "define", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l133:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l172:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "define", yy->__buf+yy->__pos));
   return 0;
 }
-YY_RULE(int) yy_stmt(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 7, 0);
-  yyprintf((stderr, "%s\n", "stmt"));
-  {  int yypos135= yy->__pos, yythunkpos135= yy->__thunkpos;  if (!yy_PRINT(yy)) goto l136;  if (!yy_args(yy)) goto l136;  yyDo(yy, yySet, -7, 0);  if (!yy_SEMI(yy)) goto l136;  yyDo(yy, yy_1_stmt, yy->__begin, yy->__end);  goto l135;
-  l136:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_IF(yy)) goto l137;  if (!yy_LPAR(yy)) goto l137;  if (!yy_expr(yy)) goto l137;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l137;
-  {  int yypos138= yy->__pos, yythunkpos138= yy->__thunkpos;  if (!yy_expr(yy)) goto l139;  yyDo(yy, yySet, -5, 0);  goto l138;
-  l139:;	  yy->__pos= yypos138; yy->__thunkpos= yythunkpos138;  if (!yy_block(yy)) goto l137;  yyDo(yy, yySet, -5, 0);
-  }
-  l138:;	  if (!yy_ELSE(yy)) goto l137;
-  {  int yypos140= yy->__pos, yythunkpos140= yy->__thunkpos;  if (!yy_expr(yy)) goto l141;  yyDo(yy, yySet, -4, 0);  goto l140;
-  l141:;	  yy->__pos= yypos140; yy->__thunkpos= yythunkpos140;  if (!yy_block(yy)) goto l137;  yyDo(yy, yySet, -4, 0);
-  }
-  l140:;	  yyDo(yy, yy_2_stmt, yy->__begin, yy->__end);  goto l135;
-  l137:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_IF(yy)) goto l142;  if (!yy_LPAR(yy)) goto l142;  if (!yy_expr(yy)) goto l142;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l142;
-  {  int yypos143= yy->__pos, yythunkpos143= yy->__thunkpos;  if (!yy_block(yy)) goto l144;  yyDo(yy, yySet, -5, 0);  goto l143;
-  l144:;	  yy->__pos= yypos143; yy->__thunkpos= yythunkpos143;  if (!yy_expr(yy)) goto l142;  yyDo(yy, yySet, -5, 0);
-  }
-  l143:;	  yyDo(yy, yy_3_stmt, yy->__begin, yy->__end);  goto l135;
-  l142:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_WHILE(yy)) goto l145;  if (!yy_LPAR(yy)) goto l145;  if (!yy_expr(yy)) goto l145;  yyDo(yy, yySet, -6, 0);  if (!yy_RPAR(yy)) goto l145;
-  {  int yypos146= yy->__pos, yythunkpos146= yy->__thunkpos;  if (!yy_stmt(yy)) goto l147;  yyDo(yy, yySet, -5, 0);  goto l146;
-  l147:;	  yy->__pos= yypos146; yy->__thunkpos= yythunkpos146;  if (!yy_block(yy)) goto l145;  yyDo(yy, yySet, -5, 0);
-  }
-  l146:;	  yyDo(yy, yy_4_stmt, yy->__begin, yy->__end);  goto l135;
-  l145:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_FOR(yy)) goto l148;  if (!yy_LPAR(yy)) goto l148;
-  {  int yypos149= yy->__pos, yythunkpos149= yy->__thunkpos;  if (!yy_expr(yy)) goto l150;  yyDo(yy, yySet, -3, 0);  goto l149;
-  l150:;	  yy->__pos= yypos149; yy->__thunkpos= yythunkpos149;  if (!yy_mkFalse(yy)) goto l148;  yyDo(yy, yySet, -3, 0);
-  }
-  l149:;	  if (!yy_SEMI(yy)) goto l148;
-  {  int yypos151= yy->__pos, yythunkpos151= yy->__thunkpos;  if (!yy_expr(yy)) goto l152;  yyDo(yy, yySet, -6, 0);  goto l151;
-  l152:;	  yy->__pos= yypos151; yy->__thunkpos= yythunkpos151;  if (!yy_mkFalse(yy)) goto l148;  yyDo(yy, yySet, -6, 0);
-  }
-  l151:;	  if (!yy_SEMI(yy)) goto l148;
-  {  int yypos153= yy->__pos, yythunkpos153= yy->__thunkpos;  if (!yy_expr(yy)) goto l154;  yyDo(yy, yySet, -4, 0);  goto l153;
-  l154:;	  yy->__pos= yypos153; yy->__thunkpos= yythunkpos153;  if (!yy_mkFalse(yy)) goto l148;  yyDo(yy, yySet, -2, 0);
-  }
-  l153:;	  if (!yy_RPAR(yy)) goto l148;
-  {  int yypos155= yy->__pos, yythunkpos155= yy->__thunkpos;  if (!yy_block(yy)) goto l156;  yyDo(yy, yySet, -5, 0);  goto l155;
-  l156:;	  yy->__pos= yypos155; yy->__thunkpos= yythunkpos155;  if (!yy_expr(yy)) goto l148;  yyDo(yy, yySet, -5, 0);
-  }
-  l155:;	  yyDo(yy, yy_5_stmt, yy->__begin, yy->__end);  goto l135;
-  l148:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_RET(yy)) goto l157;
-  {  int yypos158= yy->__pos, yythunkpos158= yy->__thunkpos;  if (!yy_expr(yy)) goto l159;  yyDo(yy, yySet, -1, 0);  goto l158;
-  l159:;	  yy->__pos= yypos158; yy->__thunkpos= yythunkpos158;  if (!yy_mkFalse(yy)) goto l157;  yyDo(yy, yySet, -1, 0);
-  }
-  l158:;	  if (!yy_SEMI(yy)) goto l157;  yyDo(yy, yy_6_stmt, yy->__begin, yy->__end);  goto l135;
-  l157:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy_expr(yy)) goto l160;  yyDo(yy, yySet, -1, 0);  if (!yy_SEMI(yy)) goto l160;  yyDo(yy, yy_7_stmt, yy->__begin, yy->__end);  goto l135;
-  l160:;	  yy->__pos= yypos135; yy->__thunkpos= yythunkpos135;  if (!yy__(yy)) goto l134;  if (!yy_SEMI(yy)) goto l134;  yyDo(yy, yy_8_stmt, yy->__begin, yy->__end);
-  }
-  l135:;	
-  yyprintf((stderr, "  ok   %s @ %s\n", "stmt", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 7, 0);
+YY_RULE(int) yy_state(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 3, 0);
+  yyprintf((stderr, "%s\n", "state"));  if (!yy_STATE(yy)) goto l173;  if (!yy_id(yy)) goto l173;  yyDo(yy, yySet, -3, 0);  if (!yy_params(yy)) goto l173;  yyDo(yy, yySet, -2, 0);  if (!yy_events(yy)) goto l173;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_state, yy->__begin, yy->__end);
+  yyprintf((stderr, "  ok   %s @ %s\n", "state", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 3, 0);
   return 1;
-  l134:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "stmt", yy->__buf+yy->__pos));
+  l173:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "state", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy__(yycontext *yy)
 {
   yyprintf((stderr, "%s\n", "_"));
-  l162:;	
-  {  int yypos163= yy->__pos, yythunkpos163= yy->__thunkpos;  if (!yy_blank(yy)) goto l163;  goto l162;
-  l163:;	  yy->__pos= yypos163; yy->__thunkpos= yythunkpos163;
+  l175:;	
+  {  int yypos176= yy->__pos, yythunkpos176= yy->__thunkpos;  if (!yy_blank(yy)) goto l176;  goto l175;
+  l176:;	  yy->__pos= yypos176; yy->__thunkpos= yythunkpos176;
   }
   yyprintf((stderr, "  ok   %s @ %s\n", "_", yy->__buf+yy->__pos));
   return 1;
@@ -3016,39 +3178,39 @@ YY_RULE(int) yy__(yycontext *yy)
 YY_RULE(int) yy_start(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;  yyDo(yy, yyPush, 1, 0);
   yyprintf((stderr, "%s\n", "start"));
-  {  int yypos165= yy->__pos, yythunkpos165= yy->__thunkpos;  if (!yy__(yy)) goto l166;  if (!yy_stmt(yy)) goto l166;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_start, yy->__begin, yy->__end);  goto l165;
-  l166:;	  yy->__pos= yypos165; yy->__thunkpos= yythunkpos165;  if (!yy__(yy)) goto l167;  if (!yy_define(yy)) goto l167;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_start, yy->__begin, yy->__end);  goto l165;
-  l167:;	  yy->__pos= yypos165; yy->__thunkpos= yythunkpos165;
-  {  int yypos169= yy->__pos, yythunkpos169= yy->__thunkpos;  if (!yymatchDot(yy)) goto l169;  goto l168;
-  l169:;	  yy->__pos= yypos169; yy->__thunkpos= yythunkpos169;
-  }  yyDo(yy, yy_3_start, yy->__begin, yy->__end);  goto l165;
-  l168:;	  yy->__pos= yypos165; yy->__thunkpos= yythunkpos165;  yyText(yy, yy->__begin, yy->__end);  {
+  {  int yypos178= yy->__pos, yythunkpos178= yy->__thunkpos;  if (!yy__(yy)) goto l179;  if (!yy_state(yy)) goto l179;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_1_start, yy->__begin, yy->__end);  goto l178;
+  l179:;	  yy->__pos= yypos178; yy->__thunkpos= yythunkpos178;  if (!yy__(yy)) goto l180;  if (!yy_define(yy)) goto l180;  yyDo(yy, yySet, -1, 0);  yyDo(yy, yy_2_start, yy->__begin, yy->__end);  goto l178;
+  l180:;	  yy->__pos= yypos178; yy->__thunkpos= yythunkpos178;
+  {  int yypos182= yy->__pos, yythunkpos182= yy->__thunkpos;  if (!yymatchDot(yy)) goto l182;  goto l181;
+  l182:;	  yy->__pos= yypos182; yy->__thunkpos= yythunkpos182;
+  }  yyDo(yy, yy_3_start, yy->__begin, yy->__end);  goto l178;
+  l181:;	  yy->__pos= yypos178; yy->__thunkpos= yythunkpos178;  yyText(yy, yy->__begin, yy->__end);  {
 #define yytext yy->__text
 #define yyleng yy->__textlen
-if (!(YY_BEGIN)) goto l164;
+if (!(YY_BEGIN)) goto l177;
 #undef yytext
 #undef yyleng
   }
-  l170:;	
-  {  int yypos171= yy->__pos, yythunkpos171= yy->__thunkpos;
-  {  int yypos172= yy->__pos, yythunkpos172= yy->__thunkpos;  if (!yy_eol(yy)) goto l172;  goto l171;
-  l172:;	  yy->__pos= yypos172; yy->__thunkpos= yythunkpos172;
+  l183:;	
+  {  int yypos184= yy->__pos, yythunkpos184= yy->__thunkpos;
+  {  int yypos185= yy->__pos, yythunkpos185= yy->__thunkpos;  if (!yy_eol(yy)) goto l185;  goto l184;
+  l185:;	  yy->__pos= yypos185; yy->__thunkpos= yythunkpos185;
   }
-  {  int yypos173= yy->__pos, yythunkpos173= yy->__thunkpos;  if (!yymatchDot(yy)) goto l171;  yy->__pos= yypos173; yy->__thunkpos= yythunkpos173;
-  }  if (!yymatchDot(yy)) goto l171;  goto l170;
-  l171:;	  yy->__pos= yypos171; yy->__thunkpos= yythunkpos171;
+  {  int yypos186= yy->__pos, yythunkpos186= yy->__thunkpos;  if (!yymatchDot(yy)) goto l184;  yy->__pos= yypos186; yy->__thunkpos= yythunkpos186;
+  }  if (!yymatchDot(yy)) goto l184;  goto l183;
+  l184:;	  yy->__pos= yypos184; yy->__thunkpos= yythunkpos184;
   }  yyText(yy, yy->__begin, yy->__end);  {
 #define yytext yy->__text
 #define yyleng yy->__textlen
-if (!(YY_END)) goto l164;
+if (!(YY_END)) goto l177;
 #undef yytext
 #undef yyleng
   }  yyDo(yy, yy_4_start, yy->__begin, yy->__end);
   }
-  l165:;	
+  l178:;	
   yyprintf((stderr, "  ok   %s @ %s\n", "start", yy->__buf+yy->__pos));  yyDo(yy, yyPop, 1, 0);
   return 1;
-  l164:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l177:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "start", yy->__buf+yy->__pos));
   return 0;
 }
@@ -3100,7 +3262,7 @@ YY_PARSE(yycontext *) YYRELEASE(yycontext *yyctx)
 }
 
 #endif
-#line 902 "./vm.leg"
+#line 909 "./vm.leg"
 ;
 #undef BINOP
 /* ============= IR CODE LIST ================== */
@@ -3184,11 +3346,15 @@ enum {
 	iPRINT,
 	iJUMP, // jump to a position
 	iJUMPIF, // jump if top of stack is true
+	iJUDGE,  //for event condtion
 	iPCALL, iCALL, // call a function
 	iRETURN, // return from a function
 	iCLEAN,//
 	iSETSTATE,//NE: Number of events in the state
-	iSETEVENT,//ET: Event type, EPOS: Event position
+	iSETEVENT,//ET: Event type, NP: Number of process
+	iEOE,
+	iEOC,
+	iIMPL, // aPos, cPos
 };
 char *opnames[] = {
 	"HALT", "PUSH",
@@ -3198,8 +3364,9 @@ char *opnames[] = {
 	"PRINT",
 	"JUMP",
 	"JUMPIF",
-	"SETSTATE",
+	"SETSTATE", 
 	"SETEVENT",
+	"IMPL",
 };
 
 
@@ -3264,12 +3431,22 @@ struct EventHandler *eventHandler_init(int pos, int handler, int nArgs, int data
 
 /* ============================== */
 
+#define EVENT_EH        0x00 // Event Handler
 #define	TIMER_EH	    0x01
 #define	TOUCH_EH	    0x02
 #define	COLLISION_EH	0x03
 #define	SELF_STATE_EH	0x04
-
 // Event Handlers VM
+
+int event_handler(struct IntQue3 *q){
+	int event = 0;
+	if (q->head < q->tail) {
+		event = dequeue3(q); // dequeue the first element
+		printf("event: %d\n", event);
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
 int timer_handler(struct IntQue3 *q)
 {
 	int time = 0;
@@ -3319,7 +3496,9 @@ int (*eventHandlers[])(struct IntQue3 *q) = {
 };
 int compile_event_init(){
 	oop EH = NULL;
-	
+	EH = intern("eventEH");
+	EH->Symbol.value = newEventID(EVENT_EH,1); // 1 argument
+
 	EH = intern("timerEH");
 	EH->Symbol.value = newEventID(TIMER_EH,1);
 
@@ -3343,7 +3522,7 @@ int init_compiler(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #if DEBUG
@@ -3394,6 +3573,7 @@ iptr execute(iptr prog,iptr stack)
 		}
 	    case iHALT:{
 			printOP(_iHALT\n_);
+			pop();//first rbp
 			for(int i = 0;  i < stack->size;  ++i) {
 				printf("%d ", stack->elements[i]);
 			}
@@ -3415,7 +3595,7 @@ iptr execute(iptr prog,iptr stack)
 			printOP(_iGETVAR_);
 			int symIndex = fetch(); // need to change
 			push(stack->elements[symIndex + rbp+1]); // get the variable value
-			printf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
+			dprintf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
 			continue;
 		}	    
 	    case iSETVAR:{
@@ -3472,7 +3652,7 @@ iptr execute(iptr prog,iptr stack)
 
 			push(rbp); // save the current base pointer
 			rbp = stack->size-1; // set the base pointer to the current stack size
-			printf("rbp: %d, pc: %d\n", rbp, pc);
+			dprintf("rbp: %d, pc: %d\n", rbp, pc);
 
 			for (int i = 1;  i <= r;  ++i) {
 				push(pick((rbp - i -1)));//pc
@@ -3627,8 +3807,8 @@ oop appendS0T1(oop name, int pos,int type)
 		printf("type must be 0 or 1, got %d\n", type);
 		exit(1);
 	}
-	oop *lists = type == 0 ? states : transitions;
-	int *listSize = type == 0 ? &nstates : &ntransitions;
+	oop *lists = type == APSTATE ? states : transitions;
+	int *listSize = type == APSTATE ? &nstates : &ntransitions;
 	for (int i = 0;  i < *listSize;  ++i) {
 		oop state = lists[i];
 		oop stateName = get(state, Pair,a);
@@ -3637,8 +3817,11 @@ oop appendS0T1(oop name, int pos,int type)
 			return state;
 		}
 	}
-
+	lists = realloc(lists, sizeof(oop) * (*listSize + 1));
+	gc_pushRoot((void*)&lists);
+	gc_pushRoot((void*)&name);
 	oop newState = newPair(name, newInteger(pos));
+	gc_popRoots(2);
 	lists[*listSize] = newState;
 	(*listSize)++;
 	return newState;
@@ -3986,9 +4169,7 @@ void emitOn(iptr prog,oop vars, oop ast)
 			// compile events
 			oop *eventList = events->Block.statements;
 			int nEvents = events->Block.size;
-			int *eventsPos = malloc(sizeof(int) * nEvents);
 			for (int i = 0;  i < nEvents;  ++i){
-				eventsPos[i] = prog->size; // remember position of each event
 				emitOn(prog, vars, eventList[i]); // compile each event
 			}
 			// state initialization
@@ -3998,16 +4179,17 @@ void emitOn(iptr prog,oop vars, oop ast)
 				oop event = eventList[i];
 				oop id = get(event, Event,id);
 				oop eh = get(id,Symbol,value);
+				oop posPair = get(event, Event,block);
 				int eventID = eh->EventID.id; // get event ID
-				int nArgs = eh->EventID.nArgs; // get argument size
-				emitIII(prog, eventsPos[i], eventID, nArgs); // set the event ID and position
+				emitII(prog,iSETEVENT, eventID); // set the event ID and position
+				emitII(prog, Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
 			}
-			free(eventsPos); // free the events position array
-			emitOn(prog, vars, events); // compile events
+			emitI(prog, iIMPL);
 			return;
 		}
 		case Event:{
 			printTYPE(_Event_);
+
 			oop id = get(ast, Event,id);
 			oop eh = get(id,Symbol,value);
 			if(getType(eh) != EventID) {
@@ -4021,24 +4203,40 @@ void emitOn(iptr prog,oop vars, oop ast)
 			
 			int nArgs = eh->EventID.nArgs;
 			int paramSize =0;
-			while(params != nil) {
+			int cPos      = 0;
+			while(params != nil) {//a:id-b:cond
 				oop param = get(params, Pair,a);
-				insertVariable(eventLocalVariables, param); // add parameter to local variables
+				insertVariable(eventLocalVariables, get(param,Pair,a)); // add parameter to local variables
+				if(get(param, Pair, b)!= false){
+					if(cPos==0)cPos = prog->size; // remember the position of the condition
+					emitOn(prog, eventLocalVariables, get(param, Pair,b)); // compile condition if exists
+					emitI(prog,iJUDGE); // emit JUDGE instruction
+				}
 				params = get(params, Pair,b);
+				paramSize++;
+			}
+			if(cPos != 0){
+				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
 				printf("event %s has %d parameters, but expected %d\n", get(id, Symbol,name), paramSize, nArgs);
 				exit(1);
 			}
-
-			emitIL(prog, iMKSPACE, 0); // reserve space for local variables
+			int aPos = prog->size; // remember the position of the event handler
+			emitII(prog, iMKSPACE, 0); // reserve space for local variables
 			int mkspacepos = prog->size - 1; // remember the position of MKSPACE
 
 			// emitOn(prog, vars, params); // compile parameters
+
 			emitOn(prog, eventLocalVariables, block); // compile block
 
 			prog->elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
 			GC_POP(eventLocalVariables); // pop local variables from GC roots
+			GC_PUSH(oop,apos, newInteger(aPos));
+			GC_PUSH(oop,cpos,newInteger(cPos));
+			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
+			GC_POP(cpos);
+			GC_POP(apos);
 			return;
 		}
 		default:break;
@@ -4086,6 +4284,9 @@ void printCode(iptr code){
 				printf("%03d: JUMPIF  %03d(%3d)\n", i-1, code->elements[i], code->elements[i] + (i+1));
 				break;
 			}
+			case iJUDGE: printf("%03d: JUDGE\n", i); break;
+			case iEOC:   printf("%03d: EOC\n", i); break;
+			case iEOE:  printf("%03d: EOE\n", i); break;
 			case iRETURN: printf("%03d: RETURN\n", i); break;
 			case iCLEAN: {
 				++i;
@@ -4104,6 +4305,23 @@ void printCode(iptr code){
 				int pos = code->elements[++i];
 				int nArgs = code->elements[++i];
 				printf("%03d: CALL    %03d(%3d) %03d\n", i-2, pos, (i+1)+pos, nArgs);
+				break;
+			}
+			case iSETSTATE: {
+				++i;
+				int nEvents = code->elements[i];
+				printf("%03d: SETSTATE %03d\n", i-1, nEvents);
+				break;
+			}
+			case iSETEVENT:{
+				int eventID = code->elements[++i];
+				int apos = code->elements[++i];
+				int cpos = code->elements[++i];
+				printf("%03d: SETEVENT %03d %3d %03d\n", i-2, eventID, apos, cpos);
+				break;
+			}
+			case iIMPL:{
+				printf("%03d: IMPL\n", i-1);
 				break;
 			}
 			default:
@@ -4500,7 +4718,7 @@ int main(int argc, char **argv)
 #if TAGFLT
     assert(sizeof(double) == sizeof(intptr_t));
 #endif
-	gc_init(1024 * 1024); // initialize garbage collector with 10MB heap size
+	gc_init(1024 * 1024);// initialize the garbage collector with 1MB of memory 
 
     nil   = newObject(Undefined);	gc_pushRoot(nil);
     false = newInteger(0);			gc_pushRoot(false);
@@ -4509,6 +4727,7 @@ int main(int argc, char **argv)
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
 	rprintf("Compiling code:\n");
+	compile_event_init(); // initialize the event system
 	// compile code
 	iptr code = compile();
 
@@ -4524,6 +4743,10 @@ int main(int argc, char **argv)
 	nroots = 0; // reset the number of roots
 	gc_collect();
 
+	printf("end of compilation\n");
+	return 0;
+
+
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
 
 	// execute code
@@ -4534,19 +4757,6 @@ int main(int argc, char **argv)
 	execute(code, globalVariables);
 	GC_POP(globalVariables); // pop global variables from GC roots
 
-	// 	gc_collect();
-
-    // GC_PUSH(iptr, second, intArray_init());
-	// printf("nroots[%d] g:%p\n",nroots, second);
-	// execute(code, second);
-	// GC_POP(second); // pop global variables from GC roots
-
-	// 	gc_collect();
-
-	// GC_PUSH(iptr, third, intArray_init());
-	// printf("nroots[%d] g:%p\n",nroots, third);
-	// execute(code, third);
-	// GC_POP(third); // pop global variables from GC roots
 
 	rprintf("Execution finished.\n");
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
