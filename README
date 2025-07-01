@@ -18,13 +18,13 @@ NOT YET
 
 
 # vms
-S num
-    C lib num
-        T pPC cPC
-        T pPC cPC
-    C lib num
-        T pPC cPC
-        T pPC cPC
+S [number of Eventhandler]
+    E [libray number] [clone number + G-L bool + number of process]
+        P [pPos] [cPos]
+        P [pPos] [cPos]
+    E [libray number] [clone number + G-L bool + number of process]
+        P [pPos] [cPos]
+        P [pPos] [cPos]
 
 
 # user-define function call

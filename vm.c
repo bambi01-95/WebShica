@@ -3246,25 +3246,23 @@ typedef enum kind{
 	Agent,
 } kind_t;
 
-
-
 struct IntArray{
 	kind_t kind; // kind of the array
 	int *elements;
 	int size, capacity;
 };
 
-
 struct IntQue3{
 	kind_t kind; // kind of the queue
 	char nArgs; 
 	int *que[3];
-	char tail, head;
+	char tail, head,size;
 };
 typedef int (*opfunc)(ent q);
 
 struct Thread{
 	kind_t kind;
+	int inProgress; // 0 - not started, 1 - running, 2 - finished
 	int apos;
 	int cpos;
 	ent queue;
@@ -3354,6 +3352,61 @@ int intArray_last(ent a)
 	return a->IntArray.elements[a->IntArray.size - 1];
 }
 
+
+// IntQue3
+#define IntQue3Size 3
+ent intQue3_init(int nArgs)
+{
+	GC_PUSH(ent, q, newEntity(IntQue3));
+	for (int i = 0;  i < IntQue3Size;  ++i) {
+		q->IntQue3.que[i] = (int*)malloc(sizeof(int) * nArgs);
+	}
+	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
+	GC_POP(q);
+	return q;
+}
+void enqueue3(ent q, int *value)
+{
+	if (q->IntQue3.size >= IntQue3Size) {
+		fprintf(stderr, "enqueue3: queue is full\n");
+		exit(1);
+	}
+	for(int i = 0; i < q->IntQue3.nArgs; ++i) {
+		q->IntQue3.que[q->IntQue3.tail][i] = value[i];
+	}
+	q->IntQue3.tail = (q->IntQue3.tail + 1) % 3;
+	q->IntQue3.size++;
+}
+
+ent dequeue3(ent q)
+{
+	if (q->IntQue3.size == 0) {
+		return NULL; // queue is empty
+	}
+	gc_pushRoot((void*)q);
+
+	GC_PUSH(ent,newStack, newEntity(IntArray));
+	for(int i = 0; i < q->IntQue3.nArgs; ++i){
+		intArray_push(newStack, q->IntQue3.que[q->IntQue3.head][i]);
+	}
+	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
+	q->IntQue3.size--;
+	GC_POP(newStack);
+	gc_popRoots(1);
+	return newStack;
+}
+
+
+ent eventHandler_init(int handler, int nArgs, int dataSize)
+{
+	ent eh = newEntity(EventHandler);
+	eh->EventHandler.EventID = handler;
+	eh->EventHandler.size = dataSize;
+	eh->EventHandler.data = 0;
+	eh->EventHandler.threads = 0;
+	return eh;
+};
+
 ent *IrCodeList = NULL;
 int nIrCode = 0; // index of getIrCode
 ent getIrCode(int index){
@@ -3361,10 +3414,8 @@ ent getIrCode(int index){
 		return IrCodeList[index];
 	} 
 	if(index >= nIrCode){
-		IrCodeList = realloc(IrCodeList, sizeof(ent) * (index + 1));
-		for (int i = nIrCode; i <= index; ++i) {
-			IrCodeList[i] = intArray_init();
-		}
+		IrCodeList = realloc(IrCodeList, sizeof(ent) * (index + 1));	
+		IrCodeList[index] = intArray_init();
 		nIrCode = index + 1;
 	}
 	return IrCodeList[index];
@@ -3391,6 +3442,7 @@ enum {
 	iCLEAN,//
 	iSETSTATE,//NE: Number of events in the state
 	iSETEVENT,//ET: Event type, NP: Number of process
+	iSETPROCESS,
 	iEOE,
 	iEOC,
 	iIMPL, // aPos, cPos
@@ -3401,63 +3453,14 @@ char *opnames[] = {
 	"GETVAR", "SETVAR",
 	"MKSPACE",
 	"PRINT",
-	"JUMP",
-	"JUMPIF",
-	"SETSTATE", 
-	"SETEVENT",
-	"IMPL",
-};
+	"JUMP", "JUMPIF", "JUDGE",
+	"PCALL", "CALL", "RETURN",
 
-
-
-
-
-
-
-ent intQue3_init(int nArgs)
-{
-	ent q = newEntity(IntQue3);
-	for (int i = 0;  i < 3;  ++i) {
-		q->IntQue3.que[i] = (int*)malloc(sizeof(int) * nArgs);
-	}
-	q->IntQue3.tail = q->IntQue3.head = 0;
-	return q;
-}
-void enqueue3(ent q, int value)
-{
-	if (q->IntQue3.tail < 3) {
-		q->IntQue3.que[q->IntQue3.tail++] = (int*)malloc(sizeof(int));
-	} else {
-		fatal("queue is full");
-	}
-}
-int dequeue3(ent q)
-{
-	if (q->IntQue3.head < q->IntQue3.tail) {
-		int value = *(q->IntQue3.que[q->IntQue3.head++]);
-		free(q->IntQue3.que[q->IntQue3.head - 1]);
-		return value;
-	} else {
-		fatal("queue is empty");
-	}
-	return 0;
-}
-
-
-
-int nAgents = 1; // number of agents
-int onProcessID = 0;
-
-
-
-ent eventHandler_init(int handler, int nArgs, int dataSize)
-{
-	ent eh = newEntity(EventHandler);
-	eh->EventHandler.EventID = handler;
-	eh->EventHandler.size = dataSize;
-	eh->EventHandler.data = 0;
-	eh->EventHandler.threads = 0;
-	return eh;
+	"CLEAN",
+	"SETSTATE", "SETEVENT", "SETPROCESS",
+	"EOE", "EOC",
+	"IMPL", // aPos, cPos
+	
 };
 
 
@@ -3472,61 +3475,78 @@ ent eventHandler_init(int handler, int nArgs, int dataSize)
 #define	SELF_STATE_EH	0x04
 // Event Handlers VM
 
-int event_handler(ent q){
+int event_handler(ent eh){
 	int event = 0;
-	if (q->IntQue3.head == q->IntQue3.tail) {
-		enqueue3(q, event); // enqueue a dummy event
+	if (eh->IntQue3.head == eh->IntQue3.tail) {
+		enqueue3(eh, &event); // enqueue a dummy event
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int timer_handler(ent q)
+
+#if __EMSCRIPTEN__
+int timer_handler(ent eh)
 {
 	int time = 0;
-	if (q->IntQue3.head < q->IntQue3.tail) {
-		enqueue3(q,time); // dequeue the first element
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh,time); // dequeue the first element
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int touch_handler(ent q)
+#else
+#include <time.h>
+int timer_handler(ent eh){
+	int time = 0; // get the current time in seconds
+	if(time==1){ // if more than 1 second has passed
+		// data[0] = time; // update the data to current time
+		enqueue3(eh, &time); // enqueue the current time
+		printf("timer event: %d\n", time);
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+#endif
+int touch_handler(ent eh)
 {
 	int touch = 0;
-	if (q->IntQue3.head < q->IntQue3.tail) {
-		touch = dequeue3(q); // dequeue the first element
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &touch); // dequeue the first element
 		printf("touch event: %d\n", touch);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int collision_handler(ent q)
+int collision_handler(ent eh)
 {
 	int collision = 0;
-	if (q->IntQue3.head < q->IntQue3.tail) {
-		collision = dequeue3(q); // dequeue the first element
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &collision); // dequeue the first element
 		printf("collision event: %d\n", collision);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
 
-int self_state_handler(ent q)
+int self_state_handler(ent eh)
 {
 	int state = 0;
-	if (q->IntQue3.head < q->IntQue3.tail) {
-		state = dequeue3(q); // dequeue the first element
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &state); // dequeue the first element
 		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
 
-int (*eventHandlers[])(ent q) = {
+int (*eventHandlers[])(ent eh) = {
 	timer_handler,      // TIMER_EH
 	touch_handler,      // TOUCH_EH
 	collision_handler,  // COLLISION_EH
 	self_state_handler, // SELF_STATE_EH
 };
+
+
 int compile_event_init(){
 	oop EH = NULL;
 	EH = intern("eventEH");
@@ -3580,8 +3600,50 @@ void printStack(ent stack)
 	}
 	printf("\n");
 }
+/*	============== WEB =======================*/
+ent *Agents = NULL;
+int nAgents = 0; // number of agents
+ent *codes = NULL; // codes for each agent
+int nCodes = 0; // number of codes
+ent execute(ent prog,ent stack);
+int impleBody(ent eh){
+	ent *threads = eh->EventHandler.threads;
+	for(int i=0;i<eh->EventHandler.size; ++i){
+		ent thread = threads[i];
+		if(thread->Thread.inProgress= 0){
+			execute(thread->Thread.stack, thread->Thread.stack);//should be change
+		}else if(thread->Thread.queue->IntQue3.size > 0){
+			thread->Thread.stack = dequeue3(thread->Thread.queue);
+			if(thread->Thread.stack == NULL){
+				continue;
+			}else{
+				execute(thread->Thread.stack, thread->Thread.stack);//should be change
+			}
+		}
+	}
+}
 
+int run(int index){
+	ent agent = Agents[index];
+	if (agent == NULL) {
+		fprintf(stderr, "run: agent %d is NULL\n", index);
+		return 0; // return 0 to indicate failure
+	}
+	if(agent->Agent.isActive == 0) {
+		execute(agent->Agent.stack, agent->Agent.stack);
+	}else{
+		for(int i = 0; i< agent->Agent.nEvents; ++i){
+			// get event data
+			ent eh = agent->Agent.eventHandlers[i];
+			eventHandlers[eh->EventHandler.EventID](eh);
+			impleBody(eh); // execute the event handler
+		}
+	}
+	return 1; // return 1 to indicate success
+}
+/* =========================================== */
 
+			//code, stack , global 
 ent execute(ent prog,ent stack)
 {
     int* code = prog->IntArray.elements;
@@ -3724,41 +3786,37 @@ ent execute(ent prog,ent stack)
 		case iSETSTATE:{
 			printOP(_iSETSTATE_);
 			l = fetch(); // get the state position
-			continue;
-		}
-		case iSETEVENT:{
-			printOP(_iSETEVENT_);
-			l = fetch();// event id
-			r = fetch();// event action pc
-			int cpc = fetch(); // action pc
-			int isNew = 1;
-			// for(int i=0; i<Agents[onProcessID].nEvents; i++) {
-			// 	if(Agents[onProcessID].eventHandlers[i]->EventID == l) {
-			// 		isNew = 0; // event handler already exists
-			// 		EventHandler *eh = Agents[onProcessID].eventHandlers[i];
-			// 		eh->threads = realloc(eh->threads, sizeof(struct Thread*) * (eh->size + 1));
-			// 		eh->threads[eh->size] = (struct Thread*)malloc(sizeof(struct Thread));
-			// 		eh->threads[eh->size]->apos = apc; // action pc
-			// 		eh->threads[eh->size]->cpos = cpc; // codition pc
-			// 		break;
-			// 	}
-			// }
-			// if(isNew) {
-			// 	// create a new event handler
-			// 	Agents[onProcessID].eventHandlers = realloc(Agents[onProcessID].eventHandlers, sizeof(struct EventHandler*) * (Agents[onProcessID].nEvents + 1));
-			// 	struct EventHandler *eh = Agents[onProcessID].eventHandler[Agents[onProcessID].nEvents] = (struct EventHandler*)malloc(sizeof(struct EventHandler));
-			// 	eh->EventID = l;
-			// 	eh->threads = (struct Thread**)malloc(sizeof(struct Thread*));
-			// 	eh->threads[0] = (struct Thread*)malloc(sizeof(struct Thread));
-			// 	eh->threads[0]->apos = apc; // action pc
-			// 	eh->threads[0]->cpos = cpc; // codition pc
-			// 	Agents[onProcessID].nEvents++;
-			// }
-			continue;
+			GC_PUSH(ent, agt, newEntity(Agent));
+			agt->Agent.id = -1;
+			agt->Agent.isActive = 1;
+			agt->Agent.nEvents = 0; // number of events in the state
+			agt->Agent.eventHandlers = (ent*)malloc(sizeof(ent) * l);
+			for(int i=0; i<l; ++i){
+				op = fetch();
+				assert(op == iSETEVENT);
+				int eventID = fetch(); // get the event ID
+				int nThreads = fetch(); // get the number of threads
+				ent eh = agt->Agent.eventHandlers[i] = eventHandler_init(eventID, nThreads, 0);
+				for(int j=0; j<nThreads; ++j){
+					op = fetch();
+					assert(op == iSETPROCESS);
+					GC_PUSH(ent, thread, newEntity(Thread));
+					thread->Thread.inProgress = 0; // not started
+					thread->Thread.apos = fetch(); // agent position
+					thread->Thread.cpos = fetch(); // code position
+					thread->Thread.queue = intQue3_init(3); // create a queue for the thread
+					thread->Thread.stack = intArray_init(); // create a stack for the thread
+					eh->EventHandler.threads[j] = thread;
+					gc_popRoots(1);
+				}
+			}
+			op = fetch();
+			assert(op == iIMPL);
+			GC_POP(agt);
+			return agt;
 		}
 		case iIMPL:{
 			printOP(_iIMPL_);
-			// Agents[onProcessId].active = 0;
 			continue;
 		}
 	    default:fatal("illegal instruction %d", op);
