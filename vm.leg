@@ -740,8 +740,9 @@ YYSTYPE result;
 int newline = 0;
 %}
 
-start	= - s:state {result = s;}
-		| - s:define { result = s; }
+start	=  - s:state {result = s;}
+		|  - s:define { result = s; }
+		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
 		| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
 
@@ -797,7 +798,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
 		| x:expr SEMI			  { result = x; }
 		| - SEMI				  { result = false; }
-		| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
+		#| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
 
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newPair(i, a) }
@@ -910,62 +911,134 @@ RET = "return" -
 #undef BINOP
 /* ============= IR CODE LIST ================== */
 /* ============================================= */
+typedef union Entity Entity;
+typedef Entity *ent;
+
+typedef enum kind{
+	Undeclar = 0,
+	IntArray,
+	IntQue3,
+	Thread,
+	EventHandler,
+	Agent,
+} kind_t;
+
+
+
 struct IntArray{
+	kind_t kind; // kind of the array
 	int *elements;
 	int size, capacity;
 };
-typedef struct IntArray *iptr;
 
-iptr intArray_init()
+
+struct IntQue3{
+	kind_t kind; // kind of the queue
+	char nArgs; 
+	int *que[3];
+	char tail, head;
+};
+typedef int (*opfunc)(ent q);
+
+struct Thread{
+	kind_t kind;
+	int apos;
+	int cpos;
+	ent queue;
+	ent stack;
+	int rbp; // base pointer
+	int pc; // program counter
+};
+
+struct EventHandler{
+	kind_t kind;
+	int *data;
+	int size;
+	int EventID;
+	ent *threads; // thread that this handler belongs to
+}; 
+
+struct Agent{
+	int id;
+	int isActive;
+	int nEvents;
+	int pc;
+	int rbp;
+	ent stack;
+	ent *eventHandlers;
+};
+
+union Entity{
+	kind_t kind;
+	struct Agent Agent;
+	struct EventHandler EventHandler;
+	struct Thread Thread;
+	struct IntArray IntArray;
+	struct IntQue3 IntQue3;
+};
+
+ent _newEntity(size_t size, kind_t kind)
 {
-	GC_PUSH(iptr, a,(iptr )malloc(sizeof(struct IntArray)));
-	a->elements = (int*)malloc(sizeof(int) * 4);
-	a->size     = 0;
-	a->capacity = 4;
+	ent e = (ent)malloc(size);
+	if (!e) {
+		fprintf(stderr, "Out of memory\n");
+		exit(1);
+	}
+	e->kind = kind;
+	return e;
+}
+#define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
+
+ent intArray_init()
+{
+	GC_PUSH(ent, a, newEntity(IntArray));
+	a->IntArray.elements = (int*)malloc(sizeof(int) * 4);
+	a->IntArray.size     = 0;
+	a->IntArray.capacity = 4;
 	GC_POP(a);
 	return a;
 }
 /* !!!! FOR VM !!!! */
-void intArray_push(iptr a, int value){
+void intArray_push(ent a, int value){
 
-	if (a->size >= a->capacity) {
-		a->capacity = a->capacity ? a->capacity + 10000 : 10000;
+	if (a->IntArray.size >= a->IntArray.capacity) {
+		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity + 10000 : 10000;
 		// printf("intArray_push: size %d >= capacity %d\n", a->size, a->capacity);
 		// printf("              %p\n",a);
 		gc_pushRoot((void*)a);
-		a->elements = realloc(a->elements, sizeof(int) * a->capacity);
+		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
 		gc_popRoots(1);
 	}
-	a->elements[a->size++] = value;
+	a->IntArray.elements[a->IntArray.size++] = value;
 }
 /* !!!! FOR COMPILE !!!! */
-void intArray_append(iptr a, int value)
+void intArray_append(ent a, int value)
 {
-	if (a->size >= a->capacity) {
-		a->capacity = a->capacity ? a->capacity * 2 : 4;
-		a->elements = realloc(a->elements, sizeof(int) * a->capacity);
+	if (a->IntArray.size >= a->IntArray.capacity) {
+		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity * 2 : 4;
+		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
 	}
-	a->elements[a->size++] = value;
+	a->IntArray.elements[a->IntArray.size++] = value;
 }
-int intArray_pop(iptr a)
+int intArray_pop(ent a)
 {
-	if (a->size == 0) fatal("pop: stack is empty");
-	return a->elements[--a->size];
+	if (a->IntArray.size == 0) fatal("pop: stack is empty");
+	return a->IntArray.elements[--a->IntArray.size];
 }
-int intArray_last(iptr a)
+int intArray_last(ent a)
 {
-	if (a->size == 0) fatal("last: stack is empty");
-	return a->elements[a->size - 1];
+	if (a->IntArray.size == 0) fatal("last: stack is empty");
+	return a->IntArray.elements[a->IntArray.size - 1];
 }
 
-iptr *IrCodeList = NULL;
+ent *IrCodeList = NULL;
 int nIrCode = 0; // index of getIrCode
-iptr getIrCode(int index){
+ent getIrCode(int index){
 	if(index < nIrCode && index >= 0){
 		return IrCodeList[index];
 	} 
 	if(index >= nIrCode){
-		IrCodeList = realloc(IrCodeList, sizeof(iptr) * (index + 1));
+		IrCodeList = realloc(IrCodeList, sizeof(ent) * (index + 1));
 		for (int i = nIrCode; i <= index; ++i) {
 			IrCodeList[i] = intArray_init();
 		}
@@ -1013,34 +1086,33 @@ char *opnames[] = {
 };
 
 
-struct IntQue3{
-	char nArgs; 
-	int *que[3];
-	char tail, head;
-};
-struct IntQue3 *intQue3_init(int nArgs)
+
+
+
+
+
+ent intQue3_init(int nArgs)
 {
-	struct IntQue3 *q = (struct IntQue3*)malloc(sizeof(struct IntQue3));
+	ent q = newEntity(IntQue3);
 	for (int i = 0;  i < 3;  ++i) {
-		q->que[i] = (int*)malloc(sizeof(int) * nArgs);
+		q->IntQue3.que[i] = (int*)malloc(sizeof(int) * nArgs);
 	}
-	q->tail = q->head = 0;
+	q->IntQue3.tail = q->IntQue3.head = 0;
 	return q;
 }
-void enqueue3(struct IntQue3 *q, int value)
+void enqueue3(ent q, int value)
 {
-	if (q->tail < 3) {
-		q->que[q->tail++] = (int*)malloc(sizeof(int));
-		*(q->que[q->tail - 1]) = value;
+	if (q->IntQue3.tail < 3) {
+		q->IntQue3.que[q->IntQue3.tail++] = (int*)malloc(sizeof(int));
 	} else {
 		fatal("queue is full");
 	}
 }
-int dequeue3(struct IntQue3 *q)
+int dequeue3(ent q)
 {
-	if (q->head < q->tail) {
-		int value = *(q->que[q->head++]);
-		free(q->que[q->head - 1]);
+	if (q->IntQue3.head < q->IntQue3.tail) {
+		int value = *(q->IntQue3.que[q->IntQue3.head++]);
+		free(q->IntQue3.que[q->IntQue3.head - 1]);
 		return value;
 	} else {
 		fatal("queue is empty");
@@ -1048,61 +1120,22 @@ int dequeue3(struct IntQue3 *q)
 	return 0;
 }
 
-typedef int (*opfunc)(struct IntQue3 *q);
 
-struct Thread{
-	int apos;
-	int cpos;
-	struct IntQue3 *queue;
-	iptr stack;
-	int rbp; // base pointer
-	int pc; // program counter
-}
 
-struct EventHandler{
-	int *data;
-	int size;
-	int EventID;
-	struct Thread **threads; // thread that this handler belongs to
-}; 
-
-struct Agent{
-	int id;
-	int isActive;
-	int nEvents;
-	int pc;
-	int rbp;
-	iptr stack;
-	struct EventHandler **eventHandlers;
-}Agents[3] = {
-	{0, 0, 0, 0, 0, NULL}, // Agent 0
-	{1, 0, 0, 0, 0, NULL}, // Agent 1
-	{2, 0, 0, 0, 0, NULL}  // Agent 2
-};
 int nAgents = 1; // number of agents
 int onProcessID = 0;
-enum kind{
-
-} kind;
-union Entity{
-	kind kind;
-	struct Agent agent;
-	struct EventHandler eventHandler;
-	struct Thread thread;
-}
 
 
-struct EventHandler *eventHandler_init(int pos, int handler, int nArgs, int dataSize)
+
+ent eventHandler_init(int handler, int nArgs, int dataSize)
 {
-	struct EventHandler *eh = (struct EventHandler*)malloc(sizeof(struct EventHandler));
-	eh->data = (int*)malloc(sizeof(int) * dataSize);
-	eh->pos = pos;
-	eh->handler = handler;
-	eh->pc = 0;
-	eh->stack = intArray_init();
-	eh->queue = intQue3_init(nArgs);
+	ent eh = newEntity(EventHandler);
+	eh->EventHandler.EventID = handler;
+	eh->EventHandler.size = dataSize;
+	eh->EventHandler.data = 0;
+	eh->EventHandler.threads = 0;
 	return eh;
-}
+};
 
 
 /* ====== HANDLER FUNCTION ====== */
@@ -1116,37 +1149,37 @@ struct EventHandler *eventHandler_init(int pos, int handler, int nArgs, int data
 #define	SELF_STATE_EH	0x04
 // Event Handlers VM
 
-int event_handler(struct IntQue3 *q){
+int event_handler(ent q){
 	int event = 0;
-	if (q->head == q->tail) {
-		queue3(q, event); // enqueue a dummy event
+	if (q->IntQue3.head == q->IntQue3.tail) {
+		enqueue3(q, event); // enqueue a dummy event
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int timer_handler(struct IntQue3 *q)
+int timer_handler(ent q)
 {
 	int time = 0;
-	if (q->head < q->tail) {
+	if (q->IntQue3.head < q->IntQue3.tail) {
 		enqueue3(q,time); // dequeue the first element
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int touch_handler(struct IntQue3 *q)
+int touch_handler(ent q)
 {
 	int touch = 0;
-	if (q->head < q->tail) {
+	if (q->IntQue3.head < q->IntQue3.tail) {
 		touch = dequeue3(q); // dequeue the first element
 		printf("touch event: %d\n", touch);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int collision_handler(struct IntQue3 *q)
+int collision_handler(ent q)
 {
 	int collision = 0;
-	if (q->head < q->tail) {
+	if (q->IntQue3.head < q->IntQue3.tail) {
 		collision = dequeue3(q); // dequeue the first element
 		printf("collision event: %d\n", collision);
 		return 1; // return 1 to indicate success
@@ -1154,10 +1187,10 @@ int collision_handler(struct IntQue3 *q)
 	return 0; // return 0 to indicate no event
 }
 
-int self_state_handler(struct IntQue3 *q)
+int self_state_handler(ent q)
 {
 	int state = 0;
-	if (q->head < q->tail) {
+	if (q->IntQue3.head < q->IntQue3.tail) {
 		state = dequeue3(q); // dequeue the first element
 		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
@@ -1165,7 +1198,7 @@ int self_state_handler(struct IntQue3 *q)
 	return 0; // return 0 to indicate no event
 }
 
-int (*eventHandlers[])(struct IntQue3 *q) = {
+int (*eventHandlers[])(ent q) = {
 	timer_handler,      // TIMER_EH
 	touch_handler,      // TOUCH_EH
 	collision_handler,  // COLLISION_EH
@@ -1199,7 +1232,7 @@ int init_compiler(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #if DEBUG
@@ -1214,22 +1247,22 @@ int init_compiler(){
 #define push(O)	intArray_push(stack, O)
 #define pop()	intArray_pop(stack)
 #define top()	intArray_last(stack)
-#define pick(I)  stack->elements[I]
+#define pick(I)  stack->IntArray.elements[I]
 
-void printStack(iptr stack)
+void printStack(ent stack)
 {
 	printf("Stack: \n");
-	for (int i = 0;  i < stack->size;  ++i) {
-		printf("%d %d\n", i, stack->elements[i]);
+	for (int i = 0;  i < stack->IntArray.size;  ++i) {
+		printf("%d %d\n", i, stack->IntArray.elements[i]);
 	}
 	printf("\n");
 }
 
 
-iptr execute(iptr prog,iptr stack)
+ent execute(ent prog,ent stack)
 {
-    int* code = prog->elements;
-	int size = prog->size;
+    int* code = prog->IntArray.elements;
+	int size = prog->IntArray.size;
 
     int pc = 0;
 	int rbp = 0; 
@@ -1251,8 +1284,8 @@ iptr execute(iptr prog,iptr stack)
 	    case iHALT:{
 			printOP(_iHALT\n_);
 			pop();//first rbp
-			for(int i = 0;  i < stack->size;  ++i) {
-				printf("%d ", stack->elements[i]);
+			for(int i = 0;  i < stack->IntArray.size;  ++i) {
+				printf("%d ", stack->IntArray.elements[i]);
 			}
 			printf("\n");
 			return stack; // return the answer
@@ -1271,14 +1304,14 @@ iptr execute(iptr prog,iptr stack)
 	    case iGETVAR:{
 			printOP(_iGETVAR_);
 			int symIndex = fetch(); // need to change
-			push(stack->elements[symIndex + rbp+1]); // get the variable value
-			dprintf("%d => %d\n", symIndex, stack->elements[symIndex + rbp+1]);
+			push(stack->IntArray.elements[symIndex + rbp+1]); // get the variable value
+			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + rbp+1]);
 			continue;
 		}	    
 	    case iSETVAR:{
 			printOP(_iSETVAR_);
 			int symIndex = fetch();//need to change
-			stack->elements[symIndex+rbp+1] = pop();
+			stack->IntArray.elements[symIndex+rbp+1] = pop();
 			continue;
 		}
 		case iJUMP:{
@@ -1309,7 +1342,7 @@ iptr execute(iptr prog,iptr stack)
 				fatal("return without call");
 			}
 			int retValue = pop(); // get the return value
-			stack->size = rbp+1; // restore the stack size to the base pointer
+			stack->IntArray.size = rbp+1; // restore the stack size to the base pointer
 			rbp = pop(); // restore the base pointer
 			pc = pop(); // restore the program counter
 			
@@ -1328,7 +1361,7 @@ iptr execute(iptr prog,iptr stack)
 			pc += l; // set program counter to the function position
 
 			push(rbp); // save the current base pointer
-			rbp = stack->size-1; // set the base pointer to the current stack size
+			rbp = stack->IntArray.size-1; // set the base pointer to the current stack size
 			dprintf("rbp: %d, pc: %d\n", rbp, pc);
 
 			for (int i = 1;  i <= r;  ++i) {
@@ -1347,13 +1380,13 @@ iptr execute(iptr prog,iptr stack)
 			l = fetch(); // number of variables to clean
 			int retVal = pop(); // get the return value
 			for(int i = 0;  i < l;  ++i) {
-				if (stack->size == 0) {
+				if (stack->IntArray.size == 0) {
 					fatal("stack is empty");
 				}
 				pop(); // clean the top element
 			}
 			push(retVal); // push the return value back to the stack
-			// stack->size -= l; // clean the top l elements from the stack
+			// stack->IntArray.size -= l; // clean the top l elements from the stack
 			continue;
 		}
 		case iPRINT:{
@@ -1376,33 +1409,33 @@ iptr execute(iptr prog,iptr stack)
 			r = fetch();// event action pc
 			int cpc = fetch(); // action pc
 			int isNew = 1;
-			for(int i=0; i<Agents[onProcessID].nEvents; i++) {
-				if(Agents[onProcessID].eventHandlers[i]->EventID == l) {
-					isNew = 0; // event handler already exists
-					EventHandler *eh = Agents[onProcessID].eventHandlers[i];
-					eh->threads = realloc(eh->threads, sizeof(struct Thread*) * (eh->size + 1));
-					eh->threads[eh->size] = (struct Thread*)malloc(sizeof(struct Thread));
-					eh->threads[eh->size]->apos = apc; // action pc
-					eh->threads[eh->size]->cpos = cpc; // codition pc
-					break;
-				}
-			}
-			if(isNew) {
-				// create a new event handler
-				Agents[onProcessID].eventHandlers = realloc(Agents[onProcessID].eventHandlers, sizeof(struct EventHandler*) * (Agents[onProcessID].nEvents + 1));
-				struct EventHandler *eh = Agents[onProcessID].eventHandler[Agents[onProcessID].nEvents] = (struct EventHandler*)malloc(sizeof(struct EventHandler));
-				eh->EventID = l;
-				eh->threads = (struct Thread**)malloc(sizeof(struct Thread*));
-				eh->threads[0] = (struct Thread*)malloc(sizeof(struct Thread));
-				eh->threads[0]->apos = apc; // action pc
-				eh->threads[0]->cpos = cpc; // codition pc
-				Agents[onProcessID].nEvents++;
-			}
+			// for(int i=0; i<Agents[onProcessID].nEvents; i++) {
+			// 	if(Agents[onProcessID].eventHandlers[i]->EventID == l) {
+			// 		isNew = 0; // event handler already exists
+			// 		EventHandler *eh = Agents[onProcessID].eventHandlers[i];
+			// 		eh->threads = realloc(eh->threads, sizeof(struct Thread*) * (eh->size + 1));
+			// 		eh->threads[eh->size] = (struct Thread*)malloc(sizeof(struct Thread));
+			// 		eh->threads[eh->size]->apos = apc; // action pc
+			// 		eh->threads[eh->size]->cpos = cpc; // codition pc
+			// 		break;
+			// 	}
+			// }
+			// if(isNew) {
+			// 	// create a new event handler
+			// 	Agents[onProcessID].eventHandlers = realloc(Agents[onProcessID].eventHandlers, sizeof(struct EventHandler*) * (Agents[onProcessID].nEvents + 1));
+			// 	struct EventHandler *eh = Agents[onProcessID].eventHandler[Agents[onProcessID].nEvents] = (struct EventHandler*)malloc(sizeof(struct EventHandler));
+			// 	eh->EventID = l;
+			// 	eh->threads = (struct Thread**)malloc(sizeof(struct Thread*));
+			// 	eh->threads[0] = (struct Thread*)malloc(sizeof(struct Thread));
+			// 	eh->threads[0]->apos = apc; // action pc
+			// 	eh->threads[0]->cpos = cpc; // codition pc
+			// 	Agents[onProcessID].nEvents++;
+			// }
 			continue;
 		}
 		case iIMPL:{
 			printOP(_iIMPL_);
-			Agents[onProcessId].active = 0;
+			// Agents[onProcessId].active = 0;
 			continue;
 		}
 	    default:fatal("illegal instruction %d", op);
@@ -1414,12 +1447,12 @@ iptr execute(iptr prog,iptr stack)
     return 0; // should never reach here
 }
 
-// int scheduler_loop(iptr prog, iptr stack)
+// int scheduler_loop(ent prog, ent stack)
 // {
 // 	// this is the main loop of the scheduler
 // 	// it will run until there are no more events to process
 // 	while (1) {
-// 		iptr ans = execute(prog, stack);
+// 		ent ans = execute(prog, stack);
 // 		if (ans) {
 // 			printf("scheduler loop: got answer\n");
 // 			return 0; // return 0 to indicate success
@@ -1446,7 +1479,7 @@ iptr execute(iptr prog,iptr stack)
 /* = VARIABLE === */
 
 /* =============== */
-iptr compile();
+ent compile();
 
 oop variables = 0; // list of variables
 oop newVariables()
@@ -1530,8 +1563,8 @@ oop appendS0T1(oop name, int pos,int type)
 	return newState;
 }
 
-void setTransPos(iptr prog){
-	int *code = prog->elements;
+void setTransPos(ent prog){
+	int *code = prog->IntArray.elements;
 	for (int i = 0;  i < ntransitions;  ++i) {
 		oop trans = transitions[i];
 		oop transName = get(trans, Pair,a);
@@ -1562,20 +1595,20 @@ void setTransPos(iptr prog){
 #define printTYPE(OP) ;
 #endif
 
-void emitL (iptr array, oop object) 	  { intArray_append(array, Integer_value(object)); }
-void emitI (iptr array, int i     ) 	  { intArray_append(array, i); }
-void emitII(iptr array, int i, int j)      { emitI(array, i); emitI(array, j); }
-void emitIL(iptr array, int i, oop object) { emitI(array, i); emitL(array, object); }
-void emitIII(iptr array, int i, int j, int k)
+void emitL (ent array, oop object) 	  { intArray_append(array, Integer_value(object)); }
+void emitI (ent array, int i     ) 	  { intArray_append(array, i); }
+void emitII(ent array, int i, int j)      { emitI(array, i); emitI(array, j); }
+void emitIL(ent array, int i, oop object) { emitI(array, i); emitL(array, object); }
+void emitIII(ent array, int i, int j, int k)
 {
 	emitI(array, i);
 	emitI(array, j);
 	emitI(array, k);
 }
 
-void printCode(iptr code);
+void printCode(ent code);
 
-void emitOn(iptr prog,oop vars, oop ast)
+void emitOn(ent prog,oop vars, oop ast)
 {
     switch (getType(ast)) {
 		case Undefined:
@@ -1688,8 +1721,8 @@ void emitOn(iptr prog,oop vars, oop ast)
 						exit(1);
 					}
 					emitIII(prog, iCALL, 0, nArgs); // call the function
-					int iCallPos = prog->size - 2; // remember the position of the call
-					prog->elements[iCallPos] = pos - (prog->size) ; // set the jump position to the function code
+					int iCallPos = prog->IntArray.size - 2; // remember the position of the call
+					prog->IntArray.elements[iCallPos] = pos - (prog->IntArray.size) ; // set the jump position to the function code
 					emitII(prog, iCLEAN, nArgs); // clean the stack after the call
 					return;
 				}
@@ -1726,14 +1759,14 @@ void emitOn(iptr prog,oop vars, oop ast)
 						params = get(params, Pair,b);
 					}
 					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
-					int jump4EndPos = prog->size - 1; // remember the position of the jump // TODO: once call jump
-					closure->Closure.pos = prog->size; // remember the position of the closure
+					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
+					closure->Closure.pos = prog->IntArray.size; // remember the position of the closure
 					sym->Symbol.value = closure; // set the closure as the value of the variable
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
-					int codePos = prog->size - 1; // remember the position of the function code
+					int codePos = prog->IntArray.size - 1; // remember the position of the function code
 					emitOn(prog, localVars, body); // compile function body
-					prog->elements[codePos] = localVars->Variables.size; // set the size of local variables
-					prog->elements[jump4EndPos] = (prog->size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
+					prog->IntArray.elements[codePos] = localVars->Variables.size; // set the size of local variables
+					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
 					GC_POP(localVars);
 					return;
@@ -1792,17 +1825,17 @@ void emitOn(iptr prog,oop vars, oop ast)
 
 
 			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
-			int jumpPos = prog->size-1; // remember position for jump
+			int jumpPos = prog->IntArray.size-1; // remember position for jump
 
 			emitOn(prog, vars, statement1); // compile first statement
 			if (statement2 != false) {
 				emitII(prog, iJUMP, 0);
-				int jumpPos2 = prog->size-1; // remember position for second jump
+				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
 				emitOn(prog, vars, statement2); // compile second statement
-				prog->elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
-				prog->elements[jumpPos2] = (prog->size - 1) - jumpPos2; // set jump position
+				prog->IntArray.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
+				prog->IntArray.elements[jumpPos2] = (prog->IntArray.size - 1) - jumpPos2; // set jump position
 			} else {
-				prog->elements[jumpPos] = (prog->size - 1) - jumpPos; // set jump position for first jump	
+				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
 			}
 			discardVarialbes(vars, variablesSize); // discard variables
 			return;
@@ -1818,12 +1851,12 @@ void emitOn(iptr prog,oop vars, oop ast)
 			if (initialization != false) {
 				emitOn(prog, vars, initialization); // compile initialization
 			}
-			int stLoopPos = prog->size; // remember the position of the loop start
+			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
 			int jumpPos = 0; // position for the jump if condition is true
 			if(condition != false) {
 				emitOn(prog, vars, condition); // compile condition
 				emitII(prog, iJUMPIF, 0); // emit jump if condition is true
-				jumpPos = prog->size - 1; // remember position for jump
+				jumpPos = prog->IntArray.size - 1; // remember position for jump
 			}
 
 			emitOn(prog, vars, statement); // compile statement
@@ -1832,9 +1865,9 @@ void emitOn(iptr prog,oop vars, oop ast)
 				emitOn(prog, vars, iteration); // compile iteration
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
-			prog->elements[prog->size - 1] = stLoopPos - prog->size; // set jump position to the start of the loop
+			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
 			if(condition != false) {
-				prog->elements[jumpPos] = (prog->size - 1) - jumpPos; // set jump position for condition
+				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
 			}
 			discardVarialbes(vars, variablesSize); // discard variables
 			return;
@@ -1876,7 +1909,7 @@ void emitOn(iptr prog,oop vars, oop ast)
 				emitOn(prog, vars, eventList[i]); // compile each event
 			}
 			// state initialization
-			appendS0T1(id, prog->size, APSTATE); // append state to states
+			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			emitII(prog, iSETSTATE, nEvents); // set the number of events and position
 			for(int i = 0;  i < nEvents;  ++i) {
 				oop event = eventList[i];
@@ -1911,7 +1944,7 @@ void emitOn(iptr prog,oop vars, oop ast)
 				oop param = get(params, Pair,a);
 				insertVariable(eventLocalVariables, get(param,Pair,a)); // add parameter to local variables
 				if(get(param, Pair, b)!= false){
-					if(cPos==0)cPos = prog->size; // remember the position of the condition
+					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					emitOn(prog, eventLocalVariables, get(param, Pair,b)); // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
@@ -1925,15 +1958,15 @@ void emitOn(iptr prog,oop vars, oop ast)
 				printf("event %s has %d parameters, but expected %d\n", get(id, Symbol,name), paramSize, nArgs);
 				exit(1);
 			}
-			int aPos = prog->size; // remember the position of the event handler
+			int aPos = prog->IntArray.size; // remember the position of the event handler
 			emitII(prog, iMKSPACE, 0); // reserve space for local variables
-			int mkspacepos = prog->size - 1; // remember the position of MKSPACE
+			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
 
 			// emitOn(prog, vars, params); // compile parameters
 
 			emitOn(prog, eventLocalVariables, block); // compile block
 
-			prog->elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
+			prog->IntArray.elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
 			GC_POP(eventLocalVariables); // pop local variables from GC roots
 			GC_PUSH(oop,apos, newInteger(aPos));
 			GC_PUSH(oop,cpos,newInteger(cPos));
@@ -1947,12 +1980,12 @@ void emitOn(iptr prog,oop vars, oop ast)
     fatal("emitOn: unimplemented emitter for type %d", getType(ast));
 }
 
-void printCode(iptr code){
-	for (int i = 0;  i < code->size;  ++i) {
-		int op = code->elements[i];
+void printCode(ent code){
+	for (int i = 0;  i < code->IntArray.size;  ++i) {
+		int op = code->IntArray.elements[i];
 		switch (op) {
 			case iHALT: printf("%03d: HALT\n", i); break;
-			case iPUSH: ++i;printf("%03d: LOAD    %03d\n", i-1, code->elements[i]); break;
+			case iPUSH: ++i;printf("%03d: LOAD    %03d\n", i-1, code->IntArray.elements[i]); break;
 			case iGT:   printf("%03d: GT\n", i); break;
 			case iGE:   printf("%03d: GE\n", i); break;
 			case iEQ:   printf("%03d: EQ\n", i); break;
@@ -1964,27 +1997,27 @@ void printCode(iptr code){
 			case iMUL:  printf("%03d: MUL\n", i); break;
 			case iDIV:  printf("%03d: DIV\n", i); break;
 			case iMOD:  printf("%03d: MOD\n", i); break;
-			case iGETVAR:++i;printf("%03d: GETVAR  %03d\n", i-1, code->elements[i]);break;
-			case iSETVAR:++i;printf("%03d: SETVAR  %03d\n", i-1, code->elements[i]);break;
+			case iGETVAR:++i;printf("%03d: GETVAR  %03d\n", i-1, code->IntArray.elements[i]);break;
+			case iSETVAR:++i;printf("%03d: SETVAR  %03d\n", i-1, code->IntArray.elements[i]);break;
 			case iMKSPACE:{
 				++i;
-				printf("%03d: MKSPACE %03d\n", i-1, code->elements[i]);
+				printf("%03d: MKSPACE %03d\n", i-1, code->IntArray.elements[i]);
 				break;
 			}
 			case iPRINT:{
 				++i;
-				int nArgs = code->elements[i];
+				int nArgs = code->IntArray.elements[i];
 				printf("%03d: PRINT   %03d\n", i-1, nArgs);
 				break;
 			}
 			case iJUMP:{
 				++i;
-				printf("%03d: JUMP    %03d(%3d)\n", i-1, code->elements[i], code->elements[i] + (i+1));
+				printf("%03d: JUMP    %03d(%3d)\n", i-1, code->IntArray.elements[i], code->IntArray.elements[i] + (i+1));
 				break;
 			}
 			case iJUMPIF:{
 				++i;
-				printf("%03d: JUMPIF  %03d(%3d)\n", i-1, code->elements[i], code->elements[i] + (i+1));
+				printf("%03d: JUMPIF  %03d(%3d)\n", i-1, code->IntArray.elements[i], code->IntArray.elements[i] + (i+1));
 				break;
 			}
 			case iJUDGE: printf("%03d: JUDGE\n", i); break;
@@ -1993,33 +2026,33 @@ void printCode(iptr code){
 			case iRETURN: printf("%03d: RETURN\n", i); break;
 			case iCLEAN: {
 				++i;
-				int nArgs = code->elements[i];
+				int nArgs = code->IntArray.elements[i];
 				printf("%03d: CLEAN   %03d\n", i-1, nArgs);
 				break;
 			}
 			case iPCALL: {
 				++i;
-				int index = code->elements[i];
-				int nArgs = code->elements[++i];
+				int index = code->IntArray.elements[i];
+				int nArgs = code->IntArray.elements[++i];
 				printf("%03d: PCALL   %03d(%3d) %03d\n", i-2, index, index + (i+1), nArgs);
 				break;
 			}
 			case iCALL: {
-				int pos = code->elements[++i];
-				int nArgs = code->elements[++i];
+				int pos = code->IntArray.elements[++i];
+				int nArgs = code->IntArray.elements[++i];
 				printf("%03d: CALL    %03d(%3d) %03d\n", i-2, pos, (i+1)+pos, nArgs);
 				break;
 			}
 			case iSETSTATE: {
 				++i;
-				int nEvents = code->elements[i];
+				int nEvents = code->IntArray.elements[i];
 				printf("%03d: SETSTATE %03d\n", i-1, nEvents);
 				break;
 			}
 			case iSETEVENT:{
-				int eventID = code->elements[++i];
-				int apos = code->elements[++i];
-				int cpos = code->elements[++i];
+				int eventID = code->IntArray.elements[++i];
+				int apos = code->IntArray.elements[++i];
+				int cpos = code->IntArray.elements[++i];
 				printf("%03d: SETEVENT %03d %3d %03d\n", i-2, eventID, apos, cpos);
 				break;
 			}
@@ -2034,9 +2067,9 @@ void printCode(iptr code){
 	printf("\n");
 }
 
-iptr compile()
+ent compile()
 {
-    iptr prog = getIrCode(0); // create a new program code
+    ent prog = getIrCode(0); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
 
 	GC_PUSH(oop, globalVars,newVariables()); // create global variables
@@ -2048,14 +2081,14 @@ iptr compile()
 		}
 		printf("compiling statement %d\n", line);
 		emitOn(prog, globalVars, result);
-		printf("compiled statement %d [size %4d]\n",++line, (prog->size)*4);
+		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
     emitI (prog, iHALT); // end of program
-	prog->elements[1] = globalVars->Variables.size; // store number of variables
+	prog->IntArray.elements[1] = globalVars->Variables.size; // store number of variables
 	setTransPos(prog); // set transition positions
 	GC_POP(globalVars); // pop global variables from GC roots
 #ifndef __EMSCRIPTEN__
-	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->size);
+	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
 #endif
     return prog;
 }
@@ -2080,17 +2113,17 @@ case Integer :{return;}
 case Symbol  :
 {
 	if (obj->Symbol.value) {
-		markObject(obj->Symbol.value);
+		gc_mark(obj->Symbol.value);
 	}
 	return;
 }
 case Pair    :
 {
 	if (obj->Pair.a) {
-		markObject(obj->Pair.a);
+		gc_mark(obj->Pair.a);
 	}
 	if (obj->Pair.b) {
-		markObject(obj->Pair.b);
+		gc_mark(obj->Pair.b);
 	}
 	return;
 }
@@ -2099,7 +2132,7 @@ case Array   :
 	if (obj->Array.elements) {
 		for (int i = 0;  i < obj->Array.size;  ++i) {
 			if (obj->Array.elements[i]) {
-				markObject(obj->Array.elements[i]);
+				gc_mark(obj->Array.elements[i]);
 			}
 		}
 	}
@@ -2112,87 +2145,87 @@ case Closure :{return;}
 case Function:
 {
 	if (obj->Function.parameters) {
-		markObject(obj->Function.parameters);
+		gc_mark(obj->Function.parameters);
 	}
 	if (obj->Function.body) {
-		markObject(obj->Function.body);
+		gc_mark(obj->Function.body);
 	}
 	if (obj->Function.code) {
-		markObject(obj->Function.code);
+		gc_mark(obj->Function.code);
 	}
 	return;
 }
 case Binop   :
 {
 	if (obj->Binop.lhs) {
-		markObject(obj->Binop.lhs);
+		gc_mark(obj->Binop.lhs);
 	}
 	if (obj->Binop.rhs) {
-		markObject(obj->Binop.rhs);
+		gc_mark(obj->Binop.rhs);
 	}
 	return;
 }
 case Unyop   :
 {
 	if (obj->Unyop.rhs) {
-		markObject(obj->Unyop.rhs);
+		gc_mark(obj->Unyop.rhs);
 	}
 	return;
 }
 case GetVar  :
 {
 	if (obj->GetVar.id) {
-		markObject(obj->GetVar.id);
+		gc_mark(obj->GetVar.id);
 	}
 	return;
 }
 case SetVar  :
 {
 	if (obj->SetVar.id) {
-		markObject(obj->SetVar.id);
+		gc_mark(obj->SetVar.id);
 	}
 	if (obj->SetVar.rhs) {
-		markObject(obj->SetVar.rhs);
+		gc_mark(obj->SetVar.rhs);
 	}
 	return;
 }
 case GetArray:
 {
 	if (obj->GetArray.array) {
-		markObject(obj->GetArray.array);
+		gc_mark(obj->GetArray.array);
 	}
 	if (obj->GetArray.index) {
-		markObject(obj->GetArray.index);
+		gc_mark(obj->GetArray.index);
 	}
 	return;
 }
 case SetArray:
 {
 	if (obj->SetArray.array) {
-		markObject(obj->SetArray.array);
+		gc_mark(obj->SetArray.array);
 	}
 	if (obj->SetArray.index) {
-		markObject(obj->SetArray.index);
+		gc_mark(obj->SetArray.index);
 	}
 	if (obj->SetArray.value) {
-		markObject(obj->SetArray.value);
+		gc_mark(obj->SetArray.value);
 	}
 	return;
 }
 case Call    :
 {
 	if (obj->Call.function) {
-		markObject(obj->Call.function);
+		gc_mark(obj->Call.function);
 	}
 	if (obj->Call.arguments) {
-		markObject(obj->Call.arguments);
+		gc_mark(obj->Call.arguments);
 	}
 	return;
 }
 case Return  :
 {
 	if (obj->Return.value) {
-		markObject(obj->Return.value);
+		gc_mark(obj->Return.value);
 	}
 	return;
 }
@@ -2207,36 +2240,36 @@ case Continue:
 case Print   :
 {
 	if (obj->Print.arguments) {
-		markObject(obj->Print.arguments);
+		gc_mark(obj->Print.arguments);
 	}
 	return;
 }
 case If      :
 {
 	if (obj->If.condition) {
-		markObject(obj->If.condition);
+		gc_mark(obj->If.condition);
 	}
 	if (obj->If.statement1) {
-		markObject(obj->If.statement1);
+		gc_mark(obj->If.statement1);
 	}
 	if (obj->If.statement2) {
-		markObject(obj->If.statement2);
+		gc_mark(obj->If.statement2);
 	}
 	return;
 }
 case Loop    :
 {
 	if (obj->Loop.initialization) {
-		markObject(obj->Loop.initialization);
+		gc_mark(obj->Loop.initialization);
 	}
 	if (obj->Loop.condition) {
-		markObject(obj->Loop.condition);
+		gc_mark(obj->Loop.condition);
 	}
 	if (obj->Loop.iteration) {
-		markObject(obj->Loop.iteration);
+		gc_mark(obj->Loop.iteration);
 	}
 	if (obj->Loop.statement) {
-		markObject(obj->Loop.statement);
+		gc_mark(obj->Loop.statement);
 	}
 	return;
 }
@@ -2245,7 +2278,7 @@ case Block   :
 	if (obj->Block.statements) {
 		for (int i = 0;  i < obj->Block.size;  ++i) {
 			if (obj->Block.statements[i]) {
-				markObject(obj->Block.statements[i]);
+				gc_mark(obj->Block.statements[i]);
 			}
 		}
 	}
@@ -2257,26 +2290,26 @@ case Block   :
 case State   :
 {
 	if (obj->State.id) {
-		markObject(obj->State.id);
+		gc_mark(obj->State.id);
 	}
 	if (obj->State.parameters) {
-		markObject(obj->State.parameters);
+		gc_mark(obj->State.parameters);
 	}
 	if (obj->State.events) {
-		markObject(obj->State.events);
+		gc_mark(obj->State.events);
 	}
 	return;
 }
 case Event   :
 {
 	if (obj->Event.id) {
-		markObject(obj->Event.id);
+		gc_mark(obj->Event.id);
 	}
 	if (obj->Event.parameters) {
-		markObject(obj->Event.parameters);
+		gc_mark(obj->Event.parameters);
 	}
 	if (obj->Event.block) {
-		markObject(obj->Event.block);
+		gc_mark(obj->Event.block);
 	}
 	return;
 }
@@ -2289,7 +2322,7 @@ case Variables:
 	if (obj->Variables.elements) {
 		for (int i = 0;  i < obj->Variables.size;  ++i) {
 			if (obj->Variables.elements[i]) {
-				markObject(obj->Variables.elements[i]);
+				gc_mark(obj->Variables.elements[i]);
 			}
 		}
 	}
@@ -2313,14 +2346,14 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 		{
 			oop sym = symbols[i];
 			if (sym == NULL) continue; // skip null symbols
-			markObject(sym); // mark the symbol
+			gc_mark(sym); // mark the symbol
 		}
 	}
 	for(int i = 0;  i < nstates;  ++i)
 	{
 		oop state = states[i];
 		if (state == NULL) continue; // skip null states
-		markObject(state); //PAIR
+		gc_mark(state); //PAIR
 	}
 	oop *transitions = 0; // transitions between states
 	int ntransitions = 0;
@@ -2328,20 +2361,20 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 	{
 		oop trans = transitions[i];
 		if(trans == NULL) continue; // skip null transitions
-		markObject(trans);//PAIR
+		gc_mark(trans);//PAIR
 	}
 	// collect ir code
 	if(nIrCode != 0){
 		gc_markOnly(IrCodeList); // mark the ir code array itself
 		for (int i = 0;  i < nIrCode;  ++i)
 		{
-			iptr code = IrCodeList[i];
+			ent code = IrCodeList[i];
 			if (code == NULL) continue; // skip null codes
 			gc_markOnly(code); // mark the code itself
 			// mark the code elements
-			if (code->elements == NULL) continue; // skip null elements
+			if (code->IntArray.elements == NULL) continue; // skip null elements
 			// mark the code elements
-			gc_markOnly(code->elements); // mark the code elements
+			gc_markOnly(code->IntArray.elements); // mark the code elements
 		}
 	}
 }
@@ -2351,10 +2384,57 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 void markEmpty(void* ptr){ return;}
 void collectEmpty(void){ return;}
 
-void markExecutors(iptr ptr)
+void markExecutors(ent ptr)
 {
-	dprintf("%d markExecutors %p\n",nroots, ptr);
-	gc_mark((void*)ptr->elements); // mark the elements of the code
+	dprintf("markExecutors\n");
+	// collect ir code
+	switch(ptr->kind){
+		case IntArray:{
+			dprintf("markExecutors IntArray\n");
+			if(ptr->IntArray.elements != NULL){
+				gc_markOnly(ptr->IntArray.elements); // mark the int array elements
+			}
+			return;
+		}
+		case IntQue3:{
+			dprintf("markExecutors IntQue3\n");
+			if(ptr->IntQue3.que != NULL){
+				gc_markOnly(ptr->IntQue3.que); // mark the int que elements
+			}
+			return;
+		}
+		case Thread:{
+			dprintf("markExecutors Thread\n");
+			if(ptr->Thread.stack != NULL){
+				gc_mark(ptr->Thread.stack); // mark the thread stack
+			}
+			if(ptr->Thread.queue != NULL){
+				gc_mark(ptr->Thread.queue); // mark the thread queue
+			}
+			return;
+		}
+		case EventHandler:{
+			if(ptr->EventHandler.data){
+				gc_mark(ptr->EventHandler.data); // mark the event handler data
+			}
+			for(int i = 0; i<ptr->EventHandler.size; i++){
+				if(ptr->EventHandler.threads[i]){
+					gc_mark(ptr->EventHandler.threads[i]); // mark the event handler
+				}
+			}
+			return;
+		}
+		case Agent:{
+			dprintf("markExecutors Agent\n");
+			if(ptr->Agent.stack){
+				gc_mark(ptr->Agent.stack); // mark the agent stack
+			}
+			if(ptr->Agent.eventHandlers){
+				gc_mark(ptr->Agent.eventHandlers); // mark the agent event handlers
+			}
+			return;
+		}
+	}
 	return;
 }
 
@@ -2367,24 +2447,24 @@ void collectExecutors(void)
 		gc_markOnly(IrCodeList); // mark the ir code array itself
 		for (int i = 0;  i < nIrCode;  ++i)
 		{
-			iptr code = IrCodeList[i];
+			ent code = IrCodeList[i];
 			if (code == NULL) continue; // skip null codes
 			gc_markOnly(code); // mark the code itself
 			// mark the code elements
-			if (code->elements == NULL) continue; // skip null elements
+			if (code->IntArray.elements == NULL) continue; // skip null elements
 			// mark the code elements
-			gc_markOnly(code->elements); // mark the code elements
+			gc_markOnly(code->IntArray.elements); // mark the code elements
 		}
 	}
 	// collect agents
-	if(nAgents != 0){
-		for(int i = 0;  i < nAgents;  ++i)
-		{
-			gc_markOnly(Agents[i]); // mark the agents
-			iptr code = Agents[i]->Agent.code; // get the code of the agent
+	// if(nAgents != 0){
+	// 	for(int i = 0;  i < nAgents;  ++i)
+	// 	{
+	// 		gc_markOnly(Agents[i]); // mark the agents
+	// 		ent code = Agents[i]->Agent.code; // get the code of the agent
 
-		}
-	}
+	// 	}
+	// }
 	dprintf("collectExecutors done\n");
 }
 
@@ -2441,7 +2521,7 @@ int main(int argc, char **argv)
 	rprintf("Compiling code:\n");
 	compile_event_init(); // initialize the event system
 	// compile code
-	iptr code = compile();
+	ent code = compile();
 
 	// print bytecode 
 	rprintf("Print IR code:\n");
@@ -2455,8 +2535,8 @@ int main(int argc, char **argv)
 	nroots = 0; // reset the number of roots
 	gc_collect();
 
-	printf("end of compilation\n");
-	return 0;
+	// printf("end of compilation\n");
+	// return 0;
 
 
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
@@ -2464,7 +2544,7 @@ int main(int argc, char **argv)
 	// execute code
 	rprintf("Executing code...\n");
 
-    GC_PUSH(iptr, globalVariables, intArray_init());
+    GC_PUSH(ent, globalVariables, intArray_init());
 	printf("nroots[%d] g:%p\n",nroots, globalVariables);
 	execute(code, globalVariables);
 	GC_POP(globalVariables); // pop global variables from GC roots
