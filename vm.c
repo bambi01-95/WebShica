@@ -540,6 +540,7 @@ oop newBlock(void)
     return node;
 }
 
+
 void Block_append(oop b, oop s)
 {
 	gc_pushRoot((void*)&b);
@@ -550,6 +551,55 @@ void Block_append(oop b, oop s)
     ss[sz++] = s;
     get(b, Block,statements) = ss;
     get(b, Block,size) = sz;
+	gc_popRoots(2);
+}
+//b:block, e:event
+void Event_Block_append(oop b, oop e)
+{
+	gc_pushRoot((void*)&b);
+	gc_pushRoot((void*)&e);
+
+    oop *ss = get(b, Block,statements);
+    int  sz = get(b, Block,size);
+    ss = realloc(ss, sizeof(oop) * (sz + 1));
+
+	switch(getType(e)){
+		case Event:{
+			int isInserted = 0;
+			for(int i=sz-1; i>=0; i--){
+				oop ele = ss[i];
+				switch(getType(ele)){
+					case Event:{
+						if(get(ele, Event, id)==get(e, Event, id)){
+							for(int j=i+1; j < sz; j++){
+								ss[j + 1] = ss[j];
+							}
+							ss[i + 1] = e; // insert e at position i + 1
+						}
+						isInserted = 1;
+						break;
+					}
+					default:{
+						ss[sz] = e;
+						isInserted = 1;
+						break;
+					}
+				}
+				if(isInserted) break; // exit the loop if inserted
+			}
+			if(isInserted == 0){
+				ss[sz] = e; // insert e at the end
+			}
+			break;
+		}
+		default:{
+			fatal("Type %d is not supported yet", getType(e));
+			return;
+		}
+	}
+	get(b, Block,size) = sz + 1;
+    get(b, Block,statements) = ss;
+
 	gc_popRoots(2);
 }
 
@@ -1085,7 +1135,7 @@ YY_ACTION(void) yy_1_id(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_id\n"));
   {
-#line 864
+#line 914
    __ = intern(yytext) ;
   }
 #undef yythunkpos
@@ -1099,7 +1149,7 @@ YY_ACTION(void) yy_1_integer(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_integer\n"));
   {
-#line 862
+#line 912
    __ = newInteger(atoi(yytext)) ;
   }
 #undef yythunkpos
@@ -1113,7 +1163,7 @@ YY_ACTION(void) yy_1_mkArray(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkArray\n"));
   {
-#line 860
+#line 910
    __ = newArray(0) ;
   }
 #undef yythunkpos
@@ -1129,7 +1179,7 @@ YY_ACTION(void) yy_3_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_array\n"));
   {
-#line 859
+#line 909
    __ = a ;
   }
 #undef yythunkpos
@@ -1147,7 +1197,7 @@ YY_ACTION(void) yy_2_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_array\n"));
   {
-#line 858
+#line 908
    Array_append(a, e) ;
   }
 #undef yythunkpos
@@ -1165,7 +1215,7 @@ YY_ACTION(void) yy_1_array(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_array\n"));
   {
-#line 857
+#line 907
    Array_append(a, e) ;
   }
 #undef yythunkpos
@@ -1183,7 +1233,7 @@ YY_ACTION(void) yy_2_value(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_value\n"));
   {
-#line 852
+#line 902
    __ = newGetVar(i) ;
   }
 #undef yythunkpos
@@ -1201,7 +1251,7 @@ YY_ACTION(void) yy_1_value(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_value\n"));
   {
-#line 850
+#line 900
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1218,7 +1268,7 @@ YY_ACTION(void) yy_1_index(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_index\n"));
   {
-#line 848
+#line 898
    __ = e ;
   }
 #undef yythunkpos
@@ -1236,7 +1286,7 @@ YY_ACTION(void) yy_5_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_postfix\n"));
   {
-#line 846
+#line 896
    __ = v ;
   }
 #undef yythunkpos
@@ -1256,7 +1306,7 @@ YY_ACTION(void) yy_4_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_postfix\n"));
   {
-#line 845
+#line 895
    v = newGetArray(v, i) ;
   }
 #undef yythunkpos
@@ -1276,7 +1326,7 @@ YY_ACTION(void) yy_3_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_postfix\n"));
   {
-#line 844
+#line 894
    v = newCall(a, v) ;
   }
 #undef yythunkpos
@@ -1296,7 +1346,7 @@ YY_ACTION(void) yy_2_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_postfix\n"));
   {
-#line 843
+#line 893
    __ = newUnyop(ADEC, v) ;
   }
 #undef yythunkpos
@@ -1316,7 +1366,7 @@ YY_ACTION(void) yy_1_postfix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_postfix\n"));
   {
-#line 842
+#line 892
    __ = newUnyop(AINC, v) ;
   }
 #undef yythunkpos
@@ -1334,7 +1384,7 @@ YY_ACTION(void) yy_4_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_prefix\n"));
   {
-#line 839
+#line 889
    __ = newUnyop(BDEC, x) ;
   }
 #undef yythunkpos
@@ -1350,7 +1400,7 @@ YY_ACTION(void) yy_3_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_prefix\n"));
   {
-#line 838
+#line 888
    __ = newUnyop(BINC, x) ;
   }
 #undef yythunkpos
@@ -1366,7 +1416,7 @@ YY_ACTION(void) yy_2_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_prefix\n"));
   {
-#line 837
+#line 887
    __ = newUnyop(NOT, x) ;
   }
 #undef yythunkpos
@@ -1382,7 +1432,7 @@ YY_ACTION(void) yy_1_prefix(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_prefix\n"));
   {
-#line 836
+#line 886
    __ = newUnyop(NEG, x) ;
   }
 #undef yythunkpos
@@ -1399,7 +1449,7 @@ YY_ACTION(void) yy_4_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_mul\n"));
   {
-#line 833
+#line 883
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1417,7 +1467,7 @@ YY_ACTION(void) yy_3_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_mul\n"));
   {
-#line 832
+#line 882
    lhs = newBinop(MOD, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1435,7 +1485,7 @@ YY_ACTION(void) yy_2_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_mul\n"));
   {
-#line 831
+#line 881
    lhs = newBinop(DIV, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1453,7 +1503,7 @@ YY_ACTION(void) yy_1_mul(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mul\n"));
   {
-#line 830
+#line 880
    lhs = newBinop(MUL, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1471,7 +1521,7 @@ YY_ACTION(void) yy_3_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_add\n"));
   {
-#line 828
+#line 878
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1489,7 +1539,7 @@ YY_ACTION(void) yy_2_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_add\n"));
   {
-#line 827
+#line 877
    lhs = newBinop(SUB, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1507,7 +1557,7 @@ YY_ACTION(void) yy_1_add(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_add\n"));
   {
-#line 826
+#line 876
    lhs = newBinop(ADD, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1525,7 +1575,7 @@ YY_ACTION(void) yy_5_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_ineq\n"));
   {
-#line 824
+#line 874
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1543,7 +1593,7 @@ YY_ACTION(void) yy_4_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_ineq\n"));
   {
-#line 823
+#line 873
    lhs = newBinop(LT, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1561,7 +1611,7 @@ YY_ACTION(void) yy_3_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_ineq\n"));
   {
-#line 822
+#line 872
    lhs = newBinop(LE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1579,7 +1629,7 @@ YY_ACTION(void) yy_2_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_ineq\n"));
   {
-#line 821
+#line 871
    lhs = newBinop(GE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1597,7 +1647,7 @@ YY_ACTION(void) yy_1_ineq(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_ineq\n"));
   {
-#line 820
+#line 870
    lhs = newBinop(GT, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1615,7 +1665,7 @@ YY_ACTION(void) yy_3_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_eqop\n"));
   {
-#line 818
+#line 868
    __ = lhs ;
   }
 #undef yythunkpos
@@ -1633,7 +1683,7 @@ YY_ACTION(void) yy_2_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_eqop\n"));
   {
-#line 817
+#line 867
    lhs = newBinop(NE, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1651,7 +1701,7 @@ YY_ACTION(void) yy_1_eqop(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_eqop\n"));
   {
-#line 816
+#line 866
    lhs = newBinop(EQ, lhs, rhs) ;
   }
 #undef yythunkpos
@@ -1670,7 +1720,7 @@ YY_ACTION(void) yy_2_assignment(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_assignment\n"));
   {
-#line 813
+#line 863
    __ = newSetArray(v, i, x) ;
   }
 #undef yythunkpos
@@ -1690,7 +1740,7 @@ YY_ACTION(void) yy_1_assignment(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_assignment\n"));
   {
-#line 812
+#line 862
    __ = newSetVar(i, x) ;
   }
 #undef yythunkpos
@@ -1709,7 +1759,7 @@ YY_ACTION(void) yy_3_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_args\n"));
   {
-#line 808
+#line 858
    __ = a ;
   }
 #undef yythunkpos
@@ -1727,7 +1777,7 @@ YY_ACTION(void) yy_2_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_args\n"));
   {
-#line 805
+#line 855
    a = newPair(i, a) ;
   }
 #undef yythunkpos
@@ -1745,7 +1795,7 @@ YY_ACTION(void) yy_1_args(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_args\n"));
   {
-#line 804
+#line 854
    a = newPair(i, a) ;
   }
 #undef yythunkpos
@@ -1768,7 +1818,7 @@ YY_ACTION(void) yy_8_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_8_stmt\n"));
   {
-#line 800
+#line 850
    result = false; ;
   }
 #undef yythunkpos
@@ -1796,7 +1846,7 @@ YY_ACTION(void) yy_7_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_7_stmt\n"));
   {
-#line 799
+#line 849
    result = x; ;
   }
 #undef yythunkpos
@@ -1824,7 +1874,7 @@ YY_ACTION(void) yy_6_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_6_stmt\n"));
   {
-#line 798
+#line 848
    __ = newReturn(x); ;
   }
 #undef yythunkpos
@@ -1852,7 +1902,7 @@ YY_ACTION(void) yy_5_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_stmt\n"));
   {
-#line 797
+#line 847
    __ = newLoop(i, c, t, s) ;
   }
 #undef yythunkpos
@@ -1880,7 +1930,7 @@ YY_ACTION(void) yy_4_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_stmt\n"));
   {
-#line 793
+#line 843
    __ = newLoop(false, c,false, s) ;
   }
 #undef yythunkpos
@@ -1908,7 +1958,7 @@ YY_ACTION(void) yy_3_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_stmt\n"));
   {
-#line 792
+#line 842
    __ = newIf(c, s, false) ;
   }
 #undef yythunkpos
@@ -1936,7 +1986,7 @@ YY_ACTION(void) yy_2_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_stmt\n"));
   {
-#line 791
+#line 841
    __ = newIf(c, s, t) ;
   }
 #undef yythunkpos
@@ -1964,7 +2014,7 @@ YY_ACTION(void) yy_1_stmt(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_stmt\n"));
   {
-#line 789
+#line 839
    __ = newPrint(a) ;
   }
 #undef yythunkpos
@@ -1988,7 +2038,7 @@ YY_ACTION(void) yy_1_define(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_define\n"));
   {
-#line 787
+#line 837
    __ = newSetVar(i, newFunction(p, b)); ;
   }
 #undef yythunkpos
@@ -2005,7 +2055,7 @@ YY_ACTION(void) yy_1_mkBlock(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkBlock\n"));
   {
-#line 785
+#line 835
    __ = newBlock() ;
   }
 #undef yythunkpos
@@ -2021,7 +2071,7 @@ YY_ACTION(void) yy_2_block(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_block\n"));
   {
-#line 783
+#line 833
    __ = b ;
   }
 #undef yythunkpos
@@ -2039,7 +2089,7 @@ YY_ACTION(void) yy_1_block(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_block\n"));
   {
-#line 781
+#line 831
    Block_append(b, s) ;
   }
 #undef yythunkpos
@@ -2055,7 +2105,7 @@ YY_ACTION(void) yy_1_mkFalse(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkFalse\n"));
   {
-#line 776
+#line 826
    __ = false ;
   }
 #undef yythunkpos
@@ -2069,7 +2119,7 @@ YY_ACTION(void) yy_1_mkNil(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_mkNil\n"));
   {
-#line 775
+#line 825
    __ = nil ;
   }
 #undef yythunkpos
@@ -2085,7 +2135,7 @@ YY_ACTION(void) yy_3_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_params\n"));
   {
-#line 773
+#line 823
    __ = p ;
   }
 #undef yythunkpos
@@ -2103,7 +2153,7 @@ YY_ACTION(void) yy_2_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_params\n"));
   {
-#line 770
+#line 820
    p = newPair(i, p) ;
   }
 #undef yythunkpos
@@ -2121,7 +2171,7 @@ YY_ACTION(void) yy_1_params(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_params\n"));
   {
-#line 769
+#line 819
    p = newPair(i, p) ;
   }
 #undef yythunkpos
@@ -2140,7 +2190,7 @@ YY_ACTION(void) yy_3_eparams(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_eparams\n"));
   {
-#line 766
+#line 816
    __ = p ;
   }
 #undef yythunkpos
@@ -2160,7 +2210,7 @@ YY_ACTION(void) yy_2_eparams(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_eparams\n"));
   {
-#line 763
+#line 813
    p = newPair(newPair(i,c), p) ;
   }
 #undef yythunkpos
@@ -2180,7 +2230,7 @@ YY_ACTION(void) yy_1_eparams(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_eparams\n"));
   {
-#line 762
+#line 812
    p = newPair(newPair(i,c), p) ;
   }
 #undef yythunkpos
@@ -2200,7 +2250,7 @@ YY_ACTION(void) yy_1_event(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_event\n"));
   {
-#line 759
+#line 809
    __ = newEvent(i, p, b); ;
   }
 #undef yythunkpos
@@ -2219,7 +2269,7 @@ YY_ACTION(void) yy_2_events(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_events\n"));
   {
-#line 756
+#line 806
    __ = b ;
   }
 #undef yythunkpos
@@ -2237,7 +2287,7 @@ YY_ACTION(void) yy_1_events(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_events\n"));
   {
-#line 754
+#line 804
    Block_append(b, e) ;
   }
 #undef yythunkpos
@@ -2256,7 +2306,7 @@ YY_ACTION(void) yy_1_state(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_state\n"));
   {
-#line 749
+#line 799
    __ = newState(i, p, e); ;
   }
 #undef yythunkpos
@@ -2274,7 +2324,7 @@ YY_ACTION(void) yy_5_start(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_5_start\n"));
   {
-#line 747
+#line 797
    fatal("syntax error: %s", yytext); ;
   }
 #undef yythunkpos
@@ -2290,7 +2340,7 @@ YY_ACTION(void) yy_4_start(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_4_start\n"));
   {
-#line 746
+#line 796
    printf("\n%d objects allocated\n", nobj); result = 0; ;
   }
 #undef yythunkpos
@@ -2306,7 +2356,7 @@ YY_ACTION(void) yy_3_start(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_3_start\n"));
   {
-#line 745
+#line 795
    result = s; ;
   }
 #undef yythunkpos
@@ -2322,7 +2372,7 @@ YY_ACTION(void) yy_2_start(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_2_start\n"));
   {
-#line 744
+#line 794
    result = s; ;
   }
 #undef yythunkpos
@@ -2338,7 +2388,7 @@ YY_ACTION(void) yy_1_start(yycontext *yy, char *yytext, int yyleng)
 #define yythunkpos yy->__thunkpos
   yyprintf((stderr, "do yy_1_start\n"));
   {
-#line 743
+#line 793
   result = s;;
   }
 #undef yythunkpos
@@ -3229,7 +3279,7 @@ YY_PARSE(yycontext *) YYRELEASE(yycontext *yyctx)
 }
 
 #endif
-#line 910 "./vm.leg"
+#line 960 "./vm.leg"
 ;
 #undef BINOP
 /* ============= IR CODE LIST ================== */
@@ -3280,6 +3330,7 @@ struct EventHandler{
 }; 
 
 struct Agent{
+	kind_t kind;
 	int id;
 	int isActive;
 	int nEvents;
@@ -3316,6 +3367,17 @@ ent intArray_init()
 	a->IntArray.elements = (int*)malloc(sizeof(int) * 4);
 	a->IntArray.size     = 0;
 	a->IntArray.capacity = 4;
+	GC_POP(a);
+	return a;
+}
+
+ent newStack(int initVal)
+{
+	GC_PUSH(ent, a, newEntity(IntArray));
+	a->IntArray.elements = (int*)malloc(sizeof(int) * 10);
+	a->IntArray.elements[0] = initVal; // rbp
+	a->IntArray.size     = 1;// rbp is always 0 at the start
+	a->IntArray.capacity = 10;
 	GC_POP(a);
 	return a;
 }
@@ -3385,27 +3447,47 @@ ent dequeue3(ent q)
 	}
 	gc_pushRoot((void*)q);
 
-	GC_PUSH(ent,newStack, newEntity(IntArray));
+	GC_PUSH(ent,stack, newEntity(IntArray));
 	for(int i = 0; i < q->IntQue3.nArgs; ++i){
-		intArray_push(newStack, q->IntQue3.que[q->IntQue3.head][i]);
+		intArray_push(stack, q->IntQue3.que[q->IntQue3.head][i]);
 	}
 	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
 	q->IntQue3.size--;
-	GC_POP(newStack);
+	GC_POP(stack);
 	gc_popRoots(1);
-	return newStack;
+	return stack;
 }
+char EventHandlerArgsList[] ={
+	0, // EVENT_EH
+	1, // TIMER_EH
+	1, // TOUCH_EH
+	2, // COLLISION_EH
+	0, // SELF_STATE_EH
+};
 
-
-ent eventHandler_init(int handler, int nArgs, int dataSize)
+ent newEventHandler(int ehIndex, int nThreads)
 {
-	ent eh = newEntity(EventHandler);
-	eh->EventHandler.EventID = handler;
-	eh->EventHandler.size = dataSize;
-	eh->EventHandler.data = 0;
-	eh->EventHandler.threads = 0;
+	GC_PUSH(ent, eh, newEntity(EventHandler));
+	eh->EventHandler.EventID = ehIndex;
+	eh->EventHandler.data = (int*)malloc(sizeof(int) * EventHandlerArgsList[ehIndex]);
+	eh->EventHandler.size = nThreads;
+	eh->EventHandler.threads = (ent*)malloc(sizeof(ent) * nThreads);
+	GC_POP(eh);
 	return eh;
 };
+
+ent newThread(int aPos, int cPos,int ehIndex){
+	GC_PUSH(ent, thread, newEntity(Thread));
+	thread->Thread.inProgress = 0; // not started
+	thread->Thread.apos = aPos;
+	thread->Thread.cpos = cPos;
+	thread->Thread.queue = intQue3_init(EventHandlerArgsList[ehIndex]);
+	thread->Thread.stack = NULL;
+	thread->Thread.rbp = 0; // base pointer
+	thread->Thread.pc = 0; // program counter
+	GC_POP(thread);
+	return thread;
+}
 
 ent *IrCodeList = NULL;
 int nIrCode = 0; // index of getIrCode
@@ -3419,6 +3501,27 @@ ent getIrCode(int index){
 		nIrCode = index + 1;
 	}
 	return IrCodeList[index];
+}
+
+ent newAgent(int id, int nEvents)
+{
+	ent agent = newEntity(Agent);
+	agent->Agent.id = id;
+	agent->Agent.isActive = 1; // active by default
+	agent->Agent.nEvents = nEvents;
+	agent->Agent.pc = 0;
+	agent->Agent.rbp = 0;
+	agent->Agent.stack = newStack(0);
+	if(nEvents <= 0) {
+		agent->Agent.eventHandlers = NULL; // no event handlers
+		agent->Agent.nEvents = 0; // no events
+	}else{
+		agent->Agent.eventHandlers = (ent*)malloc(sizeof(ent) * nEvents);
+		for(int i=0; i<nEvents; i++){
+			agent->Agent.eventHandlers[i] = NULL;
+		}
+	}
+	return agent;
 }
 
 /*====================== VM =====================*/
@@ -3575,7 +3678,7 @@ int init_compiler(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #if DEBUG
@@ -3605,19 +3708,19 @@ ent *Agents = NULL;
 int nAgents = 0; // number of agents
 ent *codes = NULL; // codes for each agent
 int nCodes = 0; // number of codes
-ent execute(ent prog,ent stack);
+ent execute(ent prog, ent entity, ent global);
 int impleBody(ent eh){
 	ent *threads = eh->EventHandler.threads;
 	for(int i=0;i<eh->EventHandler.size; ++i){
 		ent thread = threads[i];
 		if(thread->Thread.inProgress= 0){
-			execute(thread->Thread.stack, thread->Thread.stack);//should be change
+			execute(0,thread->Thread.stack, thread->Thread.stack);//should be change
 		}else if(thread->Thread.queue->IntQue3.size > 0){
 			thread->Thread.stack = dequeue3(thread->Thread.queue);
 			if(thread->Thread.stack == NULL){
 				continue;
 			}else{
-				execute(thread->Thread.stack, thread->Thread.stack);//should be change
+				execute(0,thread->Thread.stack, thread->Thread.stack);//should be change
 			}
 		}
 	}
@@ -3630,7 +3733,7 @@ int run(int index){
 		return 0; // return 0 to indicate failure
 	}
 	if(agent->Agent.isActive == 0) {
-		execute(agent->Agent.stack, agent->Agent.stack);
+		execute(0,agent->Agent.stack, agent->Agent.stack);
 	}else{
 		for(int i = 0; i< agent->Agent.nEvents; ++i){
 			// get event data
@@ -3642,21 +3745,68 @@ int run(int index){
 	return 1; // return 1 to indicate success
 }
 /* =========================================== */
+int runPC(ent code){
+	GC_PUSH(ent, agent, newAgent(0,0));
+	printf("type of agent: %d\n", agent->kind);
+	agent = execute(code, agent, agent->Agent.stack);
+	GC_POP(agent);
+	return 1; // return 1 to indicate success
+}
 
+
+
+    // return (intptr_t)obj >> TAGBITS;
+
+
+typedef enum { ERROR_F, HALT_F, EOE_F, EOC_F, CONTINUE_F, } retFlag_t;
+#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAGINT))
+
+ent retFlags[5] = {
+	MAKE_FLAG(ERROR_F),
+	MAKE_FLAG(HALT_F),
+	MAKE_FLAG(EOE_F),
+	MAKE_FLAG(EOC_F),
+	MAKE_FLAG(CONTINUE_F),
+};
 			//code, stack , global 
-ent execute(ent prog,ent stack)
+ent execute(ent prog,ent entity, ent global)
 {
+	int opstep = 20; // number of operations to execute before returning
     int* code = prog->IntArray.elements;
 	int size = prog->IntArray.size;
+	int *pc;
+	int *rbp;
+	ent stack;
+	switch(entity->kind) {
+		case Thread:{
+			pc = &entity->Thread.pc; // program counter
+			rbp = &entity->Thread.rbp; // base pointer
+			stack = entity->Thread.stack; // stack pointer
+			break;
+		}
+		case Agent:{
+			pc = &entity->Agent.pc; // program counter
+			rbp = &entity->Agent.rbp; // base pointer
+			stack = entity->Agent.stack; // stack pointer
+			opstep = 100; // number of operations to execute before returning
+			break;
+		}
+		default:{
+			fatal("execute: unknown entity kind %d", entity->kind);
+			return NULL; // should never reach here
+		}
+	}
 
-    int pc = 0;
-	int rbp = 0; 
-	push(0);
-# define fetch()	code[pc++]
+# define fetch()	code[(*pc)++]
 
     for (;;) {
+	if (opstep-- <= 0) {
+		return retFlags[CONTINUE_F]; // return CONTINUE_F to indicate that the execution is not finished
+	}
+
 	int op = fetch();
 	int l = 0, r = 0;
+
 	switch (op) {
 		case iMKSPACE:{
 			printOP(_iMKSPACE_);
@@ -3664,17 +3814,10 @@ ent execute(ent prog,ent stack)
 			for (int i = 0;  i < nvars;  ++i) {
 				push(0); // reserve space for local variables
 			}
+
 			continue;
 		}
-	    case iHALT:{
-			printOP(_iHALT\n_);
-			pop();//first rbp
-			for(int i = 0;  i < stack->IntArray.size;  ++i) {
-				printf("%d ", stack->IntArray.elements[i]);
-			}
-			printf("\n");
-			return stack; // return the answer
-		}
+
 	    case iGT:printOP(_iGT_);  r = pop();  l = pop();  push(l > r);  continue;
 		case iGE:printOP(_iGE_);  r = pop();  l = pop();  push(l >= r); continue;
 		case iEQ:printOP(_iEQ_);  r = pop();  l = pop();  push(l == r); continue;
@@ -3689,14 +3832,14 @@ ent execute(ent prog,ent stack)
 	    case iGETVAR:{
 			printOP(_iGETVAR_);
 			int symIndex = fetch(); // need to change
-			push(stack->IntArray.elements[symIndex + rbp+1]); // get the variable value
-			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + rbp+1]);
+			push(stack->IntArray.elements[symIndex + *rbp+1]); // get the variable value
+			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + *rbp+1]);
 			continue;
 		}	    
 	    case iSETVAR:{
 			printOP(_iSETVAR_);
 			int symIndex = fetch();//need to change
-			stack->IntArray.elements[symIndex+rbp+1] = pop();
+			stack->IntArray.elements[symIndex+*rbp+1] = pop();
 			continue;
 		}
 		case iJUMP:{
@@ -3705,7 +3848,7 @@ ent execute(ent prog,ent stack)
 			if (l >= size) {
 				fatal("jump to invalid position %d", l);
 			}
-			pc += l; // set program counter to the jump position
+			*pc += l; // set program counter to the jump position
 			continue;
 		}
 		case iJUMPIF:{
@@ -3717,19 +3860,19 @@ ent execute(ent prog,ent stack)
 			if (pop()) { // if top of stack is true
 				continue;
 			} else {
-				pc+=l; // skip the jump
+				*pc+=l; // skip the jump
 			}
 			continue;
 		}
 		case iRETURN:{
 			printOP(_iRETURN_);
-			if (rbp == 0) {
+			if (*rbp == 0) {
 				fatal("return without call");
 			}
 			int retValue = pop(); // get the return value
-			stack->IntArray.size = rbp+1; // restore the stack size to the base pointer
-			rbp = pop(); // restore the base pointer
-			pc = pop(); // restore the program counter
+			stack->IntArray.size = *rbp+1; // restore the stack size to the base pointer
+			*rbp = pop(); // restore the base pointer
+			*pc = pop(); // restore the program counter
 			
 			push(retValue); // push the return value to the stack
 			continue;
@@ -3742,15 +3885,15 @@ ent execute(ent prog,ent stack)
 			printOP(_iCALL_);
 			l = fetch(); // get the function rel position
 			r = fetch(); // get the number of arguments
-			push(pc); // save the current program counter
-			pc += l; // set program counter to the function position
+			push(*pc); // save the current program counter
+			*pc += l; // set program counter to the function position
 
-			push(rbp); // save the current base pointer
-			rbp = stack->IntArray.size-1; // set the base pointer to the current stack size
-			dprintf("rbp: %d, pc: %d\n", rbp, pc);
+			push(*rbp); // save the current base pointer
+			*rbp = stack->IntArray.size-1; // set the base pointer to the current stack size
+			dprintf("rbp: %d, pc: %d\n", *rbp, *pc);
 
 			for (int i = 1;  i <= r;  ++i) {
-				push(pick((rbp - i -1)));//pc
+				push(pick((*rbp - i -1)));//pc
 			}
 			continue;
 		}
@@ -3785,39 +3928,64 @@ ent execute(ent prog,ent stack)
 		}
 		case iSETSTATE:{
 			printOP(_iSETSTATE_);
-			l = fetch(); // get the state position
-			GC_PUSH(ent, agt, newEntity(Agent));
-			agt->Agent.id = -1;
-			agt->Agent.isActive = 1;
-			agt->Agent.nEvents = 0; // number of events in the state
-			agt->Agent.eventHandlers = (ent*)malloc(sizeof(ent) * l);
-			for(int i=0; i<l; ++i){
+			assert(entity->kind == Agent);
+			int ehSize = fetch(); // get the number of event handlers
+			assert(ehSize >= 0);
+			ent *ehs = entity->Agent.eventHandlers = (ent*)malloc(sizeof(ent*) * ehSize); //initialize the event handlers
+			for(int i=0; i<ehSize; ++i){
 				op = fetch();
 				assert(op == iSETEVENT);
+				printOP(_iS_iSETEVENT_);
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
-				ent eh = agt->Agent.eventHandlers[i] = eventHandler_init(eventID, nThreads, 0);
+				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler
 				for(int j=0; j<nThreads; ++j){
 					op = fetch();
 					assert(op == iSETPROCESS);
-					GC_PUSH(ent, thread, newEntity(Thread));
-					thread->Thread.inProgress = 0; // not started
-					thread->Thread.apos = fetch(); // agent position
-					thread->Thread.cpos = fetch(); // code position
-					thread->Thread.queue = intQue3_init(3); // create a queue for the thread
-					thread->Thread.stack = intArray_init(); // create a stack for the thread
-					eh->EventHandler.threads[j] = thread;
-					gc_popRoots(1);
+					printOP(_iS_iSETPROCESS_);
+					l = fetch(); // get the aPos
+					r = fetch(); // get the cPos
+					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
 			op = fetch();
 			assert(op == iIMPL);
-			GC_POP(agt);
-			return agt;
+			return entity; // return the entity
+		}
+		case iSETEVENT:{
+			printOP(_iSETEVENT_);
+			fatal("iSETEVENT should not be called here");
+			continue;
+		}
+		case iSETPROCESS:{
+			printOP(_iSETPROCESS_);
+			fatal("iSETPROCESS should not be called here");
+			continue;
 		}
 		case iIMPL:{
 			printOP(_iIMPL_);
 			continue;
+		}
+		case iEOC:{
+			printOP(_iEOC_);
+			return retFlags[EOC_F]; // return EOC_F to indicate end of code
+		}
+		case iEOE:{
+			printOP(_iEOE_);
+			assert(entity->kind == Thread);
+			entity->Thread.inProgress = 0; // set the thread to not in progress
+			entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
+			entity->Thread.rbp = 0;
+			return retFlags[EOE_F]; // return EOE_F to indicate end of execution
+		}
+	    case iHALT:{
+			printOP(_iHALT\n_);
+			pop();//first rbp
+			for(int i = 0;  i < stack->IntArray.size;  ++i) {
+				printf("%d ", stack->IntArray.elements[i]);
+			}
+			printf("\n");
+			return stack; // return the answer
 		}
 	    default:fatal("illegal instruction %d", op);
 	}
@@ -3827,24 +3995,6 @@ ent execute(ent prog,ent stack)
 # undef pop
     return 0; // should never reach here
 }
-
-// int scheduler_loop(ent prog, ent stack)
-// {
-// 	// this is the main loop of the scheduler
-// 	// it will run until there are no more events to process
-// 	while (1) {
-// 		ent ans = execute(prog, stack);
-// 		if (ans) {
-// 			printf("scheduler loop: got answer\n");
-// 			return 0; // return 0 to indicate success
-// 		}
-// 	}
-// 	return 0; // should never reach here
-// }
-
-
-
-
 
 
 
@@ -3962,7 +4112,7 @@ void setTransPos(ent prog){
 }
 
 
-/* ==== COMPILE == */
+/* ==== COMPILEA == */
 
 /* =============== */
 
@@ -4285,21 +4435,42 @@ void emitOn(ent prog,oop vars, oop ast)
 			}
 			// compile events
 			oop *eventList = events->Block.statements;
-			int nEvents = events->Block.size;
-			for (int i = 0;  i < nEvents;  ++i){
+			int nEvents = 0;
+			int ehCounts[events->Block.size];
+			oop preid = false;
+			emitII(prog, iJUMP, 0);
+			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
+
+			for (int i = 0;  i < get(events, Block, size);  ++i) {
+				if(getType(eventList[i])!=Event){
+					ehCounts[nEvents++] = 0; // collect empty events
+				}
+				else if(get(eventList[i], Event,id) != preid) {
+					preid = get(eventList[i], Event,id);
+					ehCounts[nEvents]=1; // collect unique events
+				}else if(get(eventList[i], Event,id) == preid){
+					ehCounts[nEvents]++;
+				}
 				emitOn(prog, vars, eventList[i]); // compile each event
 			}
+			nEvents++; // increment the number of events
+			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
 			// state initialization
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			emitII(prog, iSETSTATE, nEvents); // set the number of events and position
-			for(int i = 0;  i < nEvents;  ++i) {
-				oop event = eventList[i];
-				oop id = get(event, Event,id);
+			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
+				if(ehCounts[i] == 0){ ehi++;continue;} // skip empty events
+				
+				oop id = get(eventList[i], Event,id);
 				oop eh = get(id,Symbol,value);
-				oop posPair = get(event, Event,block);
 				int eventID = eh->EventID.id; // get event ID
-				emitII(prog,iSETEVENT, eventID); // set the event ID and position
-				emitII(prog, Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
+				emitIII(prog, iSETEVENT, eventID, ehCounts[ehi]); // emit SETEVENT instruction
+				for(int j = 0; j < ehCounts[ehi]; ++j) {
+					oop event = eventList[i++];
+					oop posPair = get(event, Event,block);
+					emitIII(prog, iSETPROCESS ,Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
+				}
+				ehi++; // increment event handler index
 			}
 			emitI(prog, iIMPL);
 			return;
@@ -4362,91 +4533,120 @@ void emitOn(ent prog,oop vars, oop ast)
 }
 
 void printCode(ent code){
-	for (int i = 0;  i < code->IntArray.size;  ++i) {
+	for (int i = 0; i < code->IntArray.size; ++i) {
 		int op = code->IntArray.elements[i];
+		const char *inst = "UNKNOWN";
 		switch (op) {
-			case iHALT: printf("%03d: HALT\n", i); break;
-			case iPUSH: ++i;printf("%03d: LOAD    %03d\n", i-1, code->IntArray.elements[i]); break;
-			case iGT:   printf("%03d: GT\n", i); break;
-			case iGE:   printf("%03d: GE\n", i); break;
-			case iEQ:   printf("%03d: EQ\n", i); break;
-			case iNE:   printf("%03d: NE\n", i); break;
-			case iLE:   printf("%03d: LE\n", i); break;
-			case iLT:   printf("%03d: LT\n", i); break;
-			case iADD:  printf("%03d: ADD\n", i); break;
-			case iSUB:  printf("%03d: SUB\n", i); break;
-			case iMUL:  printf("%03d: MUL\n", i); break;
-			case iDIV:  printf("%03d: DIV\n", i); break;
-			case iMOD:  printf("%03d: MOD\n", i); break;
-			case iGETVAR:++i;printf("%03d: GETVAR  %03d\n", i-1, code->IntArray.elements[i]);break;
-			case iSETVAR:++i;printf("%03d: SETVAR  %03d\n", i-1, code->IntArray.elements[i]);break;
-			case iMKSPACE:{
-				++i;
-				printf("%03d: MKSPACE %03d\n", i-1, code->IntArray.elements[i]);
+			case iHALT:
+				inst = "HALT";
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			case iPUSH:
+				inst = "LOAD";
+				int value = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, value);
+				break;
+			case iGT:   inst = "GT"; goto simple;
+			case iGE:   inst = "GE"; goto simple;
+			case iEQ:   inst = "EQ"; goto simple;
+			case iNE:   inst = "NE"; goto simple;
+			case iLE:   inst = "LE"; goto simple;
+			case iLT:   inst = "LT"; goto simple;
+			case iADD:  inst = "ADD"; goto simple;
+			case iSUB:  inst = "SUB"; goto simple;
+			case iMUL:  inst = "MUL"; goto simple;
+			case iDIV:  inst = "DIV"; goto simple;
+			case iMOD:  inst = "MOD"; goto simple;
+			case iJUDGE:inst = "JUDGE"; goto simple;
+			case iEOC:  inst = "EOC"; goto simple;
+			case iEOE:  inst = "EOE"; goto simple;
+			case iRETURN: inst = "RETURN"; goto simple;
+simple:
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			case iGETVAR:
+				inst = "GETVAR";
+				int varIndex = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, varIndex);
+				break;
+			case iSETVAR:
+				inst = "SETVAR";
+				int varIndexSet = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, varIndexSet);
+				break;
+			case iMKSPACE:
+				inst = "MKSPACE";
+				int space = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, space);
+				break;
+			case iPRINT: {
+				inst = "PRINT";
+				int nArgs = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nArgs);
 				break;
 			}
-			case iPRINT:{
-				++i;
-				int nArgs = code->IntArray.elements[i];
-				printf("%03d: PRINT   %03d\n", i-1, nArgs);
+			case iJUMP: {
+				inst = "JUMP";
+				int offset = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
 				break;
 			}
-			case iJUMP:{
-				++i;
-				printf("%03d: JUMP    %03d(%3d)\n", i-1, code->IntArray.elements[i], code->IntArray.elements[i] + (i+1));
+			case iJUMPIF: {
+				inst = "JUMPIF";
+				int offset = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
 				break;
 			}
-			case iJUMPIF:{
-				++i;
-				printf("%03d: JUMPIF  %03d(%3d)\n", i-1, code->IntArray.elements[i], code->IntArray.elements[i] + (i+1));
-				break;
-			}
-			case iJUDGE: printf("%03d: JUDGE\n", i); break;
-			case iEOC:   printf("%03d: EOC\n", i); break;
-			case iEOE:  printf("%03d: EOE\n", i); break;
-			case iRETURN: printf("%03d: RETURN\n", i); break;
 			case iCLEAN: {
-				++i;
-				int nArgs = code->IntArray.elements[i];
-				printf("%03d: CLEAN   %03d\n", i-1, nArgs);
+				inst = "CLEAN";
+				printf("%03d: %-10s %03d\n", i, inst, code->IntArray.elements[++i]);
 				break;
 			}
 			case iPCALL: {
-				++i;
-				int index = code->IntArray.elements[i];
+				inst = "PCALL";
+				int index = code->IntArray.elements[++i];
 				int nArgs = code->IntArray.elements[++i];
-				printf("%03d: PCALL   %03d(%3d) %03d\n", i-2, index, index + (i+1), nArgs);
+				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, index, index + (i+1), nArgs);
 				break;
 			}
 			case iCALL: {
+				inst = "CALL";
 				int pos = code->IntArray.elements[++i];
 				int nArgs = code->IntArray.elements[++i];
-				printf("%03d: CALL    %03d(%3d) %03d\n", i-2, pos, (i+1)+pos, nArgs);
+				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, pos, (i+1)+pos, nArgs);
 				break;
 			}
 			case iSETSTATE: {
-				++i;
-				int nEvents = code->IntArray.elements[i];
-				printf("%03d: SETSTATE %03d\n", i-1, nEvents);
+				inst = "SETSTATE";
+				int nEvents = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nEvents);
 				break;
 			}
-			case iSETEVENT:{
+			case iSETEVENT: {
+				inst = "SETEVENT";
 				int eventID = code->IntArray.elements[++i];
+				int nHandlers = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d %3d\n", i-2, inst, eventID, nHandlers);
+				break;
+			}
+			case iSETPROCESS: {
+				inst = "SETPROCESS";
 				int apos = code->IntArray.elements[++i];
 				int cpos = code->IntArray.elements[++i];
-				printf("%03d: SETEVENT %03d %3d %03d\n", i-2, eventID, apos, cpos);
+				printf("%03d: %-10s %03d %3d\n", i-2, inst, apos, cpos);
 				break;
 			}
-			case iIMPL:{
-				printf("%03d: IMPL\n", i-1);
+			case iIMPL:
+				inst = "IMPL";
+				printf("%03d: %-10s\n", i, inst);
 				break;
-			}
 			default:
-			printf("%03d: UNKNOWN %03d\n", i, op);
+				printf("%03d: %-10s %03d\n", i, inst, op);
 		}
 	}
 	printf("\n");
 }
+
 
 ent compile()
 {
@@ -4924,11 +5124,7 @@ int main(int argc, char **argv)
 
 	// execute code
 	rprintf("Executing code...\n");
-
-    GC_PUSH(ent, globalVariables, intArray_init());
-	printf("nroots[%d] g:%p\n",nroots, globalVariables);
-	execute(code, globalVariables);
-	GC_POP(globalVariables); // pop global variables from GC roots
+	runPC(code);
 
 
 	rprintf("Execution finished.\n");
