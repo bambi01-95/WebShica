@@ -1,8 +1,5 @@
 stt s1(){
-    eventEH(n){
-        print(2);
-    }
-    eventEH(n){
-        print(1);
+    clickEH(x,y){
+        setXY(x,y);
     }
 }

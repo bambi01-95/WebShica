@@ -8,13 +8,30 @@ TODO
 - multiple event handlers
 
 
-
 NOT YET
 - strings
 - numbers
 - user-defined function
 - arrays
 
+# WASM
+	emcc handler.c \
+     -o handler.js \
+     -s WASM=1 \
+     -s EXPORTED_RUNTIME_METHODS="['cwrap', 'HEAP32', 'getValue', 'setValue']"\
+     -s EXPORTED_FUNCTIONS="['_initWebTimerPtr', '_setWebTimer', '_getWebTimerPtr', '_initWebClickSTTPtr', '_getWebClickSTTPtr', '_initALLAgentDataPtr', '_getAllAgentDataPtr', '_getAllAgentDataSizePtr' ,'_testAllEventHandlers']" 
+
+	emcc vm.c 
+    -o vm.js 
+    -s MODULARIZE=1 
+    -s EXPORT_NAME="'vm'" 
+    -s "EXPORTED_FUNCTIONS=['_store', '_web_compile', '_web_compile_size',          '_web_vm_execute', '_web_vm_execute_size', '_malloc', '_free']" 
+    -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'allocateUTF8', 'HEAP32']" 
+    -s ENVIRONMENT='web' -O0
+
+    emcc vm.c \
+    -o vm.js \
+    
 
 
 # vms

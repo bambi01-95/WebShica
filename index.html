@@ -2,221 +2,163 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Shica + Ghost Click Color</title>
+  <title>Shica WASM Click & Timer Integration Demo</title>
 
-  <!-- ACE Editor CDN -->
+  <!-- ACE Editor -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/mode-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/mode-c_cpp.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/theme-textmate.min.js"></script>
 
   <style>
-    body {
-      background-color: #f5f7fa;
-      font-family: "Segoe UI", sans-serif;
-      margin: 0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-    #left, #right {
-      overflow: auto;
-      height: 100vh;
-    }
-    #left {
-      flex: 1;
-      background-color: white;
-      color: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-    #right {
-      flex: 1;
-      background-color: white;
-      padding: 24px;
-    }
-    #map {
-      position: relative;
-      width: 1000px;  /* 横幅 1000px */
-      height: 600px;  /* 高さ 600px */
-      border: 5px solid #4a90e2;
-      box-sizing: border-box;
-      background-color: #222;
-      background-image:
-        linear-gradient(#555 1px, transparent 1px),
-        linear-gradient(90deg, #555 1px, transparent 1px);
-      background-size: 30px 30px;
-    }
-    .ghost {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      font-size: 50px;
-      line-height: 50px;
-      text-align: center;
-      cursor: pointer;
-      filter: drop-shadow(0 0 5px white);
-      transition: filter 0.2s ease;
-    }
-    .ghost.clicked {
-      filter: drop-shadow(0 0 5px lime);
-    }
-    #info {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background-color: rgba(255,255,255,0.9);
-      color: black;
-      font-size: 14px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      white-space: pre-line;
-    }
-    .editor-box {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 0;
-      margin-bottom: 16px;
-      height: 300px;
-    }
-    #editor {
-      width: 100%;
-      height: 100%;
-      font-size: 14px;
-    }
-    .buttons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    button {
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s ease, transform 0.1s ease;
-    }
-    button:hover {
-      background-color: #357abd;
-      transform: translateY(-2px);
-    }
-    pre {
-      background: #eee;
-      padding: 10px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      min-height: 40px;
-    }
+    body { display: flex; margin: 0; height: 100vh; font-family: sans-serif; }
+    #left, #right { flex: 1; overflow: auto; }
+    #map { position: relative; width: 100%; height: 600px; background: #222; }
+    .ghost { position: absolute; width: 50px; height: 50px; font-size: 50px; line-height: 50px; text-align: center; }
+    #info { background: #fff; padding: 10px; font-size: 14px; }
+    #editor { width: 100%; height: 300px; }
+    button { margin: 5px; padding: 10px 20px; }
+    pre { background: #eee; padding: 10px; }
   </style>
 </head>
-
 <body>
 
-  <!-- 左側：大きめのマップとゴースト -->
   <div id="left">
     <div id="map">
       <div class="ghost" id="ghost1" style="left:100px; top:100px;">👻</div>
     </div>
-    <div id="info"></div>
+    <div id="info">Agent data will appear here</div>
+    <div id="clickInfo">Click on the map to send data</div>
+    <div id="timerInfo">Timer data will be sent to C code</div>
   </div>
 
-  <!-- 右側：Shicaエディタ -->
   <div id="right">
-    <h1>Shica: Demonstration of a Compiler and VM <br />Implemented in C and Leg</h1>
-    <div class="editor-box">
-      <div id="editor"></div>
-    </div>
-    <pre id="output">The output will be displayed here</pre>
-    <div class="buttons">
-      <button id="storeBtn">Load</button>
-      <button id="compileBtn">Compile</button>
-      <button id="runBtn">▶ Run</button>
-    </div>
-    <pre id="outputIR">Compiled code will be displayed here</pre>
-    <pre id="outputResult">Executed result will be displayed here</pre>
+    <h1>Shica WASM Click & Timer Integration</h1>
+    <div id="editor"></div>
+    <button id="compileBtn">Compile</button>
+    <button id="runBtn">Run</button>
+    <pre id="outputIR">IR Output</pre>
+    <pre id="outputResult">Execution Result</pre>
   </div>
 
-  <!-- Script -->
+  <!-- Load WebAssembly Module -->
+  <script src="vm.js"></script> <!-- ビルド済みjsを指定 -->
+
   <script>
-    // ACE Editor 初期化
     const editor = ace.edit("editor");
+    editor.session.setMode("ace/mode/c_cpp");
     editor.setTheme("ace/theme/textmate");
-    editor.setOptions({
-      fontSize: "14px",
-      showLineNumbers: true,
-      showGutter: true,
-      wrap: false,
-      tabSize: 2,
+
+    let runInterval = null;
+    let timerPtr, clickPtr;
+    let agentPtr; 
+
+    Module.onRuntimeInitialized = () => {
+      console.log("WASM initialized");
+
+      // memory_init 呼び出し（必要に応じて）
+      Module.ccall('memory_init', 'number', [], []);
+
+      // Timer pointer を取得
+      timerPtr = Module.ccall('initWebTimerPtr', 'number', [], []);
+    //   console.log("Timer pointer initialized at:", timerPtr);
+
+      // Click pointer を取得
+      clickPtr = Module.ccall('initWebClickSTTPtr', 'number', [], []);
+    //   console.log("Click pointer initialized at:", clickPtr);
+
+        // AgentData pointer を取得
+        agentPtr = Module.ccall('initAnAgnetDataPtr', 'number', [], []);
+        // console.log("AgentData pointer initialized at:", agentPtr);
+
+      // Compile ボタン
+      document.getElementById("compileBtn").addEventListener("click", () => {
+        const code = editor.getValue();
+        const result = Module.ccall('compileWebCode', 'number', ['string'], [code]);
+        document.getElementById("outputIR").textContent = `Compile result: ${result}`;
+      });
+
+      // Run ボタン
+      document.getElementById("runBtn").addEventListener("click", () => {
+        if (runInterval) {
+          clearInterval(runInterval);
+          runInterval = null;
+          document.getElementById("runBtn").textContent = "Run";
+          return;
+        }
+
+        Module.ccall('initRunWeb', 'number', [], []);
+        document.getElementById("runBtn").textContent = "Stop";
+
+        runInterval = setInterval(() => {
+          const result = Module.ccall('runWeb', 'number', [], []);
+          document.getElementById("outputResult").textContent = `Run result: ${result}`;
+
+          // Timer 値を更新（例: 現在時刻ミリ秒）
+          const now = Date.now();
+          Module.setValue(timerPtr, now, 'i32');
+
+          // Timer 値読み取りテスト
+          const timerVal = Module.getValue(timerPtr, 'i32');
+        //   console.log("Timer value:", timerVal);
+
+          // Click データ読み取りテスト
+          const clickX = Module.getValue(clickPtr + 0, 'i32');
+          const clickY = Module.getValue(clickPtr + 4, 'i32');
+          const clickStatus = Module.getValue(clickPtr + 8, 'i32');
+        //   console.log("Click:", clickX, clickY, clickStatus);
+
+          // AgentData 構造体読み取り例
+          
+        //   console.log("agentPtr:", agentPtr); // 0ではないか確認
+          const x = Module.getValue(agentPtr + 0, 'i32');
+          const y = Module.getValue(agentPtr + 4, 'i32');
+
+// console.log("HEAP32.length:", Module.HEAP32.length);
+// console.log("agentPtr/4:", agentPtr / 4);
+// console.log("getValue x,y:", x, y);
+// console.log("HEAP32 x,y:", Module.HEAP32[agentPtr / 4], Module.HEAP32[agentPtr / 4 + 1]);
+
+          const vx = Module.getValue(agentPtr + 8, 'i32');
+          const vy = Module.getValue(agentPtr + 12, 'i32');
+          const isClick = Module.getValue(agentPtr + 16, 'i32');
+          const distance = Module.getValue(agentPtr + 20, 'i32');
+          const status = Module.getValue(agentPtr + 24, 'i32');
+
+          document.getElementById("info").textContent =
+            `x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}, isClick: ${isClick}, dist: ${distance}, status: ${status}`;
+
+          // ghost position update
+          const ghost = document.getElementById("ghost1");
+          ghost.style.left = `${x}px`;
+          ghost.style.top = `${y}px`;
+          // Click position update
+          const clickInfo = document.getElementById("clickInfo");
+          clickInfo.textContent =
+            `Click at (${clickX}, ${clickY}), Status: ${clickStatus ? 'Active' : 'Inactive'}`;
+            // Timer info update
+            const timerInfo = document.getElementById("timerInfo");
+            timerInfo.textContent = `Timer value: ${timerVal}`;
+
+        }, 50);
+      });
+    };
+
+    // Click イベント
+    const map = document.getElementById("map");
+
+    map.addEventListener("mousedown", (e) => {
+      const rect = map.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Click data を C に共有
+      Module.setValue(clickPtr + 0, x, 'i32'); // x
+      Module.setValue(clickPtr + 4, y, 'i32'); // y
+      Module.setValue(clickPtr + 8, 1, 'i32'); // click status active
     });
-    
-    // 行間を最小に設定
-    editor.container.style.lineHeight = "1.0";
-    editor.renderer.setOption('scrollPastEnd', false);
-    editor.renderer.updateFull();
 
-    // ゴースト移動ロジック
-    const ghost = document.getElementById("ghost1");
-    const info = document.getElementById("info");
-    const mapWidth = 900;
-    const mapHeight = 600;
-    const ghostSize = 50;
-
-    let posX = 100, posY = 100;
-    let vx = 2, vy = 2;
-    let isClicked = false;
-
-    // ゴーストクリックで色と状態切り替え
-    ghost.addEventListener("click", () => {
-      isClicked = !isClicked;
-      ghost.classList.toggle("clicked", isClicked);
-    });
-
-    function moveGhost() {
-      posX += vx;
-      posY += vy;
-
-      if (posX <= 0 || posX >= mapWidth - ghostSize) vx *= -1;
-      if (posY <= 0 || posY >= mapHeight - ghostSize) vy *= -1;
-
-      ghost.style.left = posX + "px";
-      ghost.style.top = posY + "px";
-
-      // 進行方向の壁までの距離
-      let distX = vx > 0 ? (mapWidth - ghostSize - posX) : posX;
-      let distY = vy > 0 ? (mapHeight - ghostSize - posY) : posY;
-
-      info.textContent =
-        `x: ${Math.round(posX)}\n` +
-        `y: ${Math.round(posY)}\n` +
-        `vx: ${vx}\n` +
-        `vy: ${vy}\n` +
-        `clicked: ${isClicked}\n` +
-        `dist to wall x: ${Math.round(distX)}\n` +
-        `dist to wall y: ${Math.round(distY)}`;
-
-      requestAnimationFrame(moveGhost);
-    }
-    moveGhost();
-
-    // ボタンの動作
-    document.getElementById("storeBtn").addEventListener("click", () => {
-      document.getElementById("output").textContent = "Load clicked";
-    });
-
-    document.getElementById("compileBtn").addEventListener("click", () => {
-      const code = editor.getValue();
-      document.getElementById("outputIR").textContent = `Compiling:\n${code}`;
-    });
-
-    document.getElementById("runBtn").addEventListener("click", () => {
-      const code = editor.getValue();
-      document.getElementById("outputResult").textContent = `Running:\n${code}`;
+    window.addEventListener("mouseup", () => {
+      Module.setValue(clickPtr + 8, 0, 'i32'); // click status inactive
     });
   </script>
 
