@@ -74,6 +74,19 @@ void fatal(char *msg, ...)
     va_end(ap);
     exit(1);
 }
+char devmsg[] = "Contact 2024mm11@kuas.ac.jp\n";
+
+void error(char *msg, ...){
+    va_list ap;
+    va_start(ap, msg);
+    fprintf(stderr, "\n");
+    vfprintf(stderr, msg, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
+}
+
+
 void rprintf(char *msg, ...)
 {
 	va_list ap;
@@ -117,9 +130,9 @@ int getchar_from_text() {
     }
     return WebText[WebTextPos++];
 }
-
+#if 0
 #define getchar getchar_from_text
-
+#endif
 
 
 /*==============   TIMER  ================= */
@@ -249,7 +262,7 @@ oop nil   = 0;
 oop false = 0;
 oop true  = 0;
 
-enum Type {
+typedef enum Type {
     /*  0 */ Undefined = 0,
     /*  1 */ Integer, Float, Symbol, Pair, Array, Closure, StdFunc, UserFunc,
     /*  8 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
@@ -258,42 +271,43 @@ enum Type {
 	/* 21 */ State, Event,EventH,
 	/* AF LEG */
 	/* 24 */ Variables,
-};
+}type_t;
+
 
 enum binop { ADD, SUB, MUL, DIV, MOD, LT, LE, GE, GT, EQ, NE, };
 enum unyop { NEG, NOT, AINC, BINC, ADEC, BDEC,};
 
 /* before leg */
-struct Undefined { enum Type _type; };
-struct Integer 	 { enum Type _type;  int _value;  };
-struct Symbol  	 { enum Type _type;  char *name;  oop value; };
-struct Pair  	 { enum Type _type;  oop a, b; };
-struct Tensor    { enum Type _type;  int *shape;  int ndim;  oop *elements; };
-struct Array  	 { enum Type _type;  oop *elements;  int size, capacity; };
-struct Closure 	 { enum Type _type;  int nArgs; int pos; };
-struct StdFunc   { enum Type _type;  int index; };
-struct UserFunc	 { enum Type _type;  oop parameters, body, code; };
-struct Binop   	 { enum Type _type;  enum binop op;  oop lhs, rhs; };
-struct Unyop   	 { enum Type _type;  enum unyop op;  oop rhs; };
-struct GetVar  	 { enum Type _type;  oop id; };
-struct SetVar  	 { enum Type _type;  oop id; oop rhs; };
-struct GetArray	 { enum Type _type;  oop array, index; };
-struct SetArray	 { enum Type _type;  oop array, index, value; };
-struct Call 	 { enum Type _type;  oop function, arguments; };
-struct Return 	 { enum Type _type;  oop value; };
-struct Break 	 { enum Type _type; };
-struct Continue	 { enum Type _type; };
-struct Print   	 { enum Type _type;  oop arguments; };
-struct If      	 { enum Type _type;  oop condition, statement1, statement2; };
-struct Loop   	 { enum Type _type;  oop initialization,condition,iteration, statement; };
-struct Block   	 { enum Type _type;  oop *statements;  int size; };
-struct State   	 { enum Type _type;  oop id, parameters, events; };
-struct Event   	 { enum Type _type;  oop id, parameters, block; };
-struct EventH    { enum Type _type;  int id; int nArgs; };
+struct Undefined { type_t _type; };
+struct Integer 	 { type_t _type;           int _value;  };
+struct Symbol  	 { type_t _type;           char *name;  oop value; };
+struct Pair  	 { type_t _type;           oop a, b; };
+struct Tensor    { type_t _type;           int *shape;  int ndim;  oop *elements; };
+struct Array  	 { type_t _type;           oop *elements;  int size, capacity; };
+struct Closure 	 { type_t _type;           int nArgs; int pos; };
+struct StdFunc   { type_t _type;           int index; };
+struct UserFunc	 { type_t _type;           oop parameters, body, code; };
+struct Binop   	 { type_t _type;           enum binop op;  oop lhs, rhs; };
+struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
+struct GetVar  	 { type_t _type; int line; oop id; };
+struct SetVar  	 { type_t _type; int line; oop id; oop rhs; };
+struct GetArray	 { type_t _type;           oop array, index; };
+struct SetArray	 { type_t _type;           oop array, index, value; };
+struct Call 	 { type_t _type; int line; oop function, arguments; };
+struct Return 	 { type_t _type;           oop value; };
+struct Break 	 { type_t _type;           };
+struct Continue	 { type_t _type;           };
+struct Print   	 { type_t _type;           oop arguments; };
+struct If      	 { type_t _type;           oop condition, statement1, statement2; };
+struct Loop   	 { type_t _type;           oop initialization,condition,iteration, statement; };
+struct Block   	 { type_t _type;           oop *statements;  int size; };
+struct State   	 { type_t _type; int line; oop id, parameters, events; };
+struct Event   	 { type_t _type; int line; oop id, parameters, block; };
+struct EventH    { type_t _type;           int id; int nArgs; };
 
 /* after leg */
 struct Variables{
-	enum Type _type;
+	type_t _type;
 	int size;
 	int capacity;
 	oop *elements;
@@ -570,21 +584,23 @@ oop newUnyop(enum unyop op, oop rhs)
     return node;
 }
 
-oop newGetVar(oop id)
+oop newGetVar(oop id,int line)
 {
 	gc_pushRoot((void*)&id);
     oop node = newObject(GetVar);
     node->GetVar.id = id;
+	node->GetVar.line = line;
 	gc_popRoots(1);
     return node;
 }
 
-oop newSetVar(oop id, oop rhs)
+oop newSetVar(oop id, oop rhs,int line)
 {
 	gc_pushRoot((void*)&id);
     oop node = newObject(SetVar);
     node->SetVar.id  = id;
     node->SetVar.rhs = rhs;
+	node->SetVar.line = line;
 	gc_pushRoot((void*)&rhs);
     return node;
 }
@@ -613,13 +629,14 @@ oop newSetArray(oop array, oop index, oop value)
     return node;
 }
 
-oop newCall(oop arguments, oop function)
+oop newCall(oop arguments, oop function, int line)
 {
 	gc_pushRoot((void*)&arguments);
 	gc_pushRoot((void*)&function);
     oop node = newObject(Call);
     node->Call.arguments = arguments;
     node->Call.function  = function;
+	node->Call.line      = line;
 	gc_popRoots(2);
     return node;
 }
@@ -751,7 +768,7 @@ void Event_Block_append(oop b, oop e)
 	gc_popRoots(2);
 }
 
-oop newState(oop id, oop parameters, oop events)
+oop newState(oop id, oop parameters, oop events, int line)
 {
 	gc_pushRoot((void*)&id);
 	gc_pushRoot((void*)&parameters);
@@ -760,11 +777,12 @@ oop newState(oop id, oop parameters, oop events)
 	node->State.id         = id;
 	node->State.parameters = parameters;
 	node->State.events     = events;
+	node->State.line       = line;
 	gc_popRoots(3);
 	return node;
 }
 
-oop newEvent(oop id, oop parameters, oop block)
+oop newEvent(oop id, oop parameters, oop block,int line)
 {
 	gc_pushRoot((void*)&id);
 	gc_pushRoot((void*)&parameters);
@@ -773,6 +791,7 @@ oop newEvent(oop id, oop parameters, oop block)
 	node->Event.id         = id;
 	node->Event.parameters = parameters;
 	node->Event.block      = block;
+	node->Event.line       = line;
 	gc_popRoots(3);
 	return node;
 }
@@ -964,7 +983,7 @@ void print(oop node)
 
 YYSTYPE result;
 
-int newline = 0;
+int nlines = 0;
 //LEG AREA
 %}
 
@@ -972,9 +991,9 @@ start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
 		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
-		| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
+		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); }
 
-state = STATE i:id p:params e:events { $$ = newState(i, p, e); }
+state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 
 events = LBRACE b:mkBlock
 	  (
@@ -984,7 +1003,7 @@ events = LBRACE b:mkBlock
 	  RBRACE			{ $$ = b }
 
 
-event = i:id p:eparams b:block { $$ = newEvent(i, p, b); }
+event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
 
 eparams	= LPAR p:mkNil
 	  ( i:id c:mkFalse (c:eqop)?			{ p = newPair(newPair(i,c), p) }
@@ -1012,7 +1031,7 @@ block   = LBRACE b:mkBlock
 
 mkBlock =                               { $$ = newBlock() }
 
-define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b)); }
+define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b), nlines); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -1024,9 +1043,9 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }
 		  		   (t:expr|k:mkFalse) RPAR 
 		  (s:block|s:expr)	  { $$ = newLoop(i, c, t, s) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
-		| x:expr SEMI			  { result = x; }
-		| - SEMI				  { result = false; }
-		#| < (!eol &. .)* >                { fatal("syntax error: %s", yytext); }
+		| x:expr SEMI			  		  { result = x; }
+		| - SEMI				  		  { result = false; }
+		| x:expr 						  { fatal("line %d ERROR: syntax error ';'\n",nlines);}
 
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newPair(i, a) }
@@ -1037,7 +1056,7 @@ args	= LPAR a:mkNil
 
 expr	= assignment
 
-assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x) }
+assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x, nlines) }
 			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x) }
 			| eqop
 
@@ -1069,7 +1088,7 @@ prefix	= MINUS x:postfix		{ $$ = newUnyop(NEG, x) }
 
 postfix = v:value PPLUS { $$ = newUnyop(AINC, v) }
 		| v:value MMINUS{ $$ = newUnyop(ADEC, v) }
-		| v:value ( a:args		{ v = newCall(a, v) }
+		| v:value ( a:args		{ v = newCall(a, v, nlines) }
 	    | i:index		{ v = newGetArray(v, i) }
 	  	  )*			{ $$ = v }
 
@@ -1077,7 +1096,7 @@ index	= LBRAK e:expr RBRAK		{ $$ = e }
 
 value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
 	| integer
-	| i:id				{ $$ = newGetVar(i) }
+	| i:id				{ $$ = newGetVar(i,nlines) }
 	| array
 
 
@@ -1097,11 +1116,13 @@ alnum	= [a-zA-Z_0-9]
 
 -	= blank*
 
-blank	= [ \t\n\r]
+blank	= [ \t]
+	| newline
 	| '//' (![\n\r] .)*
 
 eol	= [\r\n]
 
+newline = [\n\r] { nlines++;}
 
 COMMA	= ","       -
 SEMI	= ";"       -
@@ -1656,7 +1677,7 @@ int compile_func_init(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #if DEBUG
@@ -2152,8 +2173,9 @@ void emitOn(ent prog,oop vars, oop ast)
 			case MUL: emitI(prog, iMUL);  return;
 			case DIV: emitI(prog, iDIV);  return;
 			case MOD: emitI(prog, iMOD);  return;
-			default:printf("error\n");return;
+			default:break;
 			}
+			fatal(devmsg);
 			break;
 		}
 		case Unyop:{
@@ -2171,9 +2193,9 @@ void emitOn(ent prog,oop vars, oop ast)
 					case BDEC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); emitOn(prog, vars, rhs);return;
 					case AINC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
 					case ADEC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
-				default: printf("error\n"); return;
+				default: break;
 			}
-		
+			fatal(devmsg);
 			return ;
 		}
 		case GetVar: {
@@ -2181,7 +2203,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop sym = get(ast, GetVar,id);
 			oop variable = searchVariable(vars,sym);
 			if (variable == NULL) {
-				printf("variable %s not found\n", get(sym, Symbol,name));
+				error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
 				exit(1);
 			}
 			emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
@@ -2208,7 +2230,7 @@ void emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						printf("error: event %s expects %d arguments, but got %d\n", get(func, Symbol,name), nArgs, argsCount);
+						error("line %d ERROR: event %s expects %d arguments, but got %d\n", get(ast,Call,line),get(func, Symbol,name), nArgs, argsCount);
 						exit(1);
 					}
 					emitIII(prog, iPCALL,  index, nArgs); // call the event handler
@@ -2225,8 +2247,8 @@ void emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(StdFuncTable[funcIndex].nArgs != argsCount){
-						printf("error: standard function %s expects %d arguments, but got %d\n",
-							 get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+						error("line %d ERROR: standard function %s expects %d arguments, but got %d\n",
+							 get(ast,Call,line),get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
 						exit(1);
 					}
 
@@ -2248,7 +2270,7 @@ void emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						printf("error: function %s expects %d arguments, but got %d\n", get(func, Symbol,name), nArgs, argsCount);
+						error("line %d ERROR: function %s expects %d arguments, but got %d\n", get(func, Symbol,name), nArgs, argsCount);
 						exit(1);
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
@@ -2258,7 +2280,8 @@ void emitOn(ent prog,oop vars, oop ast)
 					return;
 				}
 				default:{
-					printf("error: call function with type %d\n", getType(func));
+					fatal(devmsg);
+					fatal("error: call function with type %d\n", getType(func));
 					printlnObject(func,0);
 					exit(1);
 				}
@@ -2273,7 +2296,7 @@ void emitOn(ent prog,oop vars, oop ast)
 				case UserFunc:{
 					printTYPE(_Function_);
 					if(sym->Symbol.value !=false) {
-						printf("error: variable %s is already defined as a function\n", get(sym, Symbol,name));
+						error("line %d ERROR: variable %s is already defined as a function\n",get(ast,SetVar,line), get(sym, Symbol,name));
 						exit(1);
 					}
 					oop params = get(rhs, UserFunc,parameters);
@@ -2283,7 +2306,7 @@ void emitOn(ent prog,oop vars, oop ast)
 					while(params != nil){
 						oop param = get(params, Pair,a);
 						if (searchVariable(localVars, param) != NULL) {
-							printf("error: parameter %s is already defined\n", get(param, Symbol,name));
+							error("line %d ERROR: parameter %s is already defined\n",get(ast,SetVar,line), get(param, Symbol,name));
 							exit(1);
 						}
 						insertVariable(localVars, param); // insert parameter into local variables
@@ -2313,7 +2336,7 @@ void emitOn(ent prog,oop vars, oop ast)
 					return;	
 				}
 				default:{
-					printf("error: set variable with type %d\n", getType(rhs));
+					error("line %d ERROR: set variable with type %d\n",get(ast,GetVar,line), getType(rhs));
 					exit(1);
 				}
 			}
@@ -2324,12 +2347,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			printTYPE(_Pair_);
 			oop a = get(ast, Pair,a);
 			oop b = get(ast, Pair,b);
-			//set a into variable
-			//while (b != nil) {
-			//	a = get(b, Pair,a);
-			//  set a into variable
-			//	b = get(b, Pair,b);
-			//}
+			error(devmsg);
 			return;
 		}
 		case Print:{
@@ -2352,9 +2370,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop statement1 = get(ast, If,statement1);
 			oop statement2 = get(ast, If,statement2);
 
-			
 			emitOn(prog, vars, condition); // compile condition
-
 
 			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
 			int jumpPos = prog->IntArray.size-1; // remember position for jump
@@ -2430,10 +2446,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop params = get(ast, State,parameters);
 			oop events = get(ast, State,events);
 			
-			if(getType(events) != Block) {
-				printf("events must be a block, got %d\n", getType(events));
-				exit(1);
-			}
+	
 			// compile events
 			oop *eventList = events->Block.statements;
 			int nEvents = 0;
@@ -2482,7 +2495,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop id = get(ast, Event,id);
 			oop eh = get(id,Symbol,value);
 			if(getType(eh) != EventH) {
-				printf("event %s is not an event ID\n", get(id, Symbol,name));
+				printf("line %d ERROR: event %s is not an event ID\n",get(ast, Event, line), get(id, Symbol,name));
 				exit(1);
 			}
 			oop params = get(ast, Event,parameters);
@@ -2508,7 +2521,7 @@ void emitOn(ent prog,oop vars, oop ast)
 				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
-				printf("event %s has %d parameters, but expected %d\n", get(id, Symbol,name), paramSize, nArgs);
+				error("line %d ERROR: event %s has %d parameters, but expected %d\n",get(ast,Event,line), get(id, Symbol,name), paramSize, nArgs);
 				exit(1);
 			}
 			int aPos = prog->IntArray.size; // remember the position of the event handler
@@ -2531,6 +2544,7 @@ void emitOn(ent prog,oop vars, oop ast)
 		}
 		default:break;
     }
+	fatal(devmsg);
     fatal("emitOn: unimplemented emitter for type %d", getType(ast));
 }
 
@@ -2731,6 +2745,9 @@ case Array   :
 	return;
 }
 case Closure :{return;}
+case StdFunc:{
+	return;
+}
 case UserFunc:
 {
 	if (obj->UserFunc.parameters) {

@@ -1,0 +1,5 @@
+stt s1(){
+    eventEH(n){
+        print(n);
+    }
+}

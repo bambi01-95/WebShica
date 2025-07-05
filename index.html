@@ -1,166 +1,96 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <title>Shica WASM Click & Timer Integration Demo</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>Robot Vacuum WASM Click & Timer Integration Demo</title>
 
-  <!-- ACE Editor -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/mode-c_cpp.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/theme-textmate.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
 
-  <style>
-    body { display: flex; margin: 0; height: 100vh; font-family: sans-serif; }
-    #left, #right { flex: 1; overflow: auto; }
-    #map { position: relative; width: 100%; height: 600px; background: #222; }
-    .ghost { position: absolute; width: 50px; height: 50px; font-size: 50px; line-height: 50px; text-align: center; }
-    #info { background: #fff; padding: 10px; font-size: 14px; }
-    #editor { width: 100%; height: 300px; }
-    button { margin: 5px; padding: 10px 20px; }
-    pre { background: #eee; padding: 10px; }
-  </style>
-</head>
-<body>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Source+Code+Pro&display=swap"
+      rel="stylesheet"
+    />
 
-  <div id="left">
-    <div id="map">
-      <div class="ghost" id="ghost1" style="left:100px; top:100px;">👻</div>
+    <!-- ACE Editor CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/mode-c_cpp.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/theme-tomorrow_night.js"></script>
+  </head>
+
+  <!-- BODY -->
+  <body>
+    <!-- LEFT -->
+    <div id="left-pane">
+      <div id="map-container">
+        <div id="map">
+          <div class="robot-vacuum" id="robot1"></div>
+        </div>
+      </div>
+      <div id="status-bar">
+        <div id="info">Robots: 1 active</div>
+        <div id="clickInfo">Click: Inactive</div>
+        <div id="timerInfo">Timer: -</div>
+      </div>
     </div>
-    <div id="info">Agent data will appear here</div>
-    <div id="clickInfo">Click on the map to send data</div>
-    <div id="timerInfo">Timer data will be sent to C code</div>
-  </div>
 
-  <div id="right">
-    <h1>Shica WASM Click & Timer Integration</h1>
-    <div id="editor"></div>
-    <button id="compileBtn">Compile</button>
-    <button id="runBtn">Run</button>
-    <pre id="outputIR">IR Output</pre>
-    <pre id="outputResult">Execution Result</pre>
-  </div>
+    <!-- RIGHT -->
+    <div id="right-pane">
+      <h1>Robot Vacuum WASM Demo</h1>
 
-  <!-- Load WebAssembly Module -->
-  <script src="vm.js"></script> <!-- ビルド済みjsを指定 -->
+      <div id="editors-container">
+        <details open>
+          <summary>
+            <span>Web Shica Code Editor</span>
+            <div class="color-picker-container">
+              <div
+                class="color-display"
+                id="colorDisplay1"
+                style="background-color: #3498db"
+              ></div>
+              <input
+                type="color"
+                class="color-picker"
+                id="colorPicker1"
+                value="#3498db"
+              />
+            </div>
+          </summary>
+          <div class="control-group">
+            <div id="editor" class="editor-container"></div>
+            <div class="button-container">
+              <button id="compileBtn" class="compile-btn">Compile</button>
+            </div>
+          </div>
+        </details>
+      </div>
 
-  <script>
-    const editor = ace.edit("editor");
-    editor.session.setMode("ace/mode/c_cpp");
-    editor.setTheme("ace/theme/textmate");
+      <div class="fixed-controls">
+        <div class="button-container">
+          <button id="addBtn">Add Editor</button>
+        </div>
 
-    let runInterval = null;
-    let timerPtr, clickPtr;
-    let agentPtr; 
+        <div class="button-container">
+          <button id="runBtn">Run</button>
+        </div>
+      </div>
 
-    Module.onRuntimeInitialized = () => {
-      console.log("WASM initialized");
-
-      // memory_init 呼び出し（必要に応じて）
-      Module.ccall('memory_init', 'number', [], []);
-
-      // Timer pointer を取得
-      timerPtr = Module.ccall('initWebTimerPtr', 'number', [], []);
-    //   console.log("Timer pointer initialized at:", timerPtr);
-
-      // Click pointer を取得
-      clickPtr = Module.ccall('initWebClickSTTPtr', 'number', [], []);
-    //   console.log("Click pointer initialized at:", clickPtr);
-
-        // AgentData pointer を取得
-        agentPtr = Module.ccall('initAnAgnetDataPtr', 'number', [], []);
-        // console.log("AgentData pointer initialized at:", agentPtr);
-
-      // Compile ボタン
-      document.getElementById("compileBtn").addEventListener("click", () => {
-        const code = editor.getValue();
-        const result = Module.ccall('compileWebCode', 'number', ['string'], [code]);
-        document.getElementById("outputIR").textContent = `Compile result: ${result}`;
-      });
-
-      // Run ボタン
-      document.getElementById("runBtn").addEventListener("click", () => {
-        if (runInterval) {
-          clearInterval(runInterval);
-          runInterval = null;
-          document.getElementById("runBtn").textContent = "Run";
-          return;
-        }
-
-        Module.ccall('initRunWeb', 'number', [], []);
-        document.getElementById("runBtn").textContent = "Stop";
-
-        runInterval = setInterval(() => {
-          const result = Module.ccall('runWeb', 'number', [], []);
-          document.getElementById("outputResult").textContent = `Run result: ${result}`;
-
-          // Timer 値を更新（例: 現在時刻ミリ秒）
-          const now = Date.now();
-          Module.setValue(timerPtr, now, 'i32');
-
-          // Timer 値読み取りテスト
-          const timerVal = Module.getValue(timerPtr, 'i32');
-        //   console.log("Timer value:", timerVal);
-
-          // Click データ読み取りテスト
-          const clickX = Module.getValue(clickPtr + 0, 'i32');
-          const clickY = Module.getValue(clickPtr + 4, 'i32');
-          const clickStatus = Module.getValue(clickPtr + 8, 'i32');
-        //   console.log("Click:", clickX, clickY, clickStatus);
-
-          // AgentData 構造体読み取り例
-          
-        //   console.log("agentPtr:", agentPtr); // 0ではないか確認
-          const x = Module.getValue(agentPtr + 0, 'i32');
-          const y = Module.getValue(agentPtr + 4, 'i32');
-
-// console.log("HEAP32.length:", Module.HEAP32.length);
-// console.log("agentPtr/4:", agentPtr / 4);
-// console.log("getValue x,y:", x, y);
-// console.log("HEAP32 x,y:", Module.HEAP32[agentPtr / 4], Module.HEAP32[agentPtr / 4 + 1]);
-
-          const vx = Module.getValue(agentPtr + 8, 'i32');
-          const vy = Module.getValue(agentPtr + 12, 'i32');
-          const isClick = Module.getValue(agentPtr + 16, 'i32');
-          const distance = Module.getValue(agentPtr + 20, 'i32');
-          const status = Module.getValue(agentPtr + 24, 'i32');
-
-          document.getElementById("info").textContent =
-            `x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}, isClick: ${isClick}, dist: ${distance}, status: ${status}`;
-
-          // ghost position update
-          const ghost = document.getElementById("ghost1");
-          ghost.style.left = `${x}px`;
-          ghost.style.top = `${y}px`;
-          // Click position update
-          const clickInfo = document.getElementById("clickInfo");
-          clickInfo.textContent =
-            `Click at (${clickX}, ${clickY}), Status: ${clickStatus ? 'Active' : 'Inactive'}`;
-            // Timer info update
-            const timerInfo = document.getElementById("timerInfo");
-            timerInfo.textContent = `Timer value: ${timerVal}`;
-
-        }, 50);
-      });
-    };
-
-    // Click イベント
-    const map = document.getElementById("map");
-
-    map.addEventListener("mousedown", (e) => {
-      const rect = map.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      // Click data を C に共有
-      Module.setValue(clickPtr + 0, x, 'i32'); // x
-      Module.setValue(clickPtr + 4, y, 'i32'); // y
-      Module.setValue(clickPtr + 8, 1, 'i32'); // click status active
-    });
-
-    window.addEventListener("mouseup", () => {
-      Module.setValue(clickPtr + 8, 0, 'i32'); // click status inactive
-    });
-  </script>
-
-</body>
+      <div class="fixed-output">
+        <h2>Outputs</h2>
+        <div class="output-group">
+          <h2>IR Output</h2>
+          <pre id="outputIR" class="output-area">
+Compile result will be shown here.</pre
+          >
+          <h2>Execution Result</h2>
+          <pre id="outputResult" class="output-area">
+Execution status will be shown here.</pre
+          >
+        </div>
+      </div>
+    </div>
+    <script src="vm.js"></script>
+    <script src="main.js"></script>
+  </body>
 </html>

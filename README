@@ -1,5 +1,32 @@
 Shica -W-
 
+WEB Shica TO DO LIST
+
+# vm.leg
+|-add more web event handler and function
+|   |- change the speed
+|   |- ditect collision
+|   |- ditect touch
+|   |- trigger web timer
+|   |- change the rober color
+|
+|-add original shica feature
+|   |- state transition
+|   |- event condition
+|   |- event definition
+|   |- AOP
+|
+|-run multiple agent
+|   |- sotre one or more codes
+|   |- store one or more argents 
+|   |- combine web 
+
+#Index.html
+|- editorを追加したらエージェントも追加
+|- agentの要素に色をつける、LEDもつけるon/off
+
+
+
 # Shica - Web Test Framework
 web shica can use integer value
 
