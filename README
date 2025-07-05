@@ -1,5 +1,17 @@
 Shica -W-
 
+structure
+UI main component
+|- editor component
+|- output component
+|- map component
+|
+|- agents
+|  |- robot agent (vacuum cleaner)
+|  |- js agent (user can change the web component)
+
+
+
 WEB Shica TO DO LIST
 
 # vm.leg
