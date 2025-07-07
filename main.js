@@ -245,13 +245,29 @@ Module.onRuntimeInitialized = () => {
       const timerVal = Module.getValue(timerPtr, "i32");
 
       // Read AgentData
+      // ROBOT POSITION
       const x = Module.getValue(agentPtr + 0, "i32");
       const y = Module.getValue(agentPtr + 4, "i32");
+      // ROBOT VELOCITY
       const vx = Module.getValue(agentPtr + 8, "i32");
       const vy = Module.getValue(agentPtr + 12, "i32");
+      // ROBOT CLICK
       const isClick = Module.getValue(agentPtr + 16, "i32");
       const distance = Module.getValue(agentPtr + 20, "i32");
       const status = Module.getValue(agentPtr + 24, "i32");
+      // FEATURE WORKS HERE
+      /*
+      // ROBOT COLOR
+      const r = Module.getValue(agentPtr + 25, "i8");
+      const g = Module.getValue(agentPtr + 26, "i8");
+      const b = Module.getValue(agentPtr + 27, "i8");
+      // ROBOT LED ON/OFF
+      const isLedOn = Module.getValue(agentPtr + 28, "i8");
+      */
+
+      // Apply velocity
+      Module.setValue(agentPtr + 0, x + vx, "i32");
+      Module.setValue(agentPtr + 4, y + vy, "i32");
 
       // Read Click Data
       const clickX = Module.getValue(clickPtr + 0, "i32");
@@ -260,8 +276,8 @@ Module.onRuntimeInitialized = () => {
 
       // Update UI for all robots
       robots.forEach((robotElement, index) => {
-        const robotX = x + index * 60; // 各ロボットを少しずつずらして表示
-        const robotY = y + index * 60;
+        const robotX = x + vx + index * 60; // 各ロボットを少しずつずらして表示
+        const robotY = y + vy + index * 60;
         infoDisplay.textContent = `Robots: ${robots.length} active`;
         robotElement.style.transform = `translate(${robotX}px, ${robotY}px) translate(-50%, -50%)`;
       });

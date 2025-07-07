@@ -17,13 +17,15 @@ WEB Shica TO DO LIST
 # vm.leg
 |-add more web event handler and function
 |   |- change the speed
-|   |- ditect collision
 |   |- ditect touch
+|   |- change the color
+|   |- ditect collision
 |   |- trigger web timer
 |   |- change the rober color
 |
 |-add original shica feature
 |   |- state transition
+|   |- entry(), exit() event function
 |   |- event condition
 |   |- event definition
 |   |- AOP
@@ -34,8 +36,13 @@ WEB Shica TO DO LIST
 |   |- combine web 
 
 #Index.html
-|- editorを追加したらエージェントも追加
-|- agentの要素に色をつける、LEDもつけるon/off
+|- agent
+|   |- setRGB(r,g,b):robotの色の変更を行う。
+|   |- setLED(x): robotのLEDの状態を変更する。
+|   |- speak('msg'):で、robotの下にTextを出力できるようにする。
+|- UI
+|   |- 現状だと、コードが見づらいので、ディレクトリ風に選択できるようにする。
+|   |- 
 
 
 
