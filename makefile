@@ -40,7 +40,7 @@ build:
 
 
 clean:
-	rm -f $(OUT) $(OUT).wasm
+	rm -f vm.c vm vm.js vm.wasm 
 
 
 .PHONY: all clean

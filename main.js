@@ -241,6 +241,7 @@ Module.onRuntimeInitialized = () => {
 
       // Update Timer
       const now = Date.now();
+      console.log("now", now);
       Module.setValue(timerPtr, now, "i32");
       const timerVal = Module.getValue(timerPtr, "i32");
 

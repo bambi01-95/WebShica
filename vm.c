@@ -137,9 +137,9 @@ int getchar_from_text() {
     }
     return WebText[WebTextPos++];
 }
-#if 0
+
 #define getchar getchar_from_text
-#endif
+
 
 
 /*==============   TIMER  ================= */
@@ -2031,7 +2031,7 @@ YY_ACTION(void) yy_9_stmt(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_9_stmt\n"));
   {
 #line 1048
-   fatal("line %d ERROR: syntax error %s\n",nlines, yytext);;
+   fatal("line %d ERROR: syntax error ';'\n",nlines);;
   }
 #undef yythunkpos
 #undef yypos
@@ -3713,7 +3713,6 @@ ent dequeue3(ent thread)
 	ent stack = thread->Thread.stack =  newStack(0);
 	for(int i = 0; i < q->IntQue3.nArgs; ++i){
 		int x = q->IntQue3.que[q->IntQue3.head][i];
-		printf("dequeue3: x = %d\n", x);
 		intArray_push(stack, x);
 	}
 
@@ -4056,7 +4055,7 @@ int compile_func_init(){
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #if DEBUG
