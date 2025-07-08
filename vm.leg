@@ -4,6 +4,8 @@
 #define DEBUG 1
 #endif
 
+#define getchar getchar_from_text
+
 /*
 GLOBAL VARIABLES: should start with a capital letter
 Struct Name: should start with a capital letter
@@ -135,7 +137,7 @@ int getchar_from_text() {
     return WebText[WebTextPos++];
 }
 
-// #define getchar getchar_from_text
+
 
 
 
@@ -3197,7 +3199,12 @@ int runWeb(){
 			// get event data
 			ent eh = webagent->Agent.eventHandlers[i];
 			eventHandlers[eh->EventHandler.EventH](eh);
-			impleBody(webcode, eh, webagent->Agent.stack); // execute the event handler
+			if(impleBody(webcode, eh, webagent->Agent.stack)==retFlags[TRANSITION_F]){
+				webagent->Agent.isActive = 0;
+				webagent->Agent.pc = intArray_pop(webagent->Agent.stack);
+				webagent->Agent.eventHandlers = NULL;
+				break;
+			}
 		}
 	}
 	return 1; // return 1 to indicate success

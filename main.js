@@ -15,6 +15,7 @@ let agentPtr;
 let editorCount = 1;
 let editors = [];
 let robots = [];
+let robotPositions = [];
 let robotColors = [initialColor]; // ロボットの色を管理する配列
 
 const compileBtn = document.getElementById("compileBtn");
