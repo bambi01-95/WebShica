@@ -1,52 +1,39 @@
 Shica -W-
 
-structure
-UI main component
-|- editor component
-|- output component
-|- map component
-|
-|- agents
-|  |- robot agent (vacuum cleaner)
-|  |- js agent (user can change the web component)
-
-
-
 WEB Shica TO DO LIST
 
-# vm.leg
+## vm.leg (C code)
 |-add more web event handler and function
-|   |- change the speed
-|   |- ditect touch
-|   |- change the color
-|   |- ditect collision
-|   |- trigger web timer
-|   |- change the rober color
+|   |(o) change the speed
+|   |(-) ditect touch
+|   |(-) change the color
+|   |(-) ditect collision
+|   |(-) trigger web timer
+|   |(-) change the rober color
 |
 |-add original shica feature
-|   |- state transition
-|   |- entry(), exit() event function
-|   |- event condition
-|   |- event definition
-|   |- AOP
+|   |(o) state transition
+|   |(-) entry(), exit() event function
+|   |(-) event condition
+|   |(-) event definition
+|   |(-) AOP
 |
 |-run multiple agent
-|   |- sotre one or more codes
-|   |- store one or more argents 
-|   |- combine web 
+|   |(-) sotre one or more codes
+|   |(-) store one or more argents 
+|   |(-) combine web 
 
-#Index.html
+## index.html (WEB code)
 |- agent
-|   |- setRGB(r,g,b):robotの色の変更を行う。
-|   |- setLED(x): robotのLEDの状態を変更する。
-|   |- speak('msg'):で、robotの下にTextを出力できるようにする。
+|   |(-) setRGB(r,g,b): change the robot color
+|   |(-) setLED(x): change the robot LED status
+|   |(-) speak('msg'): output text to the robot
 |- UI
-|   |- 現状だと、コードが見づらいので、ディレクトリ風に選択できるようにする。
-|   |- 
+|   |(-) make the code selection more readable
 
 
 
-# Shica - Web Test Framework
+## Shica - Web Test Framework
 web shica can use integer value
 
 TODO
@@ -59,9 +46,6 @@ NOT YET
 - numbers
 - user-defined function
 - arrays
-
-# WASM Compile
-CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 
 
 
@@ -91,7 +75,7 @@ s06: var 2
 
 # MSGC
 
-# compile
+## compile
     step 0
         define gc_markFunction_t    gc_markFunction    = markObject;
         define gc_collectFunction_t gc_collectFunction = collectObjects;
@@ -103,7 +87,7 @@ s06: var 2
     step 2
 
 
-# execute
+## execute
     step 1
         define gc_markFunction_t gc_markFunction       = markIntarray;
         define gc_collectFunction_t gc_collectFunction = collectIntArray;
@@ -116,4 +100,7 @@ s06: var 2
 
 # web server
 http://localhost:8080
+
+# WASM Compile
+CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 
