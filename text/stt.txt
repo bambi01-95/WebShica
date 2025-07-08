@@ -1,0 +1,13 @@
+stt s1(){
+    eventEH(n){
+        print(100);
+        stt s2;
+    }
+}
+
+stt s2(){
+    eventEH(n){
+        print(200);
+        stt s1;
+    }
+}

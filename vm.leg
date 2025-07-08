@@ -1,5 +1,9 @@
 %{
 
+#ifndef DEBUG //for executer
+#define DEBUG 1
+#endif
+
 /*
 GLOBAL VARIABLES: should start with a capital letter
 Struct Name: should start with a capital letter
@@ -131,7 +135,7 @@ int getchar_from_text() {
     return WebText[WebTextPos++];
 }
 
-#define getchar getchar_from_text
+// #define getchar getchar_from_text
 
 
 
@@ -268,9 +272,9 @@ typedef enum Type {
     /*  8 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
     /* 14 */ Call, Return, Break, Continue,
     /* 18 */ Print, If, Loop, Block,
-	/* 21 */ State, Event,EventH,
+	/* 21 */ Transition, State, Event,EventH,
 	/* AF LEG */
-	/* 24 */ Variables,
+	/* 25 */ Variables,
 }type_t;
 
 
@@ -297,6 +301,7 @@ struct Call 	 { type_t _type; int line; oop function, arguments; };
 struct Return 	 { type_t _type;           oop value; };
 struct Break 	 { type_t _type;           };
 struct Continue	 { type_t _type;           };
+struct Transition{ type_t _type;           oop id; };
 struct Print   	 { type_t _type;           oop arguments; };
 struct If      	 { type_t _type;           oop condition, statement1, statement2; };
 struct Loop   	 { type_t _type;           oop initialization,condition,iteration, statement; };
@@ -332,6 +337,7 @@ union Object {
     struct Return   Return;
     struct Break    Break;
     struct Continue Continue;
+	struct Transition Transition;
     struct Print    Print;
     struct If       If;
     struct Loop    Loop;
@@ -659,6 +665,14 @@ oop newContinue(void)
 {
     return newObject(Continue);
 }
+oop newTransition(oop id)
+{
+	gc_pushRoot((void*)&id);
+	oop node = newObject(Transition);
+	node->Transition.id = id;
+	gc_popRoots(1);
+	return node;
+}
 
 oop newPrint(oop arguments)
 {
@@ -907,6 +921,10 @@ void printlnObject(oop node, int indent)
 	    printf("Continue\n");
 	    break;
 	}
+	case Transition: {
+		printf("Transition %s\n", get(get(node, Transition,id), Symbol,name));
+		break;
+	}
 	case Print: {
 	    printf("Print\n");
 	    printlnObject(get(node, Print,arguments), indent+1);
@@ -1043,6 +1061,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }
 		  		   (t:expr|k:mkFalse) RPAR 
 		  (s:block|s:expr)	  { $$ = newLoop(i, c, t, s) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
+		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
 		| - SEMI				  		  { result = false; }
 		| x:expr 						  { fatal("line %d ERROR: syntax error ';'\n",nlines);}
@@ -1098,7 +1117,6 @@ value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
 	| integer
 	| i:id				{ $$ = newGetVar(i,nlines) }
 	| array
-
 
 array	= LBRACE a:mkArray
 	  ( e:expr			{ Array_append(a, e) }
@@ -1442,6 +1460,7 @@ enum {
 	iPCALL, iUCALL,iSCALL, // call a function
 	iRETURN, // return from a function
 	iCLEAN,//
+	iTRANSITION,
 	iSETSTATE,//NE: Number of events in the state
 	iSETEVENT,//ET: Event type, NP: Number of process
 	iSETPROCESS,
@@ -1675,9 +1694,7 @@ int compile_func_init(){
 
 
 
-#ifndef DEBUG //for executer
-#define DEBUG 0
-#endif
+
 
 #if DEBUG
 #define printOP(OP) printf("%s\n", #OP);
@@ -1707,23 +1724,37 @@ int nAgents = 0; // number of agents
 ent *codes = NULL; // codes for each agent
 int nCodes = 0; // number of codes
 ent execute(ent prog, ent entity, ent global);
-int impleBody(ent code, ent eh, ent gm){
-	ent *threads = eh->EventHandler.threads;
 
+typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
+#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAGINT))
+
+ent retFlags[7] = {
+	MAKE_FLAG(ERROR_F),
+	MAKE_FLAG(NONE_F),
+	MAKE_FLAG(HALT_F),
+	MAKE_FLAG(EOE_F),
+	MAKE_FLAG(EOC_F),
+	MAKE_FLAG(CONTINUE_F),
+	MAKE_FLAG(TRANSITION_F),
+};
+
+ent impleBody(ent code, ent eh, ent gm){
+	ent *threads = eh->EventHandler.threads;
+	ent ret = retFlags[ERROR_F];
 	for(int i=0;i<eh->EventHandler.size; ++i){
 		ent thread = threads[i];
 		if(thread->Thread.inProgress == 1){
-			execute(code,thread, gm);//should be change
+			ret = execute(code,thread, gm);//should be change
 		}else if(thread->Thread.queue->IntQue3.size > 0){
 			thread->Thread.stack = dequeue3(thread);
-			if(thread->Thread.stack == NULL){
-				continue;
-			}else{
-				execute(code, thread, code);//should be change
-			}
+			assert(thread->Thread.stack != NULL);
+			ret = execute(code, thread, gm);//should be change
+		}
+		if(ret == retFlags[TRANSITION_F]){
+			return ret;
 		}
 	}
-	return 1; // return 1 to indicate success
+	return ret; // return 1 to indicate success
 }
 
 
@@ -1739,7 +1770,12 @@ int runPC(ent code){
 				// get event data
 				ent eh = agent->Agent.eventHandlers[i];
 				eventHandlers[eh->EventHandler.EventH](eh);
-				impleBody(code, eh, agent->Agent.stack); // execute the event handler
+				if(impleBody(code, eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+					agent->Agent.isActive = 0;
+					agent->Agent.pc = intArray_pop(agent->Agent.stack);
+					agent->Agent.eventHandlers = NULL;
+					break;
+				}
 			}
 		}
 	}
@@ -1749,16 +1785,7 @@ int runPC(ent code){
 
 
 
-typedef enum { ERROR_F, HALT_F, EOE_F, EOC_F, CONTINUE_F, } retFlag_t;
-#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAGINT))
 
-ent retFlags[5] = {
-	MAKE_FLAG(ERROR_F),
-	MAKE_FLAG(HALT_F),
-	MAKE_FLAG(EOE_F),
-	MAKE_FLAG(EOC_F),
-	MAKE_FLAG(CONTINUE_F),
-};
 			//code, stack , global 
 ent execute(ent prog,ent entity, ent global)
 {
@@ -1922,6 +1949,12 @@ ent execute(ent prog,ent entity, ent global)
 			printf("\n");
 			continue;
 		}
+		case iTRANSITION:{
+			printOP(_iTRANSITION_);
+			int nextStatePos = fetch();
+			intArray_push(global,  nextStatePos+(*pc));//relative position:
+			return retFlags[TRANSITION_F];
+		}
 		case iSETSTATE:{
 			printOP(_iSETSTATE_);
 			assert(entity->kind == Agent);
@@ -2066,8 +2099,10 @@ int nstates = 0;
 oop *transitions = 0; // transitions between states
 int ntransitions = 0;
 
-oop appendS0T1(oop name, int pos,int type)
+void appendS0T1(oop name, int pos,int type)
 {
+	rprintf("this is appendS0T1\n");
+	printf("type: %d\n", type);
 	if(type != 0 && type != 1) {
 		printf("type must be 0 or 1, got %d\n", type);
 		exit(1);
@@ -2075,21 +2110,31 @@ oop appendS0T1(oop name, int pos,int type)
 	oop *lists = type == APSTATE ? states : transitions;
 	int *listSize = type == APSTATE ? &nstates : &ntransitions;
 	for (int i = 0;  i < *listSize;  ++i) {
-		oop state = lists[i];
-		oop stateName = get(state, Pair,a);
+		oop stateName = get(lists[i], Pair,a);
 		if (stateName == name) {
 			printf("state %s already exists\n", get(name, Symbol,name));
-			return state;
+			return;
 		}
 	}
-	lists = realloc(lists, sizeof(oop) * (*listSize + 1));
-	gc_pushRoot((void*)&lists);
+
 	gc_pushRoot((void*)&name);
-	oop newState = newPair(name, newInteger(pos));
-	gc_popRoots(2);
-	lists[*listSize] = newState;
-	(*listSize)++;
-	return newState;
+	switch(type){
+		case APSTATE:{
+			states = realloc(states, sizeof(oop) * (nstates + 1));
+			states[nstates] = newPair(name, newInteger(pos));
+			nstates++;
+			break;
+		}
+		case ATRANSITION:{
+			transitions = realloc(transitions, sizeof(oop) * (ntransitions + 1));
+			transitions[ntransitions] = newPair(name, newInteger(pos));
+			ntransitions++;
+			break;
+		}
+	}
+	gc_popRoots(1);
+	rprintf("end of appendS0T1\n");
+	return;
 }
 
 void setTransPos(ent prog){
@@ -2097,13 +2142,13 @@ void setTransPos(ent prog){
 	for (int i = 0;  i < ntransitions;  ++i) {
 		oop trans = transitions[i];
 		oop transName = get(trans, Pair,a);
-		int transPos = Integer_value(get(trans, Pair,b));
+		int transPos = Integer_value(get(trans, Pair,b));//pos of after emitII(prog, iTRANSITION, 0);
 		for (int j = 0;  j < nstates;  ++j) {
 			oop state = states[j];
 			oop stateName = get(state, Pair,a);
 			if (stateName == transName) {
 				int statePos = Integer_value(get(state, Pair,b));
-				code[transPos] = statePos;
+				code[transPos-1] = statePos - transPos;//relative position
 			}
 		}
 	}
@@ -2113,10 +2158,6 @@ void setTransPos(ent prog){
 /* ==== COMPILEA == */
 
 /* =============== */
-
-#ifndef DEBUG //compiler
-#definen DEBUG 0
-#endif
 
 #if DEBUG
 #define printTYPE(OP) printf("emit %s\n", #OP)
@@ -2439,6 +2480,14 @@ void emitOn(ent prog,oop vars, oop ast)
 			}
 			return;
 		}
+		case Transition:{
+			printTYPE(_Transition_);
+			oop id = get(ast, Transition,id);
+			emitII(prog, iTRANSITION, 0);
+			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
+			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
+			return;
+		}
 		case State:{
 			printTYPE(_State_);
 			oop id = get(ast, State,id);
@@ -2636,6 +2685,12 @@ simple:
 				int pos = code->IntArray.elements[++i];
 				int nArgs = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, pos, (i+1)+pos, nArgs);
+				break;
+			}
+			case iTRANSITION: {
+				inst = "TRANSITION";
+				int pos = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%d)\n", i-1, inst, pos,(i+1)+pos);
 				break;
 			}
 			case iSETSTATE: {
@@ -2954,19 +3009,23 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 			gc_mark(sym); // mark the symbol
 		}
 	}
-	for(int i = 0;  i < nstates;  ++i)
-	{
-		oop state = states[i];
-		if (state == NULL) continue; // skip null states
-		gc_mark(state); //PAIR
+	if(nstates != 0){
+		gc_markOnly(states); // mark the states array itself
+		for(int i = 0;  i < nstates;  ++i)
+		{
+			oop state = states[i];
+			if (state == NULL) continue; // skip null states
+			gc_mark(state); //PAIR
+		}
 	}
-	oop *transitions = 0; // transitions between states
-	int ntransitions = 0;
-	for(int i = 0;  i < ntransitions;  ++i)
-	{
-		oop trans = transitions[i];
-		if(trans == NULL) continue; // skip null transitions
-		gc_mark(trans);//PAIR
+	if(ntransitions != 0){
+		gc_markOnly(transitions); // mark the transitions array itself
+		for(int i = 0;  i < ntransitions;  ++i)
+		{
+			oop trans = transitions[i];
+			if(trans == NULL) continue; // skip null transitions
+			gc_mark(trans);//PAIR
+		}
 	}
 	// collect ir code
 	if(nIrCode != 0){
@@ -3136,6 +3195,7 @@ int runWeb(){
 	}
 	return 1; // return 1 to indicate success
 }
+
 int finalizeRunWeb(){
 	gc_popRoots(2); // pop the webagent from the root
 	gc_collect(); // collect garbage

@@ -134,6 +134,7 @@ Module.onRuntimeInitialized = () => {
     // 新しいロボット要素を取得して配列に追加
     const newRobotElement = document.getElementById(newRobotId);
     robots.push(newRobotElement);
+    robotPositions.push({ x: 0, y: 0 }); // 新しいロボットの初期位置を設定
 
     // 新しいエディタのHTMLを作成
     const newEditorHTML = `
@@ -236,14 +237,14 @@ Module.onRuntimeInitialized = () => {
     runBtn.classList.add("running");
     outputResult.textContent = "Execution running...";
 
-    runInterval = setInterval(() => {
-      const result = Module.ccall("runWeb", "number", [], []);
+    let startTime = Date.now();
 
-      // Update Timer
-      const now = Date.now();
-      console.log("now", now);
-      Module.setValue(timerPtr, now, "i32");
+    runInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      Module.setValue(timerPtr, elapsed, "i32");
       const timerVal = Module.getValue(timerPtr, "i32");
+
+      const result = Module.ccall("runWeb", "number", [], []);
 
       // Read AgentData
       // ROBOT POSITION
@@ -252,6 +253,7 @@ Module.onRuntimeInitialized = () => {
       // ROBOT VELOCITY
       const vx = Module.getValue(agentPtr + 8, "i32");
       const vy = Module.getValue(agentPtr + 12, "i32");
+      console.log("vx", vx, "vy", vy);
       // ROBOT CLICK
       const isClick = Module.getValue(agentPtr + 16, "i32");
       const distance = Module.getValue(agentPtr + 20, "i32");
@@ -279,12 +281,47 @@ Module.onRuntimeInitialized = () => {
       robots.forEach((robotElement, index) => {
         const robotX = x + vx + index * 60; // 各ロボットを少しずつずらして表示
         const robotY = y + vy + index * 60;
+
+        // ロボットの位置を更新
+        robotPositions[index] = { x: robotX, y: robotY };
+
+        // クリックされたロボットを強調表示
+        if (index === clickedRobotIndex) {
+          robotElement.style.boxShadow = `0 0 20px ${robotColors[index]}, 0 0 40px ${robotColors[index]}`;
+          robotElement.style.transform = `translate(${robotX}px, ${robotY}px) translate(-50%, -50%) scale(1.2)`;
+        } else {
+          robotElement.style.boxShadow = `0 4px 15px ${robotColors[index]}50`;
+          robotElement.style.transform = `translate(${robotX}px, ${robotY}px) translate(-50%, -50%) scale(1.0)`;
+        }
+
         infoDisplay.textContent = `Robots: ${robots.length} active`;
-        robotElement.style.transform = `translate(${robotX}px, ${robotY}px) translate(-50%, -50%)`;
       });
+
+      // クリックされたロボットを検出
+      clickedRobotIndex = -1;
+      if (clickStatus) {
+        const robotSize = 50; // ロボットのサイズ
+        const clickRadius = robotSize / 2; // クリック判定の半径
+
+        for (let i = 0; i < robotPositions.length; i++) {
+          const robotPos = robotPositions[i];
+          const distance = Math.sqrt(
+            Math.pow(clickX - robotPos.x, 2) + Math.pow(clickY - robotPos.y, 2)
+          );
+
+          if (distance <= clickRadius) {
+            clickedRobotIndex = i;
+            break;
+          }
+        }
+      }
 
       clickInfoDisplay.textContent = `Click: ${
         clickStatus ? `Active at (${clickX}, ${clickY})` : "Inactive"
+      }${
+        clickedRobotIndex >= 0
+          ? ` - Robot ${clickedRobotIndex + 1} clicked!`
+          : ""
       }`;
       timerInfoDisplay.textContent = `Timer: ${timerVal}`;
     }, 50);
@@ -325,4 +362,5 @@ map.addEventListener("mousedown", (e) => {
 
 window.addEventListener("mouseup", () => {
   Module.setValue(clickPtr + 8, 0, "i32"); // inactive
+  clickedRobotIndex = -1; // クリック状態をリセット
 });

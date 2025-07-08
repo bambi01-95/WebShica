@@ -60,24 +60,9 @@ NOT YET
 - user-defined function
 - arrays
 
-# WASM
-	emcc handler.c \
-     -o handler.js \
-     -s WASM=1 \
-     -s EXPORTED_RUNTIME_METHODS="['cwrap', 'HEAP32', 'getValue', 'setValue']"\
-     -s EXPORTED_FUNCTIONS="['_initWebTimerPtr', '_setWebTimer', '_getWebTimerPtr', '_initWebClickSTTPtr', '_getWebClickSTTPtr', '_initALLAgentDataPtr', '_getAllAgentDataPtr', '_getAllAgentDataSizePtr' ,'_testAllEventHandlers']" 
+# WASM Compile
+CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 
-	emcc vm.c 
-    -o vm.js 
-    -s MODULARIZE=1 
-    -s EXPORT_NAME="'vm'" 
-    -s "EXPORTED_FUNCTIONS=['_store', '_web_compile', '_web_compile_size',          '_web_vm_execute', '_web_vm_execute_size', '_malloc', '_free']" 
-    -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'allocateUTF8', 'HEAP32']" 
-    -s ENVIRONMENT='web' -O0
-
-    emcc vm.c \
-    -o vm.js \
-    
 
 
 # vms
@@ -101,7 +86,6 @@ s03: rpc x
 s04: rbp s00
 s05: var 1
 s06: var 2
-
 
 
 
