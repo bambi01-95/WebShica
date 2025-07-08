@@ -5355,6 +5355,13 @@ case Block   :
 	}
 	return;
 }
+case Transition:
+{
+	if(obj->Transition.id){
+		gc_mark(obj->Transition.id);
+	}
+	return;
+}
 case State   :
 {
 	if (obj->State.id) {
@@ -5675,6 +5682,13 @@ int compileWebCode(const char *code) //<--------------------------------------WE
 #ifndef __EMSCRIPTEN__
 int main(int argc, char **argv)
 {
+	int opt_c = 0;
+
+	for(int i = 0; i < argc; i++){
+		if(strcmp(argv[i], "-c") == 0){
+			opt_c = 1;
+		}
+	}
 #if TAGFLT
     assert(sizeof(double) == sizeof(intptr_t));
 #endif
@@ -5704,8 +5718,10 @@ int main(int argc, char **argv)
 	nroots = 0; // reset the number of roots
 	gc_collect();
 
-	printf("end of compilation\n");
-	return 0;
+	if(opt_c == 1){
+		printf("end of compilation\n");
+		return 0;
+	}
 
 
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
