@@ -2,6 +2,30 @@
 
 ## WEB Shica TO DO LIST
 
+## Web shica page directory
+
+```text
+|- components
+|  |-code: for instruction page componets
+|  |-kunii: for inprimentation page of sub-c/im-c
+|  |-shikada: for imprimentation page of shica
+|
+|- app
+|  |- kunii: instructino and introduction of your reseach
+|  |  |- sub-C: sub-c implemantation page
+|  |  |- im-C: im-c implemetation page
+|  |
+|  |- shikada: instructtion and introduction of my research
+|  |  |- web-shica: web-shica implemetation
+|  |  |- shica-compiler: compiler of shica that works in C enviroment
+|
+|- public
+|  |- shicada: static page, or plane code (html, js)
+|  |- kunii:  static page, or plane code (html, js)
+| n  
+      ```
+
+
 ### vm.leg (C code)
 
 ```text
@@ -39,6 +63,10 @@
 |   |(-) sotre one or more codes
 |   |(-) store one or more argents
 |   |(-) combine web
+|
+|-add C interface generator
+|   |(-) make interface generator that works web 
+|   |(-) 
 ```
 
 ### index.html (WEB code)
