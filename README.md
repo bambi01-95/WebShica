@@ -7,8 +7,8 @@
 ```text
 |-add more web event handler and function
 |   |(o) change the speed
-|   |(-) detect touch
 |   |(-) change the color               <- in progress
+|   |(-) detect touch
 |   |(-) detect collision
 |   |(-) trigger web timer
 |   |(-) change the rober color
@@ -18,19 +18,22 @@
 |   |(o) entry()event function 
 |   |(-) exit() event function <- in progress
 |   |(-) global variable
+|   |(-) type checking 
+|   |  |> push function into function list.
+|   |  |> When the function is called for the first time, copile it by its argument type.
+|   |  |> This process determines the argument types and the return type.
+|   |  |> Afterwards, the behavior is determined based on the argument types and the return type.
+|   |     |(-) String value
+|   |     |(-) Float value
 |   |(-) event condition
 |   |(-) event definition
 |   |(-) Pointcut
-|   |(-) Event variable
-|   |(-) Concurrent grammer/feature?
-|   |(-) Distributed grammer/feature?
-|   |(-) type checking
-|   |     | Move to compiling function after compiling all state.
-|   |     | Store argument and return value at function call.
-|   |     | How about state ... 
-|   |     |(-) String value
-|   |     |(-) Float value
-|   |(-) Apply real device (micro controller)
+|   |[-] Add more feature 
+|         |(-) Event variable
+|         |(-) State parameter/argument
+|         |(-) Concurrent grammer/feature?
+|         |(-) Distributed grammer/feature?
+|         |(-) Apply real device (micro controller)
 |
 |-run multiple agent
 |   |(-) sotre one or more codes
@@ -52,6 +55,35 @@
 ## MECHA. MEMO
 
 ### vms
+
+```text
++-----------------+
+| EventCondition A
++-----------------+
+| EventAction A
++-----------------+
+| EventCondition B
++-----------------+
+| EventAction B
++-----------------+
+
++-----------------+
+| Entry() Action
++-----------------+
+| State Definition
++-----------------+
+| Exit() Action
++-----------------+
+
++-----------------+
+| Function
++-----------------+
+
++-----------------+
+| Function
++-----------------+
+
+```
 
 ```text
 S [number of Eventhandler]
