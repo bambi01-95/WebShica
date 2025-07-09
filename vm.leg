@@ -2050,11 +2050,27 @@ ent execute(ent prog,ent entity, ent global)
 		}
 		case iEOE:{
 			printOP(_iEOE_);
-			assert(entity->kind == Thread);
-			entity->Thread.inProgress = 0; // set the thread to not in progress
-			entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
-			entity->Thread.rbp = 0;
-			return retFlags[EOE_F]; // return EOE_F to indicate end of execution
+			int nVariables = fetch();
+			switch(entity->kind){
+				case Thread:{
+					entity->Thread.inProgress = 0; // set the thread to not in progress
+					entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
+					entity->Thread.rbp = 0;
+					return retFlags[EOE_F]; // return EOE_F to indicate end of execution
+				}
+				case Agent:{
+					entity->Agent.isActive = 0; // set the agent to not active
+					for(int i=0; i<nVariables; i++){
+						pop();
+					}
+					continue;
+				}
+				default:{
+					fatal("execute: unknown entity kind %d", entity->kind);
+					return NULL; // should never reach here
+				}
+			}
+			continue;
 		}
 	    case iHALT:{
 			printOP(_iHALT\n_);
@@ -2637,7 +2653,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			// emitOn(prog, vars, params); // compile parameters
 
 			emitOn(prog, eventLocalVariables, block); // compile block
-			emitI(prog, iEOE); // emit EOE instruction to mark the end of the event handler
+			emitII(prog, iEOE, eventLocalVariables->Variables.size); // emit EOE instruction to mark the end of the event handler
 
 			prog->IntArray.elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
 			GC_POP(eventLocalVariables); // pop local variables from GC roots
@@ -2681,11 +2697,16 @@ void printCode(ent code){
 			case iMOD:  inst = "MOD"; goto simple;
 			case iJUDGE:inst = "JUDGE"; goto simple;
 			case iEOC:  inst = "EOC"; goto simple;
-			case iEOE:  inst = "EOE"; goto simple;
 			case iRETURN: inst = "RETURN"; goto simple;
 simple:
 				printf("%03d: %-10s\n", i, inst);
 				break;
+			case iEOE:{
+				inst = "EOE";
+				int nVariables = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nVariables);
+				break;
+			}
 			case iGETVAR:
 				inst = "GETVAR";
 				int varIndex = code->IntArray.elements[++i];

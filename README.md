@@ -15,8 +15,8 @@
 |
 |-add original shica feature
 |   |(o) state transition
-|   |(-) entry()event function <- in progress
-|   |(-) exit() event function 
+|   |(o) entry()event function 
+|   |(-) exit() event function <- in progress
 |   |(-) global variable
 |   |(-) event condition
 |   |(-) event definition
