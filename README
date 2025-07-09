@@ -5,18 +5,25 @@ WEB Shica TO DO LIST
 ## vm.leg (C code)
 |-add more web event handler and function
 |   |(o) change the speed
-|   |(-) ditect touch
-|   |(-) change the color
-|   |(-) ditect collision
+|   |(-) detect touch
+|   |(-) change the color               <- in progress
+|   |(-) detect collision
 |   |(-) trigger web timer
 |   |(-) change the rober color
 |
 |-add original shica feature
 |   |(o) state transition
-|   |(-) entry(), exit() event function
+|   |(-) entry(), exit() event function <- in progress
+|   |(-) global variable
 |   |(-) event condition
 |   |(-) event definition
-|   |(-) AOP
+|   |(-) Pointcut
+|   |(-) Event variable
+|   |(-) Concurrent grammer/feature?
+|   |(-) Distributed grammer/feature?
+|   |(-) String value
+|   |(-) Float value
+|   |(-) Real device 
 |
 |-run multiple agent
 |   |(-) sotre one or more codes
@@ -25,7 +32,7 @@ WEB Shica TO DO LIST
 
 ## index.html (WEB code)
 |- agent
-|   |(-) setRGB(r,g,b): change the robot color
+|   |(-) setRGB(r,g,b): change the robot color <- in progress
 |   |(-) setLED(x): change the robot LED status
 |   |(-) speak('msg'): output text to the robot
 |- UI
