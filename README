@@ -1,8 +1,9 @@
-Shica -W-
+# Shica -Web-
 
-WEB Shica TO DO LIST
+## WEB Shica TO DO LIST
 
-## vm.leg (C code)
+### vm.leg (C code)
+
 |-add more web event handler and function
 |   |(o) change the speed
 |   |(-) detect touch
@@ -23,14 +24,15 @@ WEB Shica TO DO LIST
 |   |(-) Distributed grammer/feature?
 |   |(-) String value
 |   |(-) Float value
-|   |(-) Real device 
+|   |(-) Apply real device (micro controller)
 |
 |-run multiple agent
 |   |(-) sotre one or more codes
-|   |(-) store one or more argents 
-|   |(-) combine web 
+|   |(-) store one or more argents
+|   |(-) combine web
 
-## index.html (WEB code)
+### index.html (WEB code)
+
 |- agent
 |   |(-) setRGB(r,g,b): change the robot color <- in progress
 |   |(-) setLED(x): change the robot LED status
@@ -38,25 +40,10 @@ WEB Shica TO DO LIST
 |- UI
 |   |(-) make the code selection more readable
 
+## MECHA. MEMO
 
+### vms
 
-## Shica - Web Test Framework
-web shica can use integer value
-
-TODO
-- arguments condtions
-- multiple event handlers
-
-
-NOT YET
-- strings
-- numbers
-- user-defined function
-- arrays
-
-
-
-# vms
 S [number of Eventhandler]
     E [libray number] [clone number + G-L bool + number of process]
         P [pPos] [cPos]
@@ -65,8 +52,7 @@ S [number of Eventhandler]
         P [pPos] [cPos]
         P [pPos] [cPos]
 
-
-# user-define function call
+### user-define function call
 
 func(1,2)
 
@@ -78,11 +64,12 @@ s04: rbp s00
 s05: var 1
 s06: var 2
 
+### MSGC
 
+GC should be change at swtiching compile and executor
 
-# MSGC
+### compile
 
-## compile
     step 0
         define gc_markFunction_t    gc_markFunction    = markObject;
         define gc_collectFunction_t gc_collectFunction = collectObjects;
@@ -93,8 +80,8 @@ s06: var 2
         call markObject(webSize)
     step 2
 
+### execute
 
-## execute
     step 1
         define gc_markFunction_t gc_markFunction       = markIntarray;
         define gc_collectFunction_t gc_collectFunction = collectIntArray;
@@ -104,10 +91,11 @@ s06: var 2
     step 2
         call gc_collect()
 
+## web server
 
-# web server
-http://localhost:8080
+`http://localhost:8080`
 
-# WASM Compile
+## WASM Compile
+
 CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 
