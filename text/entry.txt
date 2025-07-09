@@ -1,0 +1,21 @@
+stt s1(){
+    entryEH(){
+        print(200);
+    }
+    clickEH(x,y){
+        print(x,y);
+        stt s2;
+    }
+}
+
+stt s2(){
+    entryEH(){
+        print(200);
+        a = 10;
+    }
+    clickEH(x,y){
+        print(x,y);
+        a = 10;
+        stt s1;
+    }
+}

@@ -15,7 +15,8 @@
 |
 |-add original shica feature
 |   |(o) state transition
-|   |(-) entry(), exit() event function <- in progress
+|   |(-) entry()event function <- in progress
+|   |(-) exit() event function 
 |   |(-) global variable
 |   |(-) event condition
 |   |(-) event definition
@@ -23,8 +24,12 @@
 |   |(-) Event variable
 |   |(-) Concurrent grammer/feature?
 |   |(-) Distributed grammer/feature?
-|   |(-) String value
-|   |(-) Float value
+|   |(-) type checking
+|   |     | Move to compiling function after compiling all state.
+|   |     | Store argument and return value at function call.
+|   |     | How about state ... 
+|   |     |(-) String value
+|   |     |(-) Float value
 |   |(-) Apply real device (micro controller)
 |
 |-run multiple agent
@@ -71,6 +76,11 @@ s04: rbp s00
 s05: var 1
 s06: var 2
 ```
+
+### entry / exit event handler
+
+append entry() to first elements of event block.
+And also, append exit() to first or second elements of event block.  
 
 ### MSGC
 
