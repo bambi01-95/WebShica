@@ -1,0 +1,14 @@
+stt s1(){
+    eventEH(){
+        stt s2;
+    }
+    exitEH(){
+        print(11);
+    }
+}
+
+stt s2(){
+    entryEH(){
+        print(123);
+    }
+}

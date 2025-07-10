@@ -41,6 +41,7 @@
 |   |(o) state transition
 |   |(o) entry()event function 
 |   |(-) exit() event function <- in progress
+|   |  |- testing 
 |   |(-) global variable
 |   |(-) type checking 
 |   |  |> push function into function list.
