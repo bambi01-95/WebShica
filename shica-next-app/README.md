@@ -36,6 +36,7 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ## Dockerfile
-`docker-compose up -d --build` or              
-`docker build -t deer-project .` or
-`docker-compose up --build`
+docker build -t shica-next-app .
+docker run -d --name shica-next-container -p 3000:3000 shica-next-app
+docker logs shica-next-container
+docker-compose up --build
