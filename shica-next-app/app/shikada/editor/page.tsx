@@ -2,6 +2,9 @@
 import { CodeEditor } from "@/component/code/CodeEditor";
 import { useState } from "react";
 import FileLists from "@/component/code/FileLists";
+import Console from "@/component/code/Console";
+import Terminal from "@/component/code/Terminal";
+
 
 const EditorPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
@@ -79,6 +82,8 @@ const EditorPage = () => {
                 onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
               />
             </div>
+            <Console/>
+            <Terminal/>
           </>
         )}
       </div>
