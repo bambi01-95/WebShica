@@ -121,7 +121,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
             className="w-full h-96 p-4 bg-gray-900 text-gray-100 font-mono text-sm leading-6 resize-none outline-none overflow-y-auto"
-            placeholder="コードを入力してください..."
+            placeholder="Write your code here..."
             spellCheck={false}
             style={{
               minHeight: "400px",
@@ -153,8 +153,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       {/* Status Bar */}
       <div className="bg-gray-800 px-4 py-2 border-t border-gray-700 flex justify-between items-center text-xs text-gray-400">
         <div className="flex space-x-4">
-          <span>行数: {lineCount}</span>
-          <span>文字数: {code.length}</span>
+          <span>Lines: {lineCount}</span>
+          <span>Chars: {code.length}</span>
         </div>
         <div className="flex space-x-2">
           <span>UTF-8</span>
