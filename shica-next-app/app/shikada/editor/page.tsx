@@ -5,7 +5,6 @@ import FileLists from "@/component/code/FileLists";
 import Console from "@/component/code/Console";
 import Terminal from "@/component/code/Terminal";
 
-
 const EditorPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
     { filename: "test0.shica", code: "" },
@@ -14,13 +13,18 @@ const EditorPage = () => {
 
   // 配列に要素を追加する例
   const addItem = (newItem: string = "") => {
-    setCode((prev) => [...prev, { filename: `test${code.length}.shica`, code: newItem }]);
+    setCode((prev) => [
+      ...prev,
+      { filename: `test${code.length}.shica`, code: newItem },
+    ]);
     setSelectedIndex(code.length); // 新しく追加したファイルを選択
   };
 
   // インデックスで要素を更新する例
   const updateItem = (index: number, newValue: string) => {
-    setCode((prev) => prev.map((item, i) => (i === index ? { ...item, code: newValue } : item)));
+    setCode((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
+    );
   };
 
   // 条件で要素を削除する例
@@ -71,19 +75,22 @@ const EditorPage = () => {
                 fontWeight: "500",
               }}
             >
-                {code[selectedIndex].filename}
+              {code[selectedIndex].filename}
             </div>
 
             {/* エディタ */}
             <div style={{ flex: 1 }}>
               <CodeEditor
+                key={code[selectedIndex].filename}
                 filename={code[selectedIndex].filename}
-                initialCode={code[selectedIndex].code   }
+                initialCode={code[selectedIndex].code}
                 onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
               />
             </div>
-            <Console/>
-            <Terminal/>
+            <div style={{ display: "flex", flexDirection: "row" }}>
+              <Console />
+              <Terminal />
+            </div>
           </>
         )}
       </div>
