@@ -40,8 +40,8 @@
 |-add original shica feature
 |   |(o) state transition
 |   |(o) entry()event function 
-|   |(-) exit() event function <- in progress
-|   |  |- testing 
+|   |(-) exit() event function 
+|   |  |- testing              <- in progress
 |   |(-) global variable
 |   |(-) type checking 
 |   |  |> push function into function list.
