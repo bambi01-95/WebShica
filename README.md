@@ -4,7 +4,7 @@
 
 ## Web shica page directory
 
-```text
+````text
 |- components
 |  |-code: for instruction page componets
 |  |-kunii: for inprimentation page of sub-c/im-c
@@ -22,7 +22,7 @@
 |- public
 |  |- shicada: static page, or plane code (html, js)
 |  |- kunii:  static page, or plane code (html, js)
-| n  
+| n
       ```
 
 
@@ -39,11 +39,10 @@
 |
 |-add original shica feature
 |   |(o) state transition
-|   |(o) entry()event function 
-|   |(-) exit() event function 
-|   |  |- testing              <- in progress
-|   |(-) global variable
-|   |(-) type checking 
+|   |(o) entry()event function
+|   |(o) exit() event function
+|   |(-) global variable               <- in progress
+|   |(-) type checking
 |   |  |> push function into function list.
 |   |  |> When the function is called for the first time, copile it by its argument type.
 |   |  |> This process determines the argument types and the return type.
@@ -53,7 +52,7 @@
 |   |(-) event condition
 |   |(-) event definition
 |   |(-) Pointcut
-|   |[-] Add more feature 
+|   |[-] Add more feature
 |         |(-) Event variable
 |         |(-) State parameter/argument
 |         |(-) Concurrent grammer/feature?
@@ -66,9 +65,9 @@
 |   |(-) combine web
 |
 |-add C interface generator
-|   |(-) make interface generator that works web 
-|   |(-) 
-```
+|   |(-) make interface generator that works web
+|   |(-)
+````
 
 ### index.html (WEB code)
 
@@ -141,7 +140,7 @@ s06: var 2
 ### entry / exit event handler
 
 append entry() to first elements of event block.
-And also, append exit() to first or second elements of event block.  
+And also, append exit() to first or second elements of event block.
 
 ### MSGC
 
