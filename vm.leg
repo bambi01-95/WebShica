@@ -1,7 +1,7 @@
 %{
 
 #ifndef DEBUG //for executer
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 // #define getchar getchar_from_text
@@ -802,13 +802,11 @@ void Event_Block_append(oop b, oop e)
 									ss[j + 1] = ss[j];
 								}
 								ss[i + 1] = e; // insert e at position i + 1
+								isInserted = 1;
 							}
-							isInserted = 1;
 							break;
 						}
 						default:{
-							ss[sz] = e;
-							isInserted = 1;
 							break;
 						}
 					}
@@ -827,6 +825,15 @@ void Event_Block_append(oop b, oop e)
 	}
 	get(b, Block,size) = sz + 1;
     get(b, Block,statements) = ss;
+#if DEBUG
+	for(int i=0; i<sz+1; i++){
+		if(ss[i] == NULL){
+			fatal("line %d ERROR: EVENT_BLOCK_APPEND()\n- elements include NULL pointer\n- contact the developer\n", __LINE__);
+			exit(1);
+		}
+	}
+#endif
+
 
 	gc_popRoots(2);
 }
@@ -2605,23 +2612,31 @@ void emitOn(ent prog,oop vars, oop ast)
 			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
+				dprintf("DEBUG: %s\n", devmsg);
+				if(eventList[i] == NULL)fatal("line %d ERROR: %s\n", __LINE__, devmsg);
 				if((get(eventList[i], Event,id) == entryEH) || (get(eventList[i], Event,id) == exitEH)){
-					printf("entryEH or exitEH\n");
+					dprintf("entryEH or exitEH\n");
 					elements[nElements++] = 0; // collect empty events
 					continue;
 				}
 				if(getType(eventList[i])!=Event){
+					fatal("line %d ERROR: %s\n", __LINE__, devmsg);
 					elements[nElements++] = 0; // collect empty events
 				}
 				else if(get(eventList[i], Event,id) != preid) {
+					dprintf("new event\n");
 					nEventHandlers++;
 					preid = get(eventList[i], Event,id);
 					elements[nElements]=1; // collect unique events
 				}else if(get(eventList[i], Event,id) == preid){
+					dprintf("same event\n");
 					elements[nElements]++;
 				}
+				dprintf("eventList[%d]: %s\n", i, get(eventList[i], Event,id)->Symbol.name);
 				emitOn(prog, vars, eventList[i]); // compile each event
 			}
+			dprintf("Finished collecting events\n");
+
 			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
 			// state initialization
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states

@@ -11,4 +11,7 @@ stt s2(){
     entryEH(){
         print(123);
     }
+    timerEH(n){
+        print(n);
+    }
 }
