@@ -32,6 +32,17 @@ body {
   padding: 20px;
 }
 
+.page-list-component {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: fadeInUp 0.8s ease-out;
+}
+
 .title-component {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
