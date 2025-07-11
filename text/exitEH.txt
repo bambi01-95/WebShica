@@ -1,5 +1,5 @@
 stt s1(){
-    eventEH(){
+    timerEH(n){
         stt s2;
     }
     exitEH(){
