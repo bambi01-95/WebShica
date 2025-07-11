@@ -52,7 +52,7 @@ const pages: PageItem[] = [
 
 export default function Home() {
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto flex flex-col gap-10">
       <TitleComponent title="Programming System Laboratory" subtitle="Supivisor: Ian Piumarta" />
       <DescriptionComponent title="Programming System Laboratory" >
         <strong>Programming System Laboratory</strong> is working on Electorical WorkShop(EWS), 4th floor north of building.

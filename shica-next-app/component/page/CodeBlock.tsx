@@ -15,7 +15,7 @@ export const CodeBlock = ({ filename, children, language = 'zen' }: { filename: 
   
     return (
       <div className="code-block-component">
-        <div className="code-block-header">{filename}</div>
+        <div className="code-white-header">{filename}</div>
         <button 
           className="copy-button"
           onClick={copyCode}
@@ -23,7 +23,7 @@ export const CodeBlock = ({ filename, children, language = 'zen' }: { filename: 
             background: copied ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 255, 255, 0.1)'
           }}
         >
-          {copied ? 'コピー完了!' : 'コピー'}
+          {copied ? 'Copied!' : 'Copy'}
         </button>
         <div className="code-block-content">
           <pre>{children}</pre>
