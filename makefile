@@ -1,4 +1,4 @@
-PORT=8080
+PORT=8000
 # コンパイラ
 CC = emcc
 
@@ -31,13 +31,18 @@ build:
 		echo "Port $(PORT) is free."; \
 	fi
 	@echo "Starting server on port $(PORT)..."
-	@python3 -m http.server $(PORT)
+	@nohup python3 -m http.server $(PORT) >/dev/null 2>&1 &
 
-
+stop:
+	@echo "Checking if port $(PORT) is in use..."
+	@PID=$$(lsof -t -i:$(PORT)); \
+	if [ -n "$$PID" ]; then \
+		echo "Stopping server (PID: $$PID)..."; \
+		kill -9 $$PID; \
+	else \
+		echo "No server is running on port $(PORT)."; \
+	fi
 # Makefile for building vm.c into vm.js using Emscripten
-
-
-
 
 clean:
 	rm -f vm.c vm vm.js vm.wasm 

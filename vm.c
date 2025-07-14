@@ -5776,18 +5776,29 @@ int memory_init()
 	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
 	return 1; // return 1 to indicate success
 }
+
 int compile_init()
 {
+	printf("compile_init\n");
     nil   = gc_beAtomic(newObject(Undefined));	gc_pushRoot(nil);
     false = newInteger(0);			gc_pushRoot(false);
     true  = newInteger(1);			gc_pushRoot(true);
+	symbols = NULL;
+	nsymbols = 0;
+	states = NULL;
+	nstates = 0;
+	transitions = NULL;
+	ntransitions = 0;
+	IrCodeList = NULL;
+	nIrCode = 0;
 
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
-	
+	printf("compile_event_init\n");
 	compile_event_init(); // initialize the event system
+	printf("compile_func_init\n");
 	compile_func_init(); // initialize the standard functions
-
+	printf("compile_init done\n");
 	return 1;
 }
 
@@ -5803,20 +5814,19 @@ int compile_finalize()
 
 int compileWebCode(const char *code) //<--------------------------------------WEB_CONNECTION
 {
+	printf("compileWebCode\n");
 
 	nroots = 0; // reset the number of roots
 	gc_pushRoot((void*)&webcode); // push webcode to the root
 	gc_pushRoot((void*)&webagent); // push webagent to the root
-
 	compile_init(); // initialize the compiler
-
 	store(code); // store the code to the memory
-
+	printf("store code done\n");
 	rprintf("Compiling code:\n");
 	printf("Code length: %d\n", (int)strlen(WebText));
 	printf("Code:\n%s\n", WebText);
 	webcode = compile();
-
+	printf("compile done\n");
 	// print bytecode 
 	rprintf("Print IR code:\n");
 	printCode(webcode);
