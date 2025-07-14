@@ -4,7 +4,7 @@
 
 ## Web shica page directory
 
-````text
+```text
 |- components
 |  |-code: for instruction page componets
 |  |-kunii: for inprimentation page of sub-c/im-c
@@ -25,17 +25,15 @@
 | 
 ```
 
-
 ### vm.leg (C code)
 
-
 -[ ] add more web event handler and function
-   - [x] change the speed
-   - [ ] change the color               <- in progress
-   - [ ] detect touch
-   - [ ] detect collision
-   - [ ] trigger web timer
-   - [ ] change the rober color
+ - [x] change the speed
+ - [ ] change the color               <- in progress
+ - [ ] detect touch
+ - [ ] detect collision
+ - [ ] trigger web timer
+ - [ ] change the rober color
 
 -add original shica feature
    - [x] state transition
