@@ -22,8 +22,8 @@
 |- public
 |  |- shicada: static page, or plane code (html, js)
 |  |- kunii:  static page, or plane code (html, js)
-| n
-      ```
+| 
+ ```
 
 
 ### vm.leg (C code)
