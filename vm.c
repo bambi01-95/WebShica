@@ -8,10 +8,10 @@
 
 
 #ifndef DEBUG //for executer
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
-// #define getchar getchar_from_text
+#define getchar getchar_from_text
 
 /*
 GLOBAL VARIABLES: should start with a capital letter
@@ -3978,7 +3978,6 @@ char *opnames[] = {
 // Event Handlers VM
 
 int event_handler(ent eh){
-	stop();
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		ent thread = eh->EventHandler.threads[0];
 		int val[1] = {0}; // initialize value to 0
