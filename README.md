@@ -27,54 +27,56 @@
 
 ### vm.leg (C code)
 
--[ ] add more web event handler and function
- - [x] change the speed
- - [ ] change the color               <- in progress
- - [ ] detect touch
- - [ ] detect collision
- - [ ] trigger web timer
- - [ ] change the rober color
-
--add original shica feature
-   - [x] state transition
-   - [x] entry()event function
-   - [x] exit() event function
-   - [ ] global variable               <- in progress
-   - [ ] type checking
-         - > push function into function list.
-         - > When the function is called for the first time, copile it by its argument type.
-         - > This process determines the argument types and the return type.
-         - > Afterwards, the behavior is determined based on the argument types and the return type.
-          - [ ] String value
-          - [ ] Float value
-   - [ ] event condition
-   - [ ] event definition
-   - [ ] Pointcut
-   - [ ] Add more feature
-         - [ ] Event variable
-         - [ ] State parameter/argument
-         - [ ] Concurrent grammer/feature?
-         - [ ] Distributed grammer/feature?
-         - [ ] Apply real device (micro controller)
-
--run multiple agent
-   - [ ] sotre one or more codes
-   - [ ] store one or more argents
-   - [ ] combine web
-
--add C interface generator
-   - [ ] make interface generator that works web
-
+```text
+|-add more web event handler and function
+|   |(o) change the speed
+|   |(-) change the color               <- in progress
+|   |(-) detect touch
+|   |(-) detect collision
+|   |(-) trigger web timer
+|   |(-) change the rober color
+|
+|-add original shica feature
+|   |(o) state transition
+|   |(o) entry()event function
+|   |(o) exit() event function
+|   |(-) global variable               <- in progress
+|   |(-) type checking
+|   |  |> push function into function list.
+|   |  |> When the function is called for the first time, copile it by its argument type.
+|   |  |> This process determines the argument types and the return type.
+|   |  |> Afterwards, the behavior is determined based on the argument types and the return type.
+|   |     |(-) String value
+|   |     |(-) Float value
+|   |(-) event condition
+|   |(-) event definition
+|   |(-) Pointcut
+|   |[-] Add more feature
+|         |(-) Event variable
+|         |(-) State parameter/argument
+|         |(-) Concurrent grammer/feature?
+|         |(-) Distributed grammer/feature?
+|         |(-) Apply real device (micro controller)
+|
+|-run multiple agent
+|   |(-) sotre one or more codes
+|   |(-) store one or more argents
+|   |(-) combine web
+|
+|-add C interface generator
+|   |(-) make interface generator that works web
+|   |(-)
+````
 
 ### index.html (WEB code)
 
 ```text
 |- agent
-|   |[ ] setRGB(r,g,b): change the robot color <- in progress
-|   |[ ] setLED(x): change the robot LED status
-|   |[ ] speak('msg'): output text to the robot
+|   |(-) setRGB(r,g,b): change the robot color <- in progress
+|   |(-) setLED(x): change the robot LED status
+|   |(-) speak('msg'): output text to the robot
 |- UI
-|   |[ ] make the code selection more readable
+|   |(-) make the code selection more readable
 ```
 
 ## MECHA. MEMO
