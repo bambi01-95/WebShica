@@ -1,7 +1,7 @@
 %{
 
 #ifndef DEBUG //for executer
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #define getchar getchar_from_text
@@ -147,7 +147,6 @@ int getchar_from_text() {
     if ( WebText[WebTextPos] == '\0') {
         return -1; // EOF の代わり
     }
-	printf("getchar_from_text: %c\n", WebText[WebTextPos]);
     return WebText[WebTextPos++];
 }
 
@@ -475,7 +474,6 @@ int nsymbols = 0;
  
 oop intern(char *name)
 {
-	printf("line %d: name: %s\n", __LINE__, name);
     // binary search for existing symbol
     int lo = 0, hi = nsymbols - 1;
     while (lo <= hi) {
@@ -484,7 +482,6 @@ oop intern(char *name)
 	if      (cmp < 0) hi = mid - 1;
 	else if (cmp > 0) lo = mid + 1;
 	else{
-		printf("line %d: symbols[mid]: %s\n", __LINE__, get(symbols[mid], Symbol,name));
 		return symbols[mid];
     }
 }
@@ -772,16 +769,13 @@ void Event_Block_append(oop b, oop e)
     int  sz = get(b, Block,size);
     ss = realloc(ss, sizeof(oop) * (sz + 1));
 
-	printf("e: ");
 	switch(getType(e)){
 		case Event:{
 			int isInserted = 0;
-			printlnObject(get(e, Event, id),1);
 			if(get(e, Event, id) == entryEH){
 				for(int i=sz-1; i>=0; i--){
 					ss[i+1] = ss[i];
 				}
-				printf("insert entryEH\n");
 				ss[0] = e;
 				isInserted = 1;
 			}else if(get(e, Event, id) == exitEH){
@@ -1189,7 +1183,7 @@ mkArray	=      	  			{ $$ = newArray(0) }
 
 integer	= < [0-9]+ > -  		{ $$ = newInteger(atoi(yytext)) }
 
-id	= < alpha alnum* > -		{ printf("line %d: id: %s\n", nlines, yytext); $$ = intern(yytext);  }
+id	= < alpha alnum* > -		{ $$ = intern(yytext);  }
 
 alpha	= [a-zA-Z_]
 alnum	= [a-zA-Z_0-9]
@@ -1664,12 +1658,9 @@ int self_state_handler(ent eh)
 
 int click_handler(ent eh)
 {
-	// printf("click_handler called\n");
 	if (WEB_CLICK_STT[2]==1) {
 		int click[2] = {WEB_CLICK_STT[0], WEB_CLICK_STT[1]};
-		printf("click: %d, %d\n", click[0], click[1]);
 		enqueue3(eh, click); // dequeue the first element
-		printf("click triggerd\n");
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -2217,8 +2208,6 @@ int ntransitions = 0;
 
 void appendS0T1(oop name, int pos,int type)
 {
-	rprintf("this is appendS0T1\n");
-	printf("type: %d\n", type);
 	if(type != 0 && type != 1) {
 		printf("type must be 0 or 1, got %d\n", type);
 		exit(1);
@@ -2249,7 +2238,6 @@ void appendS0T1(oop name, int pos,int type)
 		}
 	}
 	gc_popRoots(1);
-	rprintf("end of appendS0T1\n");
 	return;
 }
 
@@ -2673,16 +2661,13 @@ void emitOn(ent prog,oop vars, oop ast)
 				ehi++; // increment event handler index
 			}
 			emitI(prog, iIMPL);
-			rprintf("HITS\n");
 			// exitEH
 			for(int i = 0; i < get(events, Block, size); i++){
 				if(get(eventList[i], Event,id) == exitEH){ 
-					printf("exitEH\n");
 					emitOn(prog, vars, eventList[i]); // compile exitEH
 				}
 				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
-			printf("HITS2\n");
 			discardVarialbes(vars, variablesSize); // discard variables
 			emitII(prog, iEOS, variablesSize); // emit EOS instruction to mark the end of the state
 			return;
@@ -3429,26 +3414,16 @@ int compile_finalize()
 
 int compileWebCode(const char *code) //<--------------------------------------WEB_CONNECTION
 {
-	printf("compileWebCode\n");
+	rprintf("compileWebCode\n");
 
 
 	compile_init(); // initialize the compiler
 	store(code); // store the code to the memory
-	printf("store code done\n");
 	rprintf("Compiling code:\n");
-	int index = 0;
-	while(WebText[index] != '\0'){
-		printf("%c", WebText[index]);
-		index++;
-	}
 	yyrelease(yyctx);
-	printf("\n");
 	webcode = compile();
-	printf("compile done\n");
 	// print bytecode 
-	rprintf("Print IR code:\n");
 	printCode(webcode);
-
 	compile_finalize(); // finalize the compilation
 	return 1; // return 1 to indicate success
 }
