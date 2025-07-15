@@ -3779,11 +3779,11 @@ int intArray_last(ent a)
 ent newQue3(int nArgs)
 {
 	GC_PUSH(ent, q, newEntity(IntQue3));
+	q->IntQue3.nArgs = nArgs;
+	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
 	for (int i = 0;  i < IntQue3Size;  ++i) {
 		q->IntQue3.que[i] = (int*)gc_beAtomic(malloc(sizeof(int) * nArgs));
 	}
-	q->IntQue3.nArgs = nArgs;
-	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
 	GC_POP(q);
 	return q;
 }
@@ -3863,31 +3863,32 @@ struct EventTable{
 	{click_handler,      event_handler_init, 2, 0},      // CLICK_EH
 };
 
+ent newThread(int aPos, int cPos,int ehIndex){
+	GC_PUSH(ent, thread, newEntity(Thread));  
+	thread->Thread.inProgress = 0; // not started
+	thread->Thread.apos = aPos;
+	thread->Thread.cpos = cPos;
+	thread->Thread.queue = NULL;
+	thread->Thread.stack = NULL;
+	thread->Thread.rbp = 0; // base pointer
+	thread->Thread.pc = 0; // program counter
+	thread->Thread.queue = newQue3(EventTables[ehIndex].nArgs);
+	GC_POP(thread);
+	return thread;
+}
+
 ent newEventHandler(int ehIndex, int nThreads)
 {
 	GC_PUSH(ent, eh, newEntity(EventHandler));
-	eh->EventHandler.threads = NULL;
-	eh->EventHandler.data = NULL;
-	eh->EventHandler.EventH = ehIndex;
-	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTables[ehIndex].nData));
 	eh->EventHandler.size = nThreads;
+	eh->EventHandler.EventH = ehIndex;
+	eh->EventHandler.data = NULL;
+	eh->EventHandler.threads = NULL;
+	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTables[ehIndex].nData));
 	eh->EventHandler.threads = (ent*)gc_beAtomic(malloc(sizeof(ent) * nThreads));
 	GC_POP(eh);
 	return eh;
 };
-
-ent newThread(int aPos, int cPos,int ehIndex){
-	GC_PUSH(ent, thread, newEntity(Thread));
-	thread->Thread.inProgress = 0; // not started
-	thread->Thread.apos = aPos;
-	thread->Thread.cpos = cPos;
-	thread->Thread.queue = newQue3(EventTables[ehIndex].nArgs);
-	thread->Thread.stack = NULL;
-	thread->Thread.rbp = 0; // base pointer
-	thread->Thread.pc = 0; // program counter
-	GC_POP(thread);
-	return thread;
-}
 
 ent *IrCodeList = NULL;
 int nIrCode = 0; // index of getIrCode
@@ -5625,15 +5626,14 @@ void markExecutors(ent ptr)
 		}
 		case IntQue3:{
 			dprintf("markExecutors IntQue3\n");
+			int pos = ptr->IntQue3.head;
 			for(int i = 0; i < ptr->IntQue3.size; i++){
-				if(ptr->IntQue3.que[i] != NULL){
-					gc_markOnly(ptr->IntQue3.que[i]); // mark the int que elements
+				if(ptr->IntQue3.que[pos] != NULL){
+					gc_markOnly(ptr->IntQue3.que[pos]); // mark the int que elements
 				}
+				pos = (pos + 1) % IntQue3Size;
 			}
-			//set que[3] fixed size
-			// if(ptr->IntQue3.que != NULL){
-			// 	gc_markOnly(ptr->IntQue3.que); // mark the int que elements
-			// }
+			//que[3] is fixed size
 			dprintf("markExecutors IntQue3 done\n");
 			return;
 		}
@@ -5655,12 +5655,12 @@ void markExecutors(ent ptr)
 			if(ptr->EventHandler.data){
 				gc_markOnly(ptr->EventHandler.data); // mark the event handler data
 			}
-			for(int i = 0; i<ptr->EventHandler.size; i++){
-				if(ptr->EventHandler.threads[i]){
-					gc_mark(ptr->EventHandler.threads[i]); // mark the event handler
-				}
-			}
 			if(ptr->EventHandler.threads != NULL){
+				for(int i = 0; i<ptr->EventHandler.size; i++){
+					if(ptr->EventHandler.threads[i]!=NULL){
+						gc_mark(ptr->EventHandler.threads[i]); // mark the event handler
+					}
+				}
 				gc_markOnly(ptr->EventHandler.threads); // mark the event handler queue
 			}
 			dprintf("markExecutors EventHandler done\n");
