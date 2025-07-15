@@ -1,4 +1,9 @@
 PORT=8000
+
+# copy
+DEST = ./shica-next-app/public/shikada/js
+FILES = vm.js vm.wasm
+
 # コンパイラ
 CC = emcc
 
@@ -13,7 +18,7 @@ crun:
 	leg -o vm.c ./vm.leg
 	gcc -o vm vm.c
 	
-# デフォルトターゲット
+# build vm.js
 web: $(OUT)
 
 $(OUT): $(SRC)
@@ -43,6 +48,11 @@ stop:
 		echo "No server is running on port $(PORT)."; \
 	fi
 # Makefile for building vm.c into vm.js using Emscripten
+
+copy:
+	mkdir -p $(DEST)
+	cp $(FILES) $(DEST)
+
 
 clean:
 	rm -f vm.c vm vm.js vm.wasm 
