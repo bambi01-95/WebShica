@@ -57,6 +57,19 @@ UserFunc Name: should start with a lowwer letter
 		.blue = 0,
 		.isLEDOn = 0,
 	};
+    struct AgentData AN_AGENT_DATA = {
+		.x = 0,
+		.y = 0,
+		.vx = 0,
+		.vy = 0,
+		.isClick = 0,
+		.distance = 0,
+		.status = 0,
+		.red = 0,
+		.green = 0,
+		.blue = 0,
+		.isLEDOn = 0,
+	};
     //Web内のゴーストのデータ共有で使用
     int *initAnAgnetDataPtr(); //Initialize the agent data structure and return its address
 
@@ -199,7 +212,9 @@ int *initAnAgnetDataPtr(){
 	AN_AGENT_DATA.green = 0; // green
 	return (int*)&AN_AGENT_DATA; // Return pointer to the agent data
 }
+
 int *getAnAgentDataPtr(){
+	return (int*)&AN_AGENT_DATA;
 	return (int*)&AN_AGENT_DATA;
 }
 
@@ -1714,6 +1729,8 @@ int lib_setxy(ent stack)
 	int x = intArray_pop(stack); // get y coordinate from stack
 	AN_AGENT_DATA.x = x; // set x coordinate
 	AN_AGENT_DATA.y = y; // set y coordinate
+	AN_AGENT_DATA.x = x; // set x coordinate
+	AN_AGENT_DATA.y = y; // set y coordinate
 	return 0; // return 0 to indicate success
 }
 
@@ -1721,12 +1738,14 @@ int lib_setvx(ent stack)
 {
 	int vx = intArray_pop(stack); // get x velocity from stack
 	AN_AGENT_DATA.vx = vx; // set x velocity
+	AN_AGENT_DATA.vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvy(ent stack)
 {
 	int vy = intArray_pop(stack); // get y velocity from stack
+	AN_AGENT_DATA.vy = vy; // set y velocity
 	AN_AGENT_DATA.vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }

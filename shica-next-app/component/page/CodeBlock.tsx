@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 // CodeBlock Component for the code page
-export const CodeBlock = ({ filename, children, language = 'zen' }: { filename: string, children: React.ReactNode, language?: string }) => {
+export const CodeBlock = ({ filename, children, language = 'shica' }: { filename: string, children: React.ReactNode, language?: string }) => {
     const [copied, setCopied] = useState(false);
   
     const copyCode = () => {
