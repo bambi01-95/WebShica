@@ -174,7 +174,12 @@ GC should be change at swtiching compile and executor
 
 ## web server
 
-go to `http://localhost:8080`
+go to `http://localhost:8000`
+
+## cacheを消す
+
+なかなか、jsの変更などが反映されないときは、開発者ツールnetwork->Disable casheを選択！
+site[https://qiita.com/kondo0602/items/7cc6e0e7783b3533ce2f]
 
 ## WASM Compile
 
