@@ -40,6 +40,9 @@
 |   |(o) state transition
 |   |(o) entry()event function
 |   |(o) exit() event function
+|   |(-) add peg/leg struct into union object to collect memory. <-- next step
+|   |  |- yyrelease?
+|   |
 |   |(-) global variable               <- in progress
 |   |(-) type checking
 |   |  |> push function into function list.
