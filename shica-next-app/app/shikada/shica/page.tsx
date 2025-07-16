@@ -1,21 +1,31 @@
 "use client";
 import FileLists from "@/component/code/FileLists";
 import { CodeEditor } from "@/component/code/CodeEditor";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Output, { Log } from "@/component/code/Output";
-import Map from "@/component/code/Map";
+import Map, { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
 
 const ShicaPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
-    { filename: "test0.shica", code: "" },
+    {
+      filename: "test0.shica",
+      code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+    },
   ]);
+  const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
+  const isRunningRef = useRef(true);
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  const [time, setTime] = useState(0);
+
   const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
+
   const onClear = () => {
     setLogs([]);
   };
@@ -50,35 +60,55 @@ const ShicaPage = () => {
     }
   };
 
+  const drawRobots = () => {
+    const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
+    if (!robotElems) return;
+
+    robotsRef.current.forEach((robot, index) => {
+      const elem = robotElems[index] as HTMLDivElement;
+      if (elem) {
+        elem.style.left = `${robot.x * 10}px`;
+        elem.style.top = `${robot.y * 10}px`;
+      }
+    });
+  };
+
   useEffect(() => {
     if (!Module || !isReady) return;
 
     let interval: NodeJS.Timeout | null = null;
     if (isRunning) {
       interval = setInterval(() => {
-        const t = Date.now();
-        Module.setValue(Module.timerPtr, t, "i32");
+        Module.setValue(Module.timerPtr, time, "i32");
+        const robot = robotsRef.current[0];
+        // Module.ccall("runWeb", "number", [], []);
+        // const x = Module.getValue(Module.agentPtr + 0, "i32");
+        // const y = Module.getValue(Module.agentPtr + 4, "i32");
 
-        const result = Module.ccall("runWeb", "number", [], []);
-        const x = Module.getValue(Module.agentPtr + 0, "i32");
-        const y = Module.getValue(Module.agentPtr + 4, "i32");
+        robot.x += robot.vx;
+        robot.y += robot.vy;
+        setTime(time + 50);
+        drawRobots();
       }, 50);
     }
+
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      if (interval) clearInterval(interval);
     };
   }, [isRunning, Module, isReady]);
 
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = code[selectedIndex].code;
-    const res = Module.ccall("compileWebCode", "number", ["string"], [selectedCode]);
+    const res = Module.ccall(
+      "compileWebCode",
+      "number",
+      ["string"],
+      [selectedCode]
+    );
     console.log(res);
     setIsCompiling(false);
   }, [isCompiling, Module, isReady]);
-
 
   const compile = () => {
     if (isRunning) {
@@ -115,7 +145,39 @@ const ShicaPage = () => {
         {/* MIDDLE */}
         <div className="flex flex-row h-full">
           <div className="w-1/2">
-            <Map />
+          <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center border border-gray-700">
+      {/* grid map 10x10 */}
+      <div className="h-[500px] w-[500px] bg-gray-800">
+            <div
+              className="relative"
+              style={{
+                width: `500px`,
+                height: `500px`,
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                backgroundSize: `10px 10px`,
+              }}
+              ref={mapRef}
+            >
+              {robotsRef.current.map((_, i) => (
+                <div
+                  key={i}
+                  className="robot-vacuum"
+                  style={{
+                    width: `10px`,
+                    height: `10px`,
+                    backgroundColor: "red",
+                    borderRadius: "50%",
+                    position: "absolute",
+                    transition: "all 0.1s linear",
+                    left: "0px",
+                    top: "0px",
+                  }}
+                />
+                ))}
+              </div>
+            </div>
+          </div>
           </div>
 
           {/* TOP */}

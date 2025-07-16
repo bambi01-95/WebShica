@@ -1,0 +1,53 @@
+#map {
+  position: relative; /* 子要素の絶対配置のため */
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  cursor: crosshair;
+}
+
+.robot-vacuum {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50px;
+  height: 50px;
+  transition: all 0.05s linear;
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+  border-radius: 50%;
+  border: 3px solid #3498db;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+.robot-vacuum::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #3498db;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.robot-vacuum::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #e74c3c;
+  border-radius: 50%;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: blink 2s infinite;
+}
