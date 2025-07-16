@@ -5,14 +5,14 @@ import { useState, useEffect } from "react";
 import Output, { Log } from "@/component/code/Output";
 import Map from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
-
-
+import { useVM } from "@/hooks/shikada/useVM";
 
 
 const ShicaPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
     { filename: "test0.shica", code: "" },
   ]);
+  const Module = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -64,6 +64,25 @@ const ShicaPage = () => {
       }
     };
   }, [isRunning]);
+
+  useEffect(() => {
+    if (!Module) return;
+
+    Module.onRuntimeInitialized = () => {
+      console.log("WASM initialized");
+
+      const code = 'stt s1(){ clickEH(x,y){ setXY(x,y); } }';
+
+      const res = Module.ccall(
+        "compileWebCode", // C関数名
+        "number",         // 戻り値の型
+        ["string"],       // 引数の型
+        [code]            // 引数の値
+      );
+
+      console.log(res);
+    };
+  }, [Module]);
 
   const compile = () => {
     if (isRunning) {
