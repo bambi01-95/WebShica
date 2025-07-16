@@ -7,12 +7,11 @@ import Map from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
 
-
 const ShicaPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
     { filename: "test0.shica", code: "" },
   ]);
-  const Module = useVM();
+  const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -52,10 +51,17 @@ const ShicaPage = () => {
   };
 
   useEffect(() => {
+    if (!Module || !isReady) return;
+
     let interval: NodeJS.Timeout | null = null;
     if (isRunning) {
       interval = setInterval(() => {
-        console.log("run");
+        const t = Date.now();
+        Module.setValue(Module.timerPtr, t, "i32");
+
+        const result = Module.ccall("runWeb", "number", [], []);
+        const x = Module.getValue(Module.agentPtr + 0, "i32");
+        const y = Module.getValue(Module.agentPtr + 4, "i32");
       }, 50);
     }
     return () => {
@@ -63,26 +69,16 @@ const ShicaPage = () => {
         clearInterval(interval);
       }
     };
-  }, [isRunning]);
+  }, [isRunning, Module, isReady]);
 
   useEffect(() => {
-    if (!Module) return;
+    if (!Module || !isReady || !isCompiling) return;
+    const selectedCode = code[selectedIndex].code;
+    const res = Module.ccall("compileWebCode", "number", ["string"], [selectedCode]);
+    console.log(res);
+    setIsCompiling(false);
+  }, [isCompiling, Module, isReady]);
 
-    Module.onRuntimeInitialized = () => {
-      console.log("WASM initialized");
-
-      const code = 'stt s1(){ clickEH(x,y){ setXY(x,y); } }';
-
-      const res = Module.ccall(
-        "compileWebCode", // C関数名
-        "number",         // 戻り値の型
-        ["string"],       // 引数の型
-        [code]            // 引数の値
-      );
-
-      console.log(res);
-    };
-  }, [Module]);
 
   const compile = () => {
     if (isRunning) {

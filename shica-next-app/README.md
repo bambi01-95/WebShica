@@ -40,3 +40,11 @@ docker build -t shica-next-app .
 docker run -d --name shica-next-container -p 3000:3000 shica-next-app
 docker logs shica-next-container
 docker-compose up --build
+
+
+## Shica
+
+# hooks/shikada/useVM
+
+- hooksを利用してModuleと引っ付ける必要がある。（webassemblyと結合している）
+- コンパイル時には、`ENVIRONMENT=web`が必要になる。ないと`ts`なんちゃらとエラーが出力される。

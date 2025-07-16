@@ -3,21 +3,52 @@ import { useEffect, useState } from "react";
 
 export function useVM() {
   const [Module, setModule] = useState<any>(null);
+  const [isReady, setIsReady] = useState(false); // 初期化済みフラグ
 
   useEffect(() => {
     let isMounted = true;
 
-    // vm.jsを動的に読み込む
     const loadVM = async () => {
-      // @ts-ignore
-      const module = await import("../../public/shikada/js/vm.js");
+      // vm.jsはESMではなく、通常のスクリプトとしてグローバルにModuleをエクスポートしている場合を考慮
+      // そのため、importではなく、動的にscriptタグを挿入してロードする
+      if (typeof window !== "undefined") {
+        // すでにロード済みなら再ロードしない
+        if ((window as any).Module) {
+          const instance = (window as any).Module;
+          if (isMounted) {
+            setModule(instance);
+            setIsReady(true);
+          }
+          return;
+        }
 
-      // MODULARIZE=1 の場合は初期化関数が返る
-      if (typeof module.default === "function") {
-        const initializedModule = await module.default();
-        if (isMounted) setModule(initializedModule);
-      } else {
-        if (isMounted) setModule(module);
+        const script = document.createElement("script");
+        script.src = "/shikada/js/vm.js";
+        script.async = true;
+
+        script.onload = () => {
+          // vm.jsがグローバルにModuleを定義している前提
+          const instance = (window as any).Module;
+          if (instance) {
+            // locateFileやonRuntimeInitializedをセット
+            instance.locateFile = (path: string) => `/shikada/js/${path}`;
+            instance.onRuntimeInitialized = () => {
+              console.log("✅ WASM initialized");
+
+              instance.ccall("memory_init", "number", [], []);
+              instance.timerPtr = instance.ccall("initWebTimerPtr", "number", [], []);
+              instance.clickPtr = instance.ccall("initWebClickSTTPtr", "number", [], []);
+              instance.agentPtr = instance.ccall("initAnAgnetDataPtr", "number", [], []);
+
+              if (isMounted) {
+                setModule(instance);
+                setIsReady(true);
+              }
+            };
+          }
+        };
+
+        document.body.appendChild(script);
       }
     };
 
@@ -28,5 +59,5 @@ export function useVM() {
     };
   }, []);
 
-  return Module;
+  return [Module, isReady] as const;
 }
