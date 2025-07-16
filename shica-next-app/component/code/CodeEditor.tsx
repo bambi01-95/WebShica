@@ -6,6 +6,10 @@ interface CodeEditorProps {
   initialCode?: string;
   language?: string;
   onCodeChange?: (code: string) => void;
+  isRounded?: boolean;
+  isFullScreen?: boolean;
+  width?: string;
+  height?: string;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -13,6 +17,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   initialCode = "",
   language = "shica",
   onCodeChange,
+  isRounded = true,
+  isFullScreen = false,
+  width = "w-full",
+  height = "h-full",
 }) => {
   const [code, setCode] = useState(initialCode);
   const [copied, setCopied] = useState(false);
@@ -67,15 +75,15 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gray-900 rounded-lg overflow-hidden shadow-2xl">
+    <div
+      className={`w-full bg-gray-900 flex flex-col ${
+        isRounded ? "rounded-lg" : ""
+      } overflow-hidden`}
+      style={{ height: "100%" }} // ① 外部で高さ制限されている前提
+    >
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-800 px-4 py-3 border-b border-gray-700">
+      <div className="flex items-center justify-between bg-gray-800 px-4 py-3 border-b border-gray-700 shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="flex space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          </div>
           <span className="text-gray-300 text-sm font-medium">{filename}</span>
           <span className="text-gray-500 text-xs bg-gray-700 px-2 py-1 rounded">
             {language}
@@ -94,16 +102,12 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         </button>
       </div>
 
-      {/* Editor */}
-      <div className="flex">
+      {/* Scrollable Editor Area */}
+      <div className="flex flex-1 overflow-hidden">
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
           className="bg-gray-800 text-gray-400 text-sm font-mono px-3 py-4 border-r border-gray-700 select-none overflow-hidden"
-          style={{
-            minHeight: "400px",
-            maxHeight: "400px",
-          }}
         >
           {lineNumbers.map((num) => (
             <div key={num} className="leading-6 text-right">
@@ -112,26 +116,23 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           ))}
         </div>
 
-        {/* Code Area */}
-        <div className="flex-1 relative">
+        {/* Textarea */}
+        <div className="flex-1 h-full overflow-y-auto">
           <textarea
             ref={textareaRef}
             value={code}
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
-            className="w-full h-96 p-4 bg-gray-900 text-gray-100 font-mono text-sm leading-6 resize-none outline-none overflow-y-auto"
+            className="w-full h-full p-4 bg-gray-900 text-gray-100 font-mono text-sm leading-6 resize-none outline-none"
             placeholder="Write your code here..."
             spellCheck={false}
             style={{
-              minHeight: "400px",
-              maxHeight: "400px",
               scrollbarWidth: "thin",
               scrollbarColor: "#4B5563 #1F2937",
             }}
           />
-
-          {/* Custom Scrollbar Styling */}
+          {/* Custom scrollbar */}
           <style jsx>{`
             textarea::-webkit-scrollbar {
               width: 8px;
@@ -150,8 +151,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         </div>
       </div>
 
-      {/* Status Bar */}
-      <div className="bg-gray-800 px-4 py-2 border-t border-gray-700 flex justify-between items-center text-xs text-gray-400">
+      {/* Footer */}
+      <div className="bg-gray-800 px-4 py-2 border-t border-gray-700 flex justify-between items-center text-xs text-gray-400 shrink-0">
         <div className="flex space-x-4">
           <span>Lines: {lineCount}</span>
           <span>Chars: {code.length}</span>
@@ -159,6 +160,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         <div className="flex space-x-2">
           <span>UTF-8</span>
           <span>LF</span>
+          <span>{language}</span>
         </div>
       </div>
     </div>

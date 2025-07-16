@@ -29,20 +29,19 @@ const FileList: React.FC<FileListProps> = ({
         display: 'flex',
         alignItems: 'center',
         padding: '10px 12px',
-        backgroundColor: isSelected ? '#1e1e1e' : 'transparent',
         borderBottom: '1px solid #3e3e42',
         cursor: 'pointer',
-        color: isSelected ? '#ffffff' : '#cccccc',
         fontSize: '13px',
         position: 'relative',
         borderLeft: isSelected ? '3px solid #007acc' : '3px solid transparent',
       }}
+      className={`${isSelected ? 'bg-gray-800' : 'bg-gray-900'} text-gray-300`}
       onClick={() => setSelectedIndex(index)}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = '#37373d';
+        if (!isSelected) e.currentTarget.classList.add('bg-gray-800');
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+        if (!isSelected) e.currentTarget.classList.remove('bg-gray-800');
       }}
     >
       <span
@@ -60,11 +59,11 @@ const FileList: React.FC<FileListProps> = ({
           e.stopPropagation();
           removeItem(index);
         }}
+        className="bg-gray-700"
         style={{
           marginLeft: '8px',
           width: '16px',
           height: '16px',
-          backgroundColor: 'transparent',
           border: 'none',
           cursor: 'pointer',
           color: '#cccccc',

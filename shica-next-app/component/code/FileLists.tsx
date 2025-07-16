@@ -8,6 +8,8 @@ interface FileListsProps {
   disableRemove: boolean;
   addItem: (newItem: string) => void;
   MAX_FILE_COUNT?: number;
+  width?: string;
+  height?: string;
 }
 
 export default function FileLists({
@@ -17,13 +19,13 @@ export default function FileLists({
   removeItem,
   MAX_FILE_COUNT=10,
   addItem,
+  width="w-full",
+  height="h-full",
 }: FileListsProps) {
   return (
     <div
+      className={`bg-gray-900 ${width} ${height}`}
       style={{
-        width: "200px",
-        backgroundColor: "#2d2d30",
-        borderRight: "1px solid #3e3e42",
         display: "flex",
         flexDirection: "column",
         overflow: "auto",
@@ -46,8 +48,8 @@ export default function FileLists({
         style={{
           padding: "12px",
           borderTop: "1px solid #3e3e42",
-          backgroundColor: "#252526",
         }}
+        className="bg-gray-800"
       >
         <button
           onClick={() => {
@@ -57,7 +59,6 @@ export default function FileLists({
           style={{
             width: "100%",
             height: "32px",
-            backgroundColor: "transparent",
             border: "1px solid #3e3e42",
             borderRadius: "3px",
             cursor: "pointer",
@@ -67,11 +68,12 @@ export default function FileLists({
             alignItems: "center",
             justifyContent: "center",
           }}
+          className="bg-gray-700"
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#3e3e42";
+            e.currentTarget.classList.add("bg-gray-700");
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.classList.remove("bg-gray-700");
           }}
         >
           + Add New File

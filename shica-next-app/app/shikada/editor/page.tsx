@@ -79,7 +79,7 @@ const EditorPage = () => {
             </div>
 
             {/* エディタ */}
-            <div style={{ flex: 1 }}>
+            <div className="flex-1">
               <CodeEditor
                 key={code[selectedIndex].filename}
                 filename={code[selectedIndex].filename}
