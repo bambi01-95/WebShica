@@ -6,6 +6,16 @@ import Output, { Log } from "@/component/code/Output";
 import Map, { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
+import InlineCodeWithCopy from "@/component/code/InlineCode";
+
+//for color picker
+const hexToRgb = (hex: string) => {
+  const sanitized = hex.replace("#", "");
+  const r = parseInt(sanitized.substring(0, 2), 16);
+  const g = parseInt(sanitized.substring(2, 4), 16);
+  const b = parseInt(sanitized.substring(4, 6), 16);
+  return { r, g, b };
+};
 
 const ShicaPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
@@ -17,7 +27,7 @@ const ShicaPage = () => {
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
   const isRunningRef = useRef(true);
   const mapRef = useRef<HTMLDivElement>(null);
-  const timeRef = useRef(0);
+  const [time, setTime] = useState(0);
 
   const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -26,6 +36,13 @@ const ShicaPage = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isRunInit, setIsRunInit] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
+
+  //for user sample code
+  const [clickXY, setClickXY] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+  const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
 
   const onClear = () => {
     setLogs([]);
@@ -70,7 +87,6 @@ const ShicaPage = () => {
       ["string"],
       [selectedCode]
     );
-    console.log(res);
     setIsCompiling(false);
   }, [isCompiling, Module, isReady]);
 
@@ -101,11 +117,14 @@ const ShicaPage = () => {
     if (!Module || !isReady) return;
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const xc = x - rect.left - 20 < 0 ? 0 : x - rect.left - 20;
-    const yc = y - rect.top - 20 < 0 ? 0 : y - rect.top - 20;
-    Module.setValue(Module.clickPtr + 0, xc, "i32");
-    Module.setValue(Module.clickPtr + 4, yc, "i32");
-    Module.setValue(Module.clickPtr + 8, 1, "i32"); // active
+    const xc = x - rect.left - 20 < 0 ? 0 : Math.round(x - rect.left - 20);
+    const yc = y - rect.top - 20 < 0 ? 0 : Math.round(y - rect.top - 20);
+    if (isRunning) {
+      Module.setValue(Module.clickPtr + 0, xc, "i32");
+      Module.setValue(Module.clickPtr + 4, yc, "i32");
+      Module.setValue(Module.clickPtr + 8, 1, "i32"); // active
+    }
+    setClickXY({ x: xc, y: yc });
   };
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -116,30 +135,26 @@ const ShicaPage = () => {
       if (!isRunInit) {
         Module.ccall("initRunWeb", "number", [], []);
         setIsRunInit(true);
-        return;
       }
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
-        Module.setValue(Module.timerPtr, timeRef.current, "i32");
+        Module.setValue(Module.timerPtr, time, "i32");
         const robot = robotsRef.current[0];
         const res = Module.ccall("runWeb", "number", [], []);
-        console.log(`res: ${res}`);
         const x = Module.getValue(Module.agentPtr + 0, "i32");
         const y = Module.getValue(Module.agentPtr + 4, "i32");
         const vx = Module.getValue(Module.agentPtr + 8, "i32");
         const vy = Module.getValue(Module.agentPtr + 12, "i32");
-        console.log(`x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}, time: ${timeRef.current}`);
         robot.x = x + vx;
         robot.y = y + vy;
         robot.vx = vx;
         robot.vy = vy;
-        timeRef.current += 50;
         drawRobots();
         Module.setValue(Module.agentPtr + 0, robot.x, "i32");
         Module.setValue(Module.agentPtr + 4, robot.y, "i32");
-
+        setTime(time + 50);
         Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
-      }, 1000);
+      }, 50);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
@@ -153,11 +168,18 @@ const ShicaPage = () => {
     setIsRunning(!isRunning);
   };
 
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hex = e.target.value;
+    const rgbValue = hexToRgb(hex);
+    setRgb(rgbValue);
+  };
+
   return (
     <div>
       <div className="xl:hidden">
         <SizeWarningPage />
       </div>
+      {/* LEFT */}
       <div className="hidden xl:flex flex-col w-full h-full h-screen">
         {/* TOP */}
         <div className="bg-gray-800 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
@@ -171,11 +193,11 @@ const ShicaPage = () => {
         {/* MIDDLE */}
         <div className="flex flex-row h-full">
           <div className="w-1/2">
-            <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center border border-gray-700">
+            <div className="w-full h-full bg-gray-900 flex flex-col space-y-2 items-center justify-center border border-gray-700">
               {/* grid map 10x10 */}
               <div className="h-[500px] w-[500px] bg-gray-800">
                 <div
-                  className="relative"
+                  className="relative cursor-pointer"
                   style={{
                     width: `500px`,
                     height: `500px`,
@@ -185,7 +207,6 @@ const ShicaPage = () => {
                   }}
                   ref={mapRef}
                   onClick={(e) => {
-                    console.log(`e.clientX: ${e.clientX}, e.clientY: ${e.clientY}`);
                     clickEH(e.clientX, e.clientY);
                   }}
                 >
@@ -207,9 +228,26 @@ const ShicaPage = () => {
                   ))}
                 </div>
               </div>
+              <div className="flex flex-row space-x-2">
+                <div className="text-white text-2xl">👆</div>
+                <InlineCodeWithCopy
+                  code={`setXY(${clickXY?.x}, ${clickXY?.y})`}
+                />
+              </div>
+              <div className="flex flex-row space-x-2">
+                <input
+                  type="color"
+                  className="w-20"
+                  onChange={handleColorChange}
+                />
+                <InlineCodeWithCopy
+                  code={`setColor(${rgb.r}, ${rgb.g}, ${rgb.b})`}
+                />
+              </div>
             </div>
           </div>
-
+          {/* END OF LEFT */}
+          {/* RIGHT */}
           {/* TOP */}
           <div className="flex flex-col w-1/2">
             <div className="flex flex-row h-[700px]">
