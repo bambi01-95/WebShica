@@ -22,7 +22,9 @@ const ShicaPage = () => {
   const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
+  const [isCompiled, setIsCompiled] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [isRunInit, setIsRunInit] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
 
   const onClear = () => {
@@ -77,9 +79,11 @@ const ShicaPage = () => {
       return;
     }
     setIsCompiling(true);
+    setIsRunInit(false);
     setTimeout(() => {
       setIsCompiling(false);
     }, 1000);
+    setIsCompiled(true);
   };
   const drawRobots = () => {
     const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
@@ -97,7 +101,13 @@ const ShicaPage = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!Module || !isReady) return;
     if (isRunning) {
+      if (!isRunInit) {
+        Module.ccall("initRunWeb", "number", [], []);
+        setIsRunInit(true);
+        return;
+      }
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
         Module.setValue(Module.timerPtr, timeRef.current, "i32");
@@ -117,9 +127,13 @@ const ShicaPage = () => {
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
-  }, [isRunning, Module, isReady]);
+  }, [isRunning, Module, isReady, isRunInit]);
 
   const run = () => {
+    if (!isCompiled) {
+      alert("Please compile the code first");
+      return;
+    }
     setIsRunning(!isRunning);
   };
 
