@@ -92,10 +92,20 @@ const ShicaPage = () => {
     robotsRef.current.forEach((robot, index) => {
       const elem = robotElems[index] as HTMLDivElement;
       if (elem) {
-        elem.style.left = `${robot.x * 10}px`;
-        elem.style.top = `${robot.y * 10}px`;
+        elem.style.left = `${robot.x}px`;
+        elem.style.top = `${robot.y}px`;
       }
     });
+  };
+  const clickEH = (x: number, y: number) => {
+    if (!Module || !isReady) return;
+    const rect = mapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const xc = x - rect.left - 20 < 0 ? 0 : x - rect.left - 20;
+    const yc = y - rect.top - 20 < 0 ? 0 : y - rect.top - 20;
+    Module.setValue(Module.clickPtr + 0, xc, "i32");
+    Module.setValue(Module.clickPtr + 4, yc, "i32");
+    Module.setValue(Module.clickPtr + 8, 1, "i32"); // active
   };
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -116,14 +126,20 @@ const ShicaPage = () => {
         console.log(`res: ${res}`);
         const x = Module.getValue(Module.agentPtr + 0, "i32");
         const y = Module.getValue(Module.agentPtr + 4, "i32");
-        console.log(`x: ${x}, y: ${y}, time: ${timeRef.current}`);
-        robot.x += robot.vx;
-        robot.y += robot.vy;
+        const vx = Module.getValue(Module.agentPtr + 8, "i32");
+        const vy = Module.getValue(Module.agentPtr + 12, "i32");
+        console.log(`x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}, time: ${timeRef.current}`);
+        robot.x = x + vx;
+        robot.y = y + vy;
+        robot.vx = vx;
+        robot.vy = vy;
         timeRef.current += 50;
         drawRobots();
         Module.setValue(Module.agentPtr + 0, robot.x, "i32");
         Module.setValue(Module.agentPtr + 4, robot.y, "i32");
-      }, 50);
+
+        Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
+      }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
@@ -168,6 +184,10 @@ const ShicaPage = () => {
                     backgroundSize: `10px 10px`,
                   }}
                   ref={mapRef}
+                  onClick={(e) => {
+                    console.log(`e.clientX: ${e.clientX}, e.clientY: ${e.clientY}`);
+                    clickEH(e.clientX, e.clientY);
+                  }}
                 >
                   {robotsRef.current.map((_, i) => (
                     <div
