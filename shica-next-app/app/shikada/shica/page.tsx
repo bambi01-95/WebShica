@@ -17,8 +17,7 @@ const ShicaPage = () => {
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
   const isRunningRef = useRef(true);
   const mapRef = useRef<HTMLDivElement>(null);
-
-  const [time, setTime] = useState(0);
+  const timeRef = useRef(0);
 
   const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -60,43 +59,6 @@ const ShicaPage = () => {
     }
   };
 
-  const drawRobots = () => {
-    const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
-    if (!robotElems) return;
-
-    robotsRef.current.forEach((robot, index) => {
-      const elem = robotElems[index] as HTMLDivElement;
-      if (elem) {
-        elem.style.left = `${robot.x * 10}px`;
-        elem.style.top = `${robot.y * 10}px`;
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (!Module || !isReady) return;
-
-    let interval: NodeJS.Timeout | null = null;
-    if (isRunning) {
-      interval = setInterval(() => {
-        Module.setValue(Module.timerPtr, time, "i32");
-        const robot = robotsRef.current[0];
-        // Module.ccall("runWeb", "number", [], []);
-        // const x = Module.getValue(Module.agentPtr + 0, "i32");
-        // const y = Module.getValue(Module.agentPtr + 4, "i32");
-
-        robot.x += robot.vx;
-        robot.y += robot.vy;
-        setTime(time + 50);
-        drawRobots();
-      }, 50);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, Module, isReady]);
-
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = code[selectedIndex].code;
@@ -119,11 +81,45 @@ const ShicaPage = () => {
       setIsCompiling(false);
     }, 1000);
   };
+  const drawRobots = () => {
+    const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
+    if (!robotElems) return;
+
+    robotsRef.current.forEach((robot, index) => {
+      const elem = robotElems[index] as HTMLDivElement;
+      if (elem) {
+        elem.style.left = `${robot.x * 10}px`;
+        elem.style.top = `${robot.y * 10}px`;
+      }
+    });
+  };
+
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isRunning) {
+      intervalRef.current = setInterval(() => {
+        if (!Module || !isReady) return;
+        Module.setValue(Module.timerPtr, timeRef.current, "i32");
+        const robot = robotsRef.current[0];
+        const res = Module.ccall("runWeb", "number", [], []);
+        console.log(`res: ${res}`);
+        const x = Module.getValue(Module.agentPtr + 0, "i32");
+        const y = Module.getValue(Module.agentPtr + 4, "i32");
+        console.log(`x: ${x}, y: ${y}, time: ${timeRef.current}`);
+        robot.x += robot.vx;
+        robot.y += robot.vy;
+        timeRef.current += 50;
+        drawRobots();
+        Module.setValue(Module.agentPtr + 0, robot.x, "i32");
+        Module.setValue(Module.agentPtr + 4, robot.y, "i32");
+      }, 50);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+  }, [isRunning, Module, isReady]);
 
   const run = () => {
-    if (isCompiling) {
-      return;
-    }
     setIsRunning(!isRunning);
   };
 
@@ -145,39 +141,39 @@ const ShicaPage = () => {
         {/* MIDDLE */}
         <div className="flex flex-row h-full">
           <div className="w-1/2">
-          <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center border border-gray-700">
-      {/* grid map 10x10 */}
-      <div className="h-[500px] w-[500px] bg-gray-800">
-            <div
-              className="relative"
-              style={{
-                width: `500px`,
-                height: `500px`,
-                backgroundImage:
-                  "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-                backgroundSize: `10px 10px`,
-              }}
-              ref={mapRef}
-            >
-              {robotsRef.current.map((_, i) => (
+            <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center border border-gray-700">
+              {/* grid map 10x10 */}
+              <div className="h-[500px] w-[500px] bg-gray-800">
                 <div
-                  key={i}
-                  className="robot-vacuum"
+                  className="relative"
                   style={{
-                    width: `10px`,
-                    height: `10px`,
-                    backgroundColor: "red",
-                    borderRadius: "50%",
-                    position: "absolute",
-                    transition: "all 0.1s linear",
-                    left: "0px",
-                    top: "0px",
+                    width: `500px`,
+                    height: `500px`,
+                    backgroundImage:
+                      "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                    backgroundSize: `10px 10px`,
                   }}
-                />
-                ))}
+                  ref={mapRef}
+                >
+                  {robotsRef.current.map((_, i) => (
+                    <div
+                      key={i}
+                      className="robot-vacuum"
+                      style={{
+                        width: `40px`,
+                        height: `40px`,
+                        backgroundColor: "red",
+                        borderRadius: "50%",
+                        position: "absolute",
+                        transition: "all 0.1s linear",
+                        left: "0px",
+                        top: "0px",
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
           </div>
 
           {/* TOP */}
@@ -212,10 +208,9 @@ const ShicaPage = () => {
             <div className="flex flex-row h-[70px] bg-gray-900 justify-center items-center gap-4">
               <button
                 onClick={run}
-                disabled={isRunning}
                 className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 ${
                   isRunning
-                    ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 cursor-not-allowed"
+                    ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105"
                     : "bg-gray-600 text-gray-400 "
                 }`}
               >
