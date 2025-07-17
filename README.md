@@ -41,7 +41,8 @@
 |   |(o) entry()event function
 |   |(o) exit() event function
 |   |(-) add peg/leg struct into union object to collect memory. <-- next step
-|   |  |- yyrelease?
+|   |  |- (o) yyrelease 
+|   |  |- (x) mark                     <-
 |   |
 |   |(-) global variable               <- in progress
 |   |(-) type checking
