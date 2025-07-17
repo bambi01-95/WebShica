@@ -20,7 +20,7 @@ const hexToRgb = (hex: string) => {
 const ShicaPage = () => {
   const [code, setCode] = useState<{ filename: string; code: string }[]>([
     {
-      filename: "test0.shica",
+      filename: "Agent0.shica",
       code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
     },
   ]);
@@ -52,7 +52,7 @@ const ShicaPage = () => {
   const addItem = (newItem: string = "") => {
     setCode((prev) => [
       ...prev,
-      { filename: `test${code.length}.shica`, code: newItem },
+      { filename: `Agent${code.length}.shica`, code: newItem },
     ]);
     setSelectedIndex(code.length); // 新しく追加したファイルを選択
   };

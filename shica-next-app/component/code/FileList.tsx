@@ -12,6 +12,7 @@ interface FileListProps {
   removeItem: (index: number) => void;
   /** 削除ボタンを無効にするかどうか */
   disableRemove: boolean;
+  filename: string;
 }
 
 const FileList: React.FC<FileListProps> = ({
@@ -20,6 +21,7 @@ const FileList: React.FC<FileListProps> = ({
   setSelectedIndex,
   removeItem,
   disableRemove,
+  filename,
 }) => {
   const isSelected = selectedIndex === index;
 
@@ -52,7 +54,7 @@ const FileList: React.FC<FileListProps> = ({
           whiteSpace: 'nowrap',
         }}
       >
-        test{index}.shica
+        {filename}
       </span>
       <button
         onClick={(e) => {

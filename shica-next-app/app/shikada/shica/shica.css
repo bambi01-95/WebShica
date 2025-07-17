@@ -24,7 +24,7 @@
   justify-content: center;
   background: linear-gradient(135deg, #2c3e50, #34495e);
   border-radius: 50%;
-  border: 3px solid #3498db;
+  border: 3px solid #000000;
   box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 .robot-vacuum::before {
@@ -32,7 +32,7 @@
   position: absolute;
   width: 20px;
   height: 20px;
-  background: #3498db;
+  background: #000000;
   border-radius: 50%;
   top: 50%;
   left: 50%;
@@ -46,7 +46,7 @@
   height: 8px;
   background: #e74c3c;
   border-radius: 50%;
-  top: 30%;
+  top: 25%;
   left: 50%;
   transform: translate(-50%, -50%);
   animation: blink 2s infinite;

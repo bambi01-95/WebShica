@@ -40,6 +40,7 @@ export default function FileLists({
             setSelectedIndex={setSelectedIndex}
             removeItem={removeItem}
             disableRemove={code.length <= 1}
+            filename={item.filename}
           />
         ))}
       </div>
