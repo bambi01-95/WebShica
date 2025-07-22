@@ -124,3 +124,39 @@ CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_i
 ## README
 
 [how to write](https://docs.github.com/ja/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+
+
+(A) Emscripten を導入 (C/C++ → WASM コンパイル)
+Homebrew がインストール済みか確認
+
+bash
+コピーする
+編集する
+brew --version
+emsdk (Emscripten SDK) を clone
+
+bash
+コピーする
+編集する
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+emsdk をインストール
+
+bash
+コピーする
+編集する
+./emsdk install latest
+./emsdk activate latest
+環境変数をセット
+
+bash
+コピーする
+編集する
+source ./emsdk_env.sh
+動作確認
+
+bash
+コピーする
+編集する
+emcc -v
+emcc は emscripten の C コンパイラで、.wasm を生成できます。
