@@ -43,7 +43,7 @@ const pages: PageItem[] = [
   },
   {
     id: '4',
-    name: 'Meta-programming',
+    name: 'Meta-programming?',
     description: 'SOLTAN Mahmoud Talaat Abdelaziz Mohamed',
     url: '/soltan',
     profileImage: '🇪🇬'
@@ -57,7 +57,7 @@ export default function Home() {
       <DescriptionComponent title="Programming System Laboratory" >
         <strong>Programming System Laboratory</strong> is working on Electorical WorkShop(EWS), 4th floor north of building.
         </DescriptionComponent>
-      <PageList pages={pages} />
+      <PageList pages={pages} title="Lab Members" />
       <DescriptionComponent title="Access" >
         <h1>Location: 4th floor north of building.</h1>
         <h1>Time: 10:00 - 17:00</h1>

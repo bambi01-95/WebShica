@@ -48,24 +48,25 @@ const ProgrammingLanguagePage = () => {
 
   return (
     <div className="container">
-      <TitleComponent
-        title="Shica"
-        subtitle="State base, Event Driven, Distributed programming language"
-      />
+      <div className="flex flex-col gap-10">
+        <TitleComponent
+          title="Shica"
+          subtitle="State base, Event Driven, Distributed programming language"
+        />
 
-      <DescriptionComponent title="What is Shica?">
-        <p>
-          Shica is a programming language that is based on the state machine
-          model. And also, it is inspired by Linden Scripting Language.
-        </p>
-        <p>
-          Shica main purpose is integrating the state base, event driven, and
-          distributed programming.
-        </p>
-      </DescriptionComponent>
+        <DescriptionComponent title="What is Shica?">
+          <p>
+            Shica is a programming language that is based on the state machine
+            model. And also, it is inspired by Linden Scripting Language.
+          </p>
+          <p>
+            Shica main purpose is integrating the state base, event driven, and
+            distributed programming.
+          </p>
+        </DescriptionComponent>
 
-      <CodeBlock filename="state_model.stt">
-        {`// State Model
+        <CodeBlock filename="state_model.stt">
+          {`// State Model
 stt s1(){ // State 1
   clickEH(x,y){
     setXY(100,100);
@@ -80,11 +81,10 @@ stt s2(){ // State 2
   }
 }
 `}
-      </CodeBlock>
+        </CodeBlock>
 
-
-      <CodeBlock filename="shica_example.stt">
-        {`// function definition
+        <CodeBlock filename="shica_example.stt">
+          {`// function definition
 fn fib(n){
   if(n <= 1){
     return n;
@@ -106,51 +106,56 @@ stt s1(){
   }
 }
 `}
-      </CodeBlock>
+        </CodeBlock>
 
-      <PageList pages={[
-        {
-          id: "web-shica",
-          name: "Web Shica Simulator",
-          description: "Web Shica Simulator is a web-based simulator for Shica programming language.",
-          url: "/shikada/shica",
-          profileImage: "🧑‍💻",
-        },
-        {
-          id: "shica-instruction",
-          name: "Web Shica Instruction",
-          description: "Web Shica Instruction is a web-based instruction for Shica programming language on the web.",
-          url: "/shikada/instruction",
-          profileImage: "📖",
-        },
-        {
-          id: "shica-editor",
-          name: "Shica Editor",
-          description: "Shica Editor is a web-based editor for Shica programming language for local development.",
-          url: "/shikada/editor",
-          profileImage: "💻",
-        }
-      ]} title="Web Shica">
+        <PageList
+          pages={[
+            {
+              id: "web-shica",
+              name: "Web Shica Simulator",
+              description:
+                "Web Shica Simulator is a web-based simulator for Shica programming language.",
+              url: "/shikada/shica",
+              profileImage: "🧑‍💻",
+            },
+            {
+              id: "shica-instruction",
+              name: "Web Shica Instruction",
+              description:
+                "Web Shica Instruction is a web-based instruction for Shica programming language on the web.",
+              url: "/shikada/instruction",
+              profileImage: "📖",
+            },
+            {
+              id: "shica-editor",
+              name: "Shica Editor",
+              description:
+                "Shica Editor is a web-based editor for Shica programming language for local development.",
+              url: "/shikada/editor",
+              profileImage: "💻",
+            },
+          ]}
+          title="Web Shica"
+        ></PageList>
 
-      </PageList>
-
-      <DescriptionComponent title="Features">
-        <p>Shica has the following features:</p>
-        <p>
-          • <strong>Intuitive state model</strong>：Using{" "}
-          <CodeSpan>stt</CodeSpan> to define states
-        </p>
-        <p>
-          • <strong>Concurrent processing</strong>：
-          <CodeSpan>eventEH(arg:arg==0)</CodeSpan> allows multiple same event
-          handlers to be defined in the same state
-        </p>
-        <p>
-          • <strong>Distributed processing</strong>：Using{" "}
-          <CodeSpan>GroupListenerEH()</CodeSpan> to handle events from multiple
-          agents
-        </p>
-      </DescriptionComponent>
+        <DescriptionComponent title="Features">
+          <p>Shica has the following features:</p>
+          <p>
+            • <strong>Intuitive state model</strong>：Using{" "}
+            <CodeSpan>stt</CodeSpan> to define states
+          </p>
+          <p>
+            • <strong>Concurrent processing</strong>：
+            <CodeSpan>eventEH(arg:arg==0)</CodeSpan> allows multiple same event
+            handlers to be defined in the same state
+          </p>
+          <p>
+            • <strong>Distributed processing</strong>：Using{" "}
+            <CodeSpan>GroupListenerEH()</CodeSpan> to handle events from
+            multiple agents
+          </p>
+        </DescriptionComponent>
+      </div>
     </div>
   );
 };

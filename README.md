@@ -43,6 +43,7 @@
 +- web UI/UX
 |  |- (o) add cimpile and run logging
 |  |- (-) Add page outline comp.       <- if I want to be relax
+|  |- (-) light/dark mode
 |
 +-add original shica feature
 |   |(o) state transition
@@ -61,7 +62,7 @@
 |   |     |(-) String value
 |   |     |(-) Float value
 |   |(-) event condition
-|   |(-) event definition
+|   |(-) event definition <---
 |   |(-) Pointcut
 |   |[-] Add more feature
 |         |(-) Event variable
