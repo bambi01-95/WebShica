@@ -66,58 +66,7 @@
 
 ### vms
 
-```text
-+-----------------+
-| EventCondition A
-+-----------------+
-| EventAction A
-+-----------------+
-| EventCondition B
-+-----------------+
-| EventAction B
-+-----------------+
 
-+-----------------+
-| Entry() Action
-+-----------------+
-| State Definition
-+-----------------+
-| Exit() Action
-+-----------------+
-
-+-----------------+
-| Function
-+-----------------+
-
-+-----------------+
-| Function
-+-----------------+
-
-```
-
-```text
-S [number of Eventhandler]
-    E [libray number] [clone number + G-L bool + number of process]
-        P [pPos] [cPos]
-        P [pPos] [cPos]
-    E [libray number] [clone number + G-L bool + number of process]
-        P [pPos] [cPos]
-        P [pPos] [cPos]
-```
-
-### user-define function call
-
-```text
-func(1,2)
-
-s00: rbp s00
-s01: arg 2
-s02: arg 1
-s03: rpc x
-s04: rbp s00
-s05: var 1
-s06: var 2
-```
 
 ### entry / exit event handler
 
@@ -171,3 +120,7 @@ site[https://qiita.com/kondo0602/items/7cc6e0e7783b3533ce2f]
 ```bash
 CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 ```
+
+## README
+
+[how to write](https://docs.github.com/ja/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)

@@ -41,7 +41,6 @@ Please read file structure before using comp and adding file.
 ```
 
 
-
 ## How to integrate Web assemb in Next.js
 
 ### Reference files
