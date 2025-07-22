@@ -2,34 +2,14 @@
 
 ## WEB Shica TO DO LIST
 
-## Web shica page directory
 
-```text
-|- components
-|  |-code: for instruction page componets
-|  |-kunii: for inprimentation page of sub-c/im-c
-|  |-shikada: for imprimentation page of shica
-|
-|- app
-|  |- kunii: instructino and introduction of your reseach
-|  |  |- sub-C: sub-c implemantation page
-|  |  |- im-C: im-c implemetation page
-|  |
-|  |- shikada: instructtion and introduction of my research
-|  |  |- web-shica: web-shica implemetation
-|  |  |- shica-compiler: compiler of shica that works in C enviroment
-|
-|- public
-|  |- shicada: static page, or plane code (html, js)
-|  |- kunii:  static page, or plane code (html, js)
-| 
-```
 
 ### vm.leg (C code)
 
 ```text
 +- [0] FIXME / TASK
 |   |- (***) runtime error
+|   |- (**-) learn sepa. heap memory
 |   |- (*--) sepa. code
 |
 +- [1] Add more web event handler and function
@@ -40,12 +20,12 @@
 |   |(-) trigger web timer
 |   |(-) change the rober color
 |
-+- web UI/UX
++- [2] Web UI/UX
 |  |- (o) add cimpile and run logging
-|  |- (-) Add page outline comp.       <- if I want to be relax
+|  |- (-) Add page outline comp.       <- in progress
 |  |- (-) light/dark mode
 |
-+-add original shica feature
++- [3] Add original shica feature
 |   |(o) state transition
 |   |(o) entry()event function
 |   |(o) exit() event function
@@ -71,25 +51,15 @@
 |         |(-) Distributed grammer/feature?
 |         |(-) Apply real device (micro controller)
 |
-+-run multiple agent
-|   |(-) sotre one or more codes
++- [4] Run multiple agent
+|   |(o) sotre one or more codes
 |   |(-) store one or more argents
-|   |(-) combine web
+|   |(-) implement all
+|   |(-) msgc (each heap memory)
 |
-+-add C interface generator
++- [5] Add C interface generator
 |   |(-) make interface generator that works web
-|   |(-)
-````
-
-### index.html (WEB code)
-
-```text
-|- agent
-|   |(-) setRGB(r,g,b): change the robot color <- in progress
-|   |(-) setLED(x): change the robot LED status
-|   |(-) speak('msg'): output text to the robot
-|- UI
-|   |(-) make the code selection more readable
+|   |(-) 
 ```
 
 ## MECHA. MEMO
@@ -184,6 +154,8 @@ GC should be change at swtiching compile and executor
     step 2
         call gc_collect()
 ```
+
+### Other README
 
 ## web server
 
