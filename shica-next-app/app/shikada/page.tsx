@@ -10,6 +10,7 @@ import { DescriptionComponent } from "@/component/page/DescriptionComponent";
 import { CodeSpan } from "@/component/page/CodeSpan";
 import { CodeBlock } from "@/component/page/CodeBlock";
 import { FeatureCard } from "@/component/page/FeatureCard";
+import { PageList, PageItem } from "@/component/page/PageList";
 
 // メインページコンポーネント
 const ProgrammingLanguagePage = () => {
@@ -81,33 +82,8 @@ stt s2(){ // State 2
 `}
       </CodeBlock>
 
-      <div className="feature-grid">
-        <FeatureCard title="直感的な構文">
-          <p>
-            日本語キーワードを使用し、自然言語に近い形でプログラムを記述できます。
-            <CodeSpan>思考()</CodeSpan>で思考プロセスを、
-            <CodeSpan>表現()</CodeSpan>で出力を表現します。
-          </p>
-        </FeatureCard>
 
-        <FeatureCard title="型システム">
-          <p>
-            シンプルな型定義で安全なコードを記述できます。
-            <CodeSpan>心</CodeSpan>は文字列型、
-            <CodeSpan>数</CodeSpan>は数値型を表します。
-          </p>
-        </FeatureCard>
-
-        <FeatureCard title="関数型プログラミング">
-          <p>
-            関数型プログラミングの概念を取り入れ、
-            <CodeSpan>純粋関数</CodeSpan>や<CodeSpan>不変性</CodeSpan>
-            をサポートします。
-          </p>
-        </FeatureCard>
-      </div>
-
-      <CodeBlock filename="advanced_example.zen">
+      <CodeBlock filename="shica_example.stt">
         {`// function definition
 fn fib(n){
   if(n <= 1){
@@ -131,6 +107,32 @@ stt s1(){
 }
 `}
       </CodeBlock>
+
+      <PageList pages={[
+        {
+          id: "web-shica",
+          name: "Web Shica Simulator",
+          description: "Web Shica Simulator is a web-based simulator for Shica programming language.",
+          url: "/shikada/shica",
+          profileImage: "🧑‍💻",
+        },
+        {
+          id: "shica-instruction",
+          name: "Web Shica Instruction",
+          description: "Web Shica Instruction is a web-based instruction for Shica programming language on the web.",
+          url: "/shikada/instruction",
+          profileImage: "📖",
+        },
+        {
+          id: "shica-editor",
+          name: "Shica Editor",
+          description: "Shica Editor is a web-based editor for Shica programming language for local development.",
+          url: "/shikada/editor",
+          profileImage: "💻",
+        }
+      ]} title="Web Shica">
+
+      </PageList>
 
       <DescriptionComponent title="Features">
         <p>Shica has the following features:</p>

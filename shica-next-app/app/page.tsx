@@ -18,7 +18,7 @@ const pages: PageItem[] = [
     name: 'Programming System Laboratory',
     description: 'Supivisor: Ian Piumarta',
     url: '/piumarta',
-    profileImage: '🇬🇧'
+    profileImage: '🏫'
   },
   {
     id: '1',

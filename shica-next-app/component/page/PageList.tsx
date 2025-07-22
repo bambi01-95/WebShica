@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-interface PageItem {
+export interface PageItem {
   id: string;
   name: string;
   description: string;
@@ -9,11 +9,11 @@ interface PageItem {
   profileImage: string;
 }
 
-export function PageList(props: { pages: PageItem[] }) {
-  const { pages } = props;
+export function PageList(props: { pages: PageItem[], title?: string }) {
+  const { pages, title } = props;
 
   const handleOpenPage = (url: string) => {
-    window.open(url, '_blank');
+    window.location.href = url;
   };
 
   return (
@@ -36,8 +36,8 @@ export function PageList(props: { pages: PageItem[] }) {
       `}</style>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-orange-900 mb-2">Pages</h1>
-        <p className="text-orange-700 text-lg">List of pages</p>
+        {title && <h1 className="text-4xl font-bold text-orange-900 mb-2">{title}</h1>}
+        {!title && <p className="text-orange-700 text-lg">List of pages</p>}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

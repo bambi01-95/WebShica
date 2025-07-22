@@ -28,10 +28,11 @@
 ### vm.leg (C code)
 
 ```text
-+- FIXME
-|   |- (*) runtime error
++- [0] FIXME / TASK
+|   |- (***) runtime error
+|   |- (*--) sepa. code
 |
-+- add more web event handler and function
++- [1] Add more web event handler and function
 |   |(o) change the speed
 |   |(-) change the color               <- in progress
 |   |(-) detect touch
@@ -41,6 +42,7 @@
 |
 +- web UI/UX
 |  |- (o) add cimpile and run logging
+|  |- (-) Add page outline comp.       <- if I want to be relax
 |
 +-add original shica feature
 |   |(o) state transition
@@ -48,7 +50,7 @@
 |   |(o) exit() event function
 |   |(-) add peg/leg struct into union object to collect memory. <-- next step
 |   |  |- (o) yyrelease 
-|   |  |- (x) mark                     <-
+|   |  |- (x) mark                     <- fixme!!!
 |   |
 |   |(-) global variable               <- in progress
 |   |(-) type checking
