@@ -28,7 +28,10 @@
 ### vm.leg (C code)
 
 ```text
-|-add more web event handler and function
++- FIXME
+|   |- (*) runtime error
+|
++- add more web event handler and function
 |   |(o) change the speed
 |   |(-) change the color               <- in progress
 |   |(-) detect touch
@@ -36,7 +39,10 @@
 |   |(-) trigger web timer
 |   |(-) change the rober color
 |
-|-add original shica feature
++- web UI/UX
+|  |- (o) add cimpile and run logging
+|
++-add original shica feature
 |   |(o) state transition
 |   |(o) entry()event function
 |   |(o) exit() event function
@@ -62,12 +68,12 @@
 |         |(-) Distributed grammer/feature?
 |         |(-) Apply real device (micro controller)
 |
-|-run multiple agent
++-run multiple agent
 |   |(-) sotre one or more codes
 |   |(-) store one or more argents
 |   |(-) combine web
 |
-|-add C interface generator
++-add C interface generator
 |   |(-) make interface generator that works web
 |   |(-)
 ````

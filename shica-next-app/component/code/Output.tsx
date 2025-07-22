@@ -7,7 +7,6 @@ export interface OutputProps {
   height?: string;
   isRounded?: boolean;
   logs?: Log[];
-  setLogs?: (logs: Log[]) => void;
   onClear?: () => void;
 }
 
@@ -43,7 +42,6 @@ const Output = ({
   height = "h-full",
   isRounded = true,
   logs = [],
-  setLogs = () => {},
   onClear = () => {},
 }: OutputProps) => {
   const [title, setTitle] = useState("Output");

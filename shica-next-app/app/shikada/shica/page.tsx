@@ -2,8 +2,8 @@
 import FileLists from "@/component/code/FileLists";
 import { CodeEditor } from "@/component/code/CodeEditor";
 import { useState, useEffect, useRef } from "react";
-import Output, { Log } from "@/component/code/Output";
-import Map, { Robot } from "@/component/code/Map";
+import Output, { Log, LogLevel } from "@/component/code/Output";
+import { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
@@ -24,6 +24,8 @@ const ShicaPage = () => {
       code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
     },
   ]);
+
+  const [isMap, setIsMap] = useState(false);
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
   const isRunningRef = useRef(true);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -43,10 +45,6 @@ const ShicaPage = () => {
     y: 0,
   });
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
-
-  const onClear = () => {
-    setLogs([]);
-  };
 
   // 配列に要素を追加する例
   const addItem = (newItem: string = "") => {
@@ -78,6 +76,13 @@ const ShicaPage = () => {
     }
   };
 
+  const addLog = (level: LogLevel, message: string) => {
+    setLogs([...logs, { level, message, timestamp: Date.now() }]);
+  };
+  const clearLogs = () => {
+    setLogs([]);
+  };
+
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = code[selectedIndex].code;
@@ -87,6 +92,11 @@ const ShicaPage = () => {
       ["string"],
       [selectedCode]
     );
+    if (res === 1) {
+      addLog(LogLevel.INFO, "COMPILE: Compile success");
+    } else {
+      addLog(LogLevel.ERROR, "COMPILE: Compile failed");
+    }
     setIsCompiling(false);
   }, [isCompiling, Module, isReady]);
 
@@ -135,6 +145,9 @@ const ShicaPage = () => {
       if (!isRunInit) {
         Module.ccall("initRunWeb", "number", [], []);
         setIsRunInit(true);
+        addLog(LogLevel.INFO, "RUN: Start");
+      } else {
+        addLog(LogLevel.INFO, "RUN: Continue");
       }
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
@@ -156,13 +169,16 @@ const ShicaPage = () => {
         Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
       }, 50);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        addLog(LogLevel.INFO, "RUN: Stopped");
+      }
     }
-  }, [isRunning, Module, isReady, isRunInit]);
+  }, [isRunning, Module, isReady]);
 
   const run = () => {
     if (!isCompiled) {
-      alert("Please compile the code first");
+      addLog(LogLevel.ERROR, "RUN: Please compile the code first");
       return;
     }
     setIsRunning(!isRunning);
@@ -306,8 +322,7 @@ const ShicaPage = () => {
                 height="h-full"
                 isRounded={false}
                 logs={logs}
-                setLogs={setLogs}
-                onClear={onClear}
+                onClear={clearLogs}
               />
             </div>
             {/* BOTTOM */}
