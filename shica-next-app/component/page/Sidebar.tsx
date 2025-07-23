@@ -52,11 +52,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           background: linear-gradient(90deg, rgba(255, 152, 0, 0.05), rgba(255, 152, 0, 0.1));
         }
         .sidebar-item.active {
-          background: linear-gradient(90deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15));
+          background: var(--color-sidebar-item-active);
           border-right: 3px solid #ff9800;
         }
         .sidebar-icon {
-          background: linear-gradient(135deg, #ff9800, #ffb74d);
+          background: var(--color-sidebar-icon);
           transition: all 0.2s ease;
         }
         .sidebar-item:hover .sidebar-icon {

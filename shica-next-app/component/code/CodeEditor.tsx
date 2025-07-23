@@ -107,7 +107,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
-          className="bg-gray-800 text-gray-400 text-sm font-mono px-3 py-4 border-r border-gray-700 select-none overflow-hidden"
+          className="code-background text-gray-400 text-sm font-mono px-3 py-4 border-r border-gray-700 select-none overflow-hidden"
         >
           {lineNumbers.map((num) => (
             <div key={num} className="leading-6 text-right">
@@ -124,7 +124,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
-            className="w-full h-full p-4 bg-gray-900 text-gray-100 font-mono text-sm leading-6 resize-none outline-none"
+            className="w-full h-full p-4 text-gray-100 font-mono text-sm leading-6 resize-none outline-none"
             placeholder="Write your code here..."
             spellCheck={false}
             style={{
@@ -134,11 +134,15 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           />
           {/* Custom scrollbar */}
           <style jsx>{`
+            textarea {
+              background: var(--color-background-primary);
+              color: var(--color-text-primary);
+            }
             textarea::-webkit-scrollbar {
               width: 8px;
             }
             textarea::-webkit-scrollbar-track {
-              background: #1f2937;
+              background: var(--color-background-primary);
             }
             textarea::-webkit-scrollbar-thumb {
               background: #4b5563;

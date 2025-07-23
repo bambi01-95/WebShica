@@ -12,15 +12,21 @@
   --color-background-primary: #fff;
   --color-background-secondary: #f0f0f0;
   /* ...その他のライトテーマの変数 */
+  --color-sidebar-item-active: linear-gradient(90deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15)), #ff9800;
+  --color-sidebar-icon: linear-gradient(135deg, #ff9800, #ffb74d);
 }
 
 /* ダークテーマの変数 */
 html.dark {
   --color-text-primary: #eee;
   --color-text-secondary: #bbb;
-  --color-background-primary: #1a202c; /* Tailwindの`bg-gray-900`に近い色 */
-  --color-background-secondary: #2d3748; /* Tailwindの`bg-gray-800`に近い色 */
+  --color-background-primary: rgb(17, 24, 39); /* Tailwindの`bg-gray-900`に近い色 */
+  --color-background-secondary: #2d3748; /* Tailwindの`bg-gray-700`に近い色 */
+
   /* ...その他のダークテーマの変数 */
+  --color-sidebar-item-active: linear-gradient(90deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15)), #ffca7b;
+  --color-sidebar-icon: linear-gradient(135deg, #ffca7b, #ffb74d);
+
 }
 
 /* 基本的なスタイル */

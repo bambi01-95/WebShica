@@ -7,6 +7,7 @@ import { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
+import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 
 //for color picker
 const hexToRgb = (hex: string) => {
@@ -315,6 +316,7 @@ const ShicaPage = () => {
               >
                 {isCompiling ? "Compiling..." : "Compile"}
               </button>
+              <ThemeToggleButton />
             </div>
             {/* BOTTOM */}
             <div className="h-1/4">
