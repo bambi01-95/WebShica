@@ -1,0 +1,29 @@
+typedef struct _yycontext yycontext;
+typedef void (*yyaction)(yycontext *yy, char *yytext, int yyleng);
+typedef struct _yythunk {    type_t _type;
+    type_t _type; int begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;
+
+struct _yycontext {
+    type_t _type;
+    type_t _type;
+
+  char     *__buf;
+  int       __buflen;
+  int       __pos;
+  int       __limit;
+  char     *__text;
+  int       __textlen;
+  int       __begin;
+  int       __end;
+  int       __textmax;
+  yythunk  *__thunks;
+  int       __thunkslen;
+  int       __thunkpos;
+  YYSTYPE   __;
+  YYSTYPE  *__val;
+  YYSTYPE  *__vals;
+  int       __valslen;
+#ifdef YY_CTX_MEMBERS
+  YY_CTX_MEMBERS
+#endif
+};

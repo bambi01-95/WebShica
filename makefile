@@ -16,6 +16,7 @@ CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s ENVIRONMENT=web -s EXPORTED_FUN
 
 crun:
 	leg -o vm.c ./vm.leg
+	./legstruct_type_inserter
 	gcc -o vm vm.c
 	
 # build vm.js
