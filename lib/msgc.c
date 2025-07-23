@@ -51,7 +51,7 @@ void gc_pushRoot(const void *varp)	// push a new variable address onto the root 
 
 // macro to declare, initialise, and push the address of an object pointer variable on the root stack
 
-
+void **roots[MAXROOTS];
 int nroots = 0;
 #ifdef NDEBUG
 void gc_popRoot(void)	// remove the topmost variable address from the root stack

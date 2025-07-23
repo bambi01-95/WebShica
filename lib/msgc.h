@@ -8,7 +8,7 @@
 
 #define MAXROOTS 1024
 
-void **roots[MAXROOTS];	// pointers to the variables pointing to objects
+extern void **roots[MAXROOTS];	// pointers to the variables pointing to objects
 extern int nroots;	// number of variables addresses in the roots stack
 
 struct gc_header
