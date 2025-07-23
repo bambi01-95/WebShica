@@ -129,34 +129,21 @@ CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_i
 (A) Emscripten を導入 (C/C++ → WASM コンパイル)
 Homebrew がインストール済みか確認
 
-bash
-コピーする
-編集する
-brew --version
-emsdk (Emscripten SDK) を clone
 
-bash
-コピーする
-編集する
-git clone https://github.com/emscripten-core/emsdk.git
-cd emsdk
+>brew --version
+>emsdk (Emscripten SDK) を clone
+
+
+>git clone https://github.com/emscripten-core/emsdk.git
+>cd emsdk
 emsdk をインストール
 
-bash
-コピーする
-編集する
-./emsdk install latest
-./emsdk activate latest
-環境変数をセット
 
-bash
-コピーする
-編集する
-source ./emsdk_env.sh
+>./emsdk install latest
+>./emsdk activate latest
+環境変数をセット
+>source ./emsdk_env.sh
 動作確認
 
-bash
-コピーする
-編集する
-emcc -v
+>emcc -v
 emcc は emscripten の C コンパイラで、.wasm を生成できます。
