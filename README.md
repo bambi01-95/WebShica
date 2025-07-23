@@ -121,7 +121,7 @@ site[https://qiita.com/kondo0602/items/7cc6e0e7783b3533ce2f]
 CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 ```
 
-## README
+## How to install wasm for C lang
 
 [how to write](https://docs.github.com/ja/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
 
@@ -129,20 +129,25 @@ CFLAGS = -O3 -s WASM=1 -s INITIAL_MEMORY=64MB -s EXPORTED_FUNCTIONS='["_memory_i
 (A) Emscripten を導入 (C/C++ → WASM コンパイル)
 Homebrew がインストール済みか確認
 
-
+```bash
 >brew --version
->emsdk (Emscripten SDK) を clone
+```
 
-
+emsdk (Emscripten SDK) を clone
+```
 >git clone https://github.com/emscripten-core/emsdk.git
 >cd emsdk
+```
 emsdk をインストール
-
-
+``` text
 >./emsdk install latest
 >./emsdk activate latest
+```
+
 環境変数をセット
+```
 >source ./emsdk_env.sh
+```
 動作確認
 
 >emcc -v

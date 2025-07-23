@@ -298,6 +298,9 @@ typedef enum Type {
 	/* 21 */ Transition, State, Event,EventH,
 	/* AF LEG */
 	/* 25 */ Variables,
+	/* LEG OBJ */
+	YYcontext,
+	YYthunk,
 }type_t;
 
 
@@ -3206,7 +3209,44 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 			gc_markOnly(code->IntArray.elements); // mark the code elements
 		}
 	}
+	if(yyctx){
+		gc_markOnly(yyctx);
+		// char     *__buf;
+		// int       __buflen;
+		gc_markOnly(yyctx->__buf);
+		// int       __pos;
+		// int       __limit;
+		// char     *__text;
+		// int       __textlen;
+		gc_markOnly(yyctx->__text);
+		// int       __begin;
+		// int       __end;
+		// int       __textmax;
+		// yythunk  *__thunks;
+		// int       __thunkslen;
+		// int       __thunkpos;
+		gc_markOnly(yyctx->__thunks);
+// 		for(int i=0; i<yyctx->__thunkslen;i++){
+// // typedef struct _yythunk { int begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;
+// 			gc_markOnly(yyctx->__thunks[i].next)
+// 			//action is function pointer
+// 			//next is maybe not need ...
+// 		}
+		// YYSTYPE   __;
+		// YYSTYPE  *__val;
+		// YYSTYPE  *__vals;
+		// int       __valslen;
+		#undef yy
+		#undef __
+		gc_mark(yyctx->__);
+		gc_mark(yyctx->__val);
+		for(int i=0;i<yyctx->__valslen;i++){
+			gc_mark(yyctx->__vals[i]);
+		}
+	}
 }
+
+
 /*===============COMPILE=============*/
 
 /* ==================================*/
