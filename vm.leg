@@ -74,7 +74,7 @@ int compileWebCode(const char *code);
     int runWeb();
 
 /* ======================= MSGC ========================= */
-#include "./lib/msgc.c"
+#include "./lib/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define calloc(n, size) gc_alloc((n) * (size))
 #define realloc(ptr, size) gc_realloc(ptr, size)
@@ -1138,7 +1138,7 @@ args	= LPAR a:mkNil
 
 expr	= assignment
 
-assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x, nlines) }
+assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x,  0,nlines) }
 			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x) }
 			| eqop
 

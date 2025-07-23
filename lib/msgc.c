@@ -8,11 +8,7 @@
 #ifndef __gc_c
 #define __gc_c
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include "msgc.h"
 
 
 
@@ -21,22 +17,6 @@
 #else
 # define gc_debug
 #endif
-
-typedef struct gc_header gc_header;
-
-/*
-int => 4fdasdf fdf
-unsinged name:x => xbit
-*/
-
-struct gc_header
-{
-    unsigned int size;		// size of this block, including header
-    unsigned 	 busy : 1;	// this block is busy (reachable)
-    unsigned 	 mark : 1;	// this block is marked (reachable) during GC
-    unsigned 	 atom : 1;	// the data stored in this block contains no pointers
-    // unsigned padding : 29; // アライメント調整
-};
 
 gc_header *gc_memory  = 0;	// address of start of memory
 gc_header *gc_memend  = 0;	// address of end (first byte after) memory
@@ -57,39 +37,28 @@ void gc_init(int size)
 
 // roots contains the addresses of all variables that hold a reference to an object
 
-#define MAXROOTS 1024
 
-void **roots[MAXROOTS];	// pointers to the variables pointing to objects
-int   nroots = 0;	// number of variables addresses in the roots stack
 
 void *TARGET_ADDR = 0;
-#define gc_pushRoot(varp) _gc_pushRoot((void *)(varp),__LINE__)
-void _gc_pushRoot(const void *varp,int line)	// push a new variable address onto the root stack
+
+void gc_pushRoot(const void *varp)	// push a new variable address onto the root stack
 {
     if (nroots == MAXROOTS) {
         printf("gc root table full\n");
     }
     roots[nroots++] = (void **)varp;
-    // if(!TARGET_ADDR)printf("GC_PUSH %p %d\n", varp, line);
 }
 
 // macro to declare, initialise, and push the address of an object pointer variable on the root stack
 
-#define GC_PUSH(TYPE, VAR, INIT)		\
-    TYPE VAR = INIT;				\
-    _gc_pushRoot((void *)&VAR,__LINE__)
-#ifdef NDEBUG
 
+int nroots = 0;
+#ifdef NDEBUG
 void gc_popRoot(void)	// remove the topmost variable address from the root stack
 {
     --nroots;
 }
-
-#define GC_POP(VAR)				\
-    gc_popRoot()
-
 #else // !NDEBUG -- enforce LIFO popping of roots
-
 void gc_popRoot(void *varp,const char *name)	// pop a variable, checking it was the topmost on the stack
 {
     assert(nroots > 0);
@@ -98,10 +67,8 @@ void gc_popRoot(void *varp,const char *name)	// pop a variable, checking it was 
         printf("GC root '%s' popped out of order",name);
     };
 }
+#endif //NDBUG
 
-#define GC_POP(VAR)				\
-    gc_popRoot((void *)&VAR, #VAR)
-#endif
 
 void gc_popRoots(int n)	// pop several variables at once
 {
@@ -109,7 +76,7 @@ void gc_popRoots(int n)	// pop several variables at once
     nroots -= n;
 }
 
-void gc_mark(void *ptr);	// mark an object as reachable, then call the mark function...
+
 
 // the mark function is run on any object immediately after it is marked, to recursively
 // mark all the objects pointed to from within it
@@ -118,23 +85,19 @@ void gc_defaultMarkFunction(void *ptr)	// recursively mark all pointers stored i
 {
     gc_header *hdr = (gc_header *)ptr - 1;	// object address to header address
     if (hdr->atom) return;			// atomic objects do not contain pointers
-    #if SBC
-    void *end = (void *)hdr + hdr->size;	// first address past end of object
-    while (ptr < end) gc_mark(*(void **)ptr++);	// recursively mark the object's pointers
-    #else //C++
     void *end = (void*)((char*)(hdr) + hdr->size);
     while (ptr < end) {
         gc_mark(*(void**)ptr); // dereference and pass to gc_mark
         ptr = (void*)((char*)ptr + sizeof(void*)); // increment pointer
     }
-    #endif
 }
 
-typedef void (*gc_markFunction_t)(void *);
+
 
 // the application should provide a mark function that accurately marks only valid pointers
 
 gc_markFunction_t gc_markFunction = gc_defaultMarkFunction;
+gc_collectFunction_t gc_collectFunction = gc_defaultCollectFunction;
 gc_markFunction_t gc_isMarkFuction = gc_defaultMarkFunction;
 
 // the collect function is run once at the start of GC, before the roots are marked,
@@ -143,16 +106,11 @@ gc_markFunction_t gc_isMarkFuction = gc_defaultMarkFunction;
 
 void gc_defaultCollectFunction(void) {}
 
-typedef void (*gc_collectFunction_t)(void);
-
-gc_collectFunction_t gc_collectFunction = gc_defaultCollectFunction;
 
 
-#if SBC
-#define GC_PTR(P) ((void *)gc_memory <= (P) && (P) < (void *)gc_memend)
-#else
+
+
 #define GC_PTR(P) ((void *)gc_memory <= (void *)(P) && (void *)(P) < (void *)gc_memend)
-#endif
 
 void gc_markOnly(void *ptr)	// mark an object reachable without recursively marking its content
 {
@@ -299,46 +257,26 @@ void *gc_alloc(int lbs)	// allocate at least lbs bytes of memory
     gc_header *start = gc_memnext, *here = start;	// start looking for a free block at memnext
     for (int retries = 0;  retries < 2;  ++retries) {	// try twice, before and after collecting
         do {
-            #if SBC
-            gc_debug printf("%p ? %i %d\n", (void *)here + sizeof(*here), here->size, here->busy);
-            #else
             gc_debug printf("%p ? %i %d\n", (void*)((char*)here + sizeof(*here)), here->size, here->busy);
-            #endif
             if (!here->busy && here->size >= size) {	// this block is free and large enough
                 // split this block into two if the second block is large enough to hold a pointer
                 if (here->size > size + sizeof(gc_header) + sizeof(long)) { // split it
-                #if SBC
-                    gc_header *next = (void *)here + size;
-                #else
                     gc_header *next = (gc_header*)((char*)here + size);
-                #endif
                     next->size = here->size - size;
                     here->size = size;			// shrink this block
                     next->busy = 0;			// make new next block free
                     next->mark = 0;
                     next->atom = 0;
                 }
-                #if SBC
-                gc_memnext = (void *)here + here->size;			// next block to allocate,
-                #else //C++
                 gc_memnext = (gc_header*)((char*)here + here->size);
-                #endif
                 if (gc_memnext == gc_memend) gc_memnext = gc_memory;	// wraps back to start at the end
                 assert(gc_memory  <= gc_memnext);
                 assert(gc_memnext <  gc_memend);
                 here->busy = 1;				// this block is now allocated
-                #if SBC
-                gc_debug printf("%p ALLOC %d %d\n", (void *)here + sizeof(*here), lbs, here->size);
-                #else //C++
                 gc_debug printf("%p ALLOC %d %d\n", (void*)((char*)here + sizeof(*here)), lbs, here->size);
-                #endif
                 return (void *)(here + 1);		// header address to object address
             }
-            #if SBC
-            here = (void *)here + here->size;		// block not free: advance to next block and
-            #else //C++
             here = (gc_header*)((char*)here + here->size);
-            #endif
             if (here == gc_memend) here = gc_memory;	// wrap back to start at the end of memory
             assert(gc_memory <= here);
             assert(here < gc_memend);
@@ -365,11 +303,7 @@ void *gc_alloc_atomic(int size)	// allocate a block and make it atomic (no point
 char *gc_strdup(char *s)	// allocate memory for and copy a string
 {
     int len = strlen(s);
-#if SBC
-    char *mem = gc_alloc_atomic(len + 1);
-#else
     char *mem = (char*)(gc_alloc_atomic(len + 1));
-#endif
     gc_debug printf("%p:%s [%d]\n", mem, s, len);
     memcpy(mem, s, len);
     mem[len] = 0;
@@ -392,54 +326,5 @@ void *gc_realloc(void *oldptr, int newsize)	// grow or shrink an allocated block
     memcpy(newptr, oldptr, len);	// copy old object content into new block
     return newptr;			// object has moved
 }
-
-
-#if TEST_GC	// trivial test with linked lists -- see mstest.c for a real stress test
-
-typedef struct Link Link;
-
-struct Link {
-    int  data;
-    Link *next;
-};
-
-struct Link *newLink(int data, Link *next)
-{
-    Link *link = gc_alloc(sizeof(*link));
-    link->data = data;
-    link->next = next;
-    return link;
-}
-
-void markLink(Link *ptr)
-{
-    gc_mark(ptr->next);
-}
-
-int main()
-{
-    gc_init(4096);
-    gc_markFunction = (gc_markFunction_t)markLink;
-
-    Link *list = 0;
-
-    gc_pushRoot(&list);
-
-    for (;;) {
-	list = 0;
-	for (int i = 0;  i < 10;  ++i) {
-	    list = newLink(i, list);
-	    static int cycle = 0;
-	    if ((random() & 1023) < ((cycle = cycle + 1) & 1023)) gc_collect();
-	}
-	for (Link *l = list;  l;  l = l->next)
-	    printf("%d ", l->data);
-	printf("\n");
-    }
-
-    return 0;
-}
-
-#endif // TEST_GC
 
 #endif // __gc_c
