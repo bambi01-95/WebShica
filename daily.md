@@ -1,7 +1,7 @@
 # Daily
 
 - 2025/07/23
-  - Global variable
-  - make type insertor code 
+  - make type insertor code
   - Add and Collect MSGC object.
 - 2025/07/24
+  - global and local variable

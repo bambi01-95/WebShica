@@ -318,7 +318,7 @@ struct UserFunc	 { type_t _type;           oop parameters, body, code; };
 struct Binop   	 { type_t _type;           enum binop op;  oop lhs, rhs; };
 struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
 struct GetVar  	 { type_t _type; int line; oop id; };
-struct SetVar  	 { type_t _type; int line; oop id; oop rhs; };
+struct SetVar  	 { type_t _type; int line; oop id; oop rhs;int scope;  };
 struct GetArray	 { type_t _type;           oop array, index; };
 struct SetArray	 { type_t _type;           oop array, index, value; };
 struct Call 	 { type_t _type; int line; oop function, arguments; };
@@ -627,12 +627,13 @@ oop newGetVar(oop id,int line)
     return node;
 }
 
-oop newSetVar(oop id, oop rhs,int line)
+oop newSetVar(oop id, oop rhs,int scope, int line)
 {
 	gc_pushRoot((void*)&id);
     oop node = newObject(SetVar);
     node->SetVar.id  = id;
     node->SetVar.rhs = rhs;
+	node->SetVar.scope = scope;
 	node->SetVar.line = line;
 	gc_pushRoot((void*)&rhs);
     return node;
@@ -1068,6 +1069,7 @@ int nlines = 0;
 
 start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
+		|  - a:assignment {result = a; }
 		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
 		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); }
@@ -1077,7 +1079,7 @@ state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 events = LBRACE b:mkBlock
 	  (
 	    !RBRACE
-	    e:event              { Event_Block_append(b, e) }
+	    (e:event|e:assignment)              { Event_Block_append(b, e) }
 	  )+
 	  RBRACE			{ $$ = b }
 
@@ -1110,7 +1112,7 @@ block   = LBRACE b:mkBlock
 
 mkBlock =                               { $$ = newBlock() }
 
-define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b), nlines); }
+define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nlines); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
