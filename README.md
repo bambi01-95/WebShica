@@ -8,7 +8,7 @@
 
 ```text
 +- [0] FIXME / TASK
-|   |- (***) runtime error
+|   |- (***) runtime error??? -> it does not use msgc???
 |   |- (**-) learn sepa. heap memory
 |   |- (*--) sepa. code
 |
@@ -22,18 +22,19 @@
 |
 +- [2] Web UI/UX
 |  |- (o) add cimpile and run logging
-|  |- (-) Add page outline comp.       <- in progress
-|  |- (-) light/dark mode
+|  |- (o) Add page outline comp.       
+|  |- (-) light/dark mode            <- in progress
 |
 +- [3] Add original shica feature
 |   |(o) state transition
 |   |(o) entry()event function
 |   |(o) exit() event function
-|   |(-) add peg/leg struct into union object to collect memory. <-- next step
+|   |(o) add peg/leg struct into union object to collect memory. <-- next step
 |   |  |- (o) yyrelease 
-|   |  |- (x) mark                     <- fixme!!!
+|   |  |- (o) mark
 |   |
 |   |(-) global variable               <- in progress
+|   |(-) local variable
 |   |(-) type checking
 |   |  |> push function into function list.
 |   |  |> When the function is called for the first time, copile it by its argument type.
