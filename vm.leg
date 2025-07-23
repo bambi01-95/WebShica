@@ -299,8 +299,6 @@ typedef enum Type {
 	/* AF LEG */
 	/* 25 */ Variables,
 	/* LEG OBJ */
-	YYcontext,
-	YYthunk,
 }type_t;
 
 
@@ -344,13 +342,6 @@ struct Variables{
 	oop *elements;
 };
 
-/* peg/leg obj */
-struct yyContext {type_t _type; void* ptr;};
-struct yyThunk {type_t _type; void* ptr; };
-
-struct _yythunk;
-struct _yycontext;
-
 union Object {
     enum   Type     _type;
 	struct Undefined Undefined;
@@ -382,9 +373,6 @@ union Object {
 
 	/* AF LEG */
 	struct Variables Variables;
-	/* LEG OBJ */
-	struct yyContext yyContext; /* does not generated */
-	struct yyThunk yyThunk; /* does not generated */
 };
 
 int getType(oop o)
