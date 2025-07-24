@@ -8,6 +8,12 @@ import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useVM";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
+import { Roboto } from "next/font/google";
+
+const roboto = Roboto({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "600", "500", "700"],
+});
 
 //for color picker
 const hexToRgb = (hex: string) => {
@@ -206,7 +212,7 @@ const ShicaPage = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <span
-                className="text-2xl font-bold"
+                className={`text-2xl font-bold weight:400 ${roboto.className}`}
                 style={{ color: "var(--color-text-primary)" }}
               >
                 Shica Code Simulator

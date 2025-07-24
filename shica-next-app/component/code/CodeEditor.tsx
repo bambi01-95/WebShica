@@ -1,5 +1,11 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { Roboto_Mono } from "next/font/google";
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
 
 interface CodeEditorProps {
   filename: string;
@@ -81,6 +87,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       } overflow-hidden ${height}`}
       style={{
         border: "1px solid var(--color-code-background700)",
+        backgroundColor: "var(--color-background-primary)",
       }}
     >
       {/* Header */}
@@ -146,7 +153,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={handleCodeChange}
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
-            className="w-full h-full p-4 text-gray-100 font-mono text-sm leading-6 resize-none outline-none"
+            className={`${robotoMono.className} w-full h-full p-4 font-mono text-sm leading-6 resize-none outline-none`}
             placeholder="Write your code here..."
             spellCheck={false}
             style={{

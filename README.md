@@ -8,13 +8,15 @@
 
 ```text
 +- [0] FIXME / TASK
-|   |- (***) runtime error??? -> it does not use msgc???
-|   |- (**-) learn sepa. heap memory
+|   |- (***) runtime error??? -> it does not use msgc??? <- in progress: run!!!
+|   |- (**-) learn sepa. heap memory.       <- in progress
+|.  |       |> copy GC. it is good for generation gc
+|.  |.      |> how to sepa. and impl. msgc...
 |   |- (*--) sepa. code
 |
 +- [1] Add more web event handler and function
 |   |(o) change the speed
-|   |(-) change the color               <- in progress
+|   |(-) change the color                 <- NEXT
 |   |(-) detect touch
 |   |(-) detect collision
 |   |(-) trigger web timer
@@ -23,8 +25,9 @@
 +- [2] Web UI/UX
 |  |- (o) add cimpile and run logging
 |  |- (o) Add page outline comp.       
-|  |- (*) light/dark mode            <- in progress
-|. |- (-) select and adapt font.  
+|  |- (o) light/dark mode            
+|. |- (o) select and adapt font.  
+|. |- (-) coloring code                   <- NEXT
 |
 +- [3] Add original shica feature
 |   |(o) state transition
@@ -34,7 +37,7 @@
 |   |  |- (o) yyrelease 
 |   |  |- (o) mark
 |   |
-|   |(-) global variable               <- in progress
+|   |(-) global variable               <- IN PROGRESS
 |   |(-) local variable
 |   |(-) type checking
 |   |  |> push function into function list.
@@ -54,8 +57,8 @@
 |         |(-) Apply real device (micro controller)
 |
 +- [4] Run multiple agent
-|   |(o) sotre one or more codes
-|   |(-) store one or more argents
+|   |(o) sotre one or more codes. 
+|   |(-) store one or more argents                <- NEXT
 |   |(-) implement all
 |   |(-) msgc (each heap memory)
 |
