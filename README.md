@@ -7,11 +7,12 @@
 ### vm.leg (C code)
 
 ```text
-+- [0] FIXME / TASK
++- [0] FIXME / TASK / THINK
 |   |- (***) runtime error??? -> it does not use msgc??? <- in progress: run!!!
 |   |- (**-) learn sepa. heap memory.       <- in progress
-|.  |       |> copy GC. it is good for generation gc
-|.  |.      |> how to sepa. and impl. msgc...
+|   |          |> copy GC. it is good for generation gc
+|   |          |> how to sepa. and impl. msgc...
+|.  |- (**-) Shared data (timer, click ) is out of gc_memory range!?
 |   |- (*--) sepa. code
 |
 +- [1] Add more web event handler and function
