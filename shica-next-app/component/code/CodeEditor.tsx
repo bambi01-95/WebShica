@@ -78,9 +78,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     <div
       className={`w-full bg-gray-900 flex flex-col ${
         isRounded ? "rounded-lg" : ""
-      } overflow-hidden`}
+      } overflow-hidden ${height}`}
       style={{
-        height: "100%",
         border: "1px solid var(--color-code-background700)",
       }}
     >

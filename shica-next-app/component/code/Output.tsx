@@ -64,19 +64,24 @@ const Output = ({
 
   return (
     <div
-      className={`h-full font-mono text-sm border ${
+      className={`font-mono text-sm border flex flex-col ${
         isRounded ? "rounded-lg" : ""
-      }`}
-      style={{ borderColor: "var(--color-code-background700)", width, height }}
+      } ${height}`}
+      style={{
+        borderColor: "var(--color-code-background700)",
+        width,
+        overflow: "hidden", // 重要: 外側コンテナのオーバーフローを防ぐ
+      }}
     >
+      {/* 固定ヘッダー */}
       <div
         className={`px-4 py-2 ${
           isRounded ? "rounded-t-lg" : ""
-        } flex items-center justify-between`}
+        } flex items-center justify-between shrink-0`} // shrink-0 を追加
         style={{
           backgroundColor: "var(--color-background-secondary)",
           color: "var(--color-code-text)",
-          borderColor: "var(--color-code-background700)",
+          borderBottom: "1px solid var(--color-code-background700)",
         }}
       >
         <div className="flex items-center space-x-2">
@@ -88,45 +93,71 @@ const Output = ({
         </div>
         <button
           onClick={onClear}
-          className="code-button text-xs px-2 py-1 rounded"
+          className="text-xs px-2 py-1 rounded transition-colors hover:bg-opacity-20 hover:bg-white"
+          style={{
+            color: "var(--color-code-text)",
+            backgroundColor: "var(--color-code-background700)",
+          }}
         >
           Clear
         </button>
       </div>
-      {/* Output Area */}
-      
+
+      {/* スクロール可能なアウトプットエリア */}
       <div
         ref={outputRef}
-        className="p-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+        className="overflow-y-auto min-h-0" // flex-1 と p-4 を削除
         style={{
           backgroundColor: "var(--color-background-primary)",
           color: "var(--color-code-text)",
+          flex: "1 1 0", // flex-1 の代わりに明示的に指定
         }}
       >
         {logs.length === 0 ? (
           <div
-            className="text-center py-8"
+            className="text-center py-8 px-4" // px-4 を追加
             style={{ color: "var(--color-code-text-secondary)" }}
           >
             No logs to display
           </div>
         ) : (
-          logs.map((log, index) => (
-            <div key={index} className={`mb-1 ${getLogStyle(log.level)}`}>
-              <span
-                className="text-xs mr-2"
-                style={{ color: "var(--color-code-text-secondary)" }}
-              >
-                [{new Date(log.timestamp).toLocaleTimeString()}]
-              </span>
-              <span className="text-xs mr-2 px-1 rounded">
-                {log.level.toUpperCase()}
-              </span>
-              <span className="whitespace-pre-wrap">{log.message}</span>
-            </div>
-          ))
+          <div className="p-4 pb-2">
+            {" "}
+            {/* ログコンテナを追加、下パディングを小さく */}
+            {logs.map((log, index) => (
+              <div key={index} className={`mb-1 ${getLogStyle(log.level)}`}>
+                <span
+                  className="text-xs mr-2"
+                  style={{ color: "var(--color-code-text-secondary)" }}
+                >
+                  [{new Date(log.timestamp).toLocaleTimeString()}]
+                </span>
+                <span className="text-xs mr-2 px-1 rounded">
+                  {log.level.toUpperCase()}
+                </span>
+                <span className="whitespace-pre-wrap">{log.message}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* カスタムスクロールバー */}
+      <style jsx>{`
+        .flex-1::-webkit-scrollbar {
+          width: 8px;
+        }
+        .flex-1::-webkit-scrollbar-track {
+          background: var(--color-background-primary);
+        }
+        .flex-1::-webkit-scrollbar-thumb {
+          background: #4b5563;
+          border-radius: 4px;
+        }
+        .flex-1::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
+        }
+      `}</style>
     </div>
   );
 };

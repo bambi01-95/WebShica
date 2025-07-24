@@ -206,10 +206,10 @@ const ShicaPage = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <span
-                className="font-medium"
+                className="text-2xl font-bold"
                 style={{ color: "var(--color-text-primary)" }}
               >
-                Shica IDE
+                Shica Code Simulator
               </span>
             </div>
             <div className="ml-4">
@@ -290,8 +290,7 @@ const ShicaPage = () => {
           {/* RIGHT */}
           {/* TOP */}
           <div className="flex flex-col w-1/2">
-
-            <div className="flex flex-row h-[700px]">
+            <div className="flex flex-row h-[600px]">
               <div className="w-1/4">
                 <FileLists
                   code={code}
@@ -300,7 +299,7 @@ const ShicaPage = () => {
                   removeItem={removeItem}
                   disableRemove={code.length <= 1}
                   addItem={addItem}
-                  MAX_FILE_COUNT={15}
+                  MAX_FILE_COUNT={12}
                   width="w-full"
                   height="h-full"
                 />
@@ -314,14 +313,14 @@ const ShicaPage = () => {
                   onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
                   isRounded={false}
                   width="w-full"
-                  height="h-full"
+                  height="h-[600px]"
                 />
               </div>
             </div>
 
             {/* MIDDLE */}
             <div
-              className="flex flex-row h-[70px] justify-center items-center gap-4"
+              className="flex flex-row justify-center items-center gap-4 p-4"
               style={{
                 backgroundColor: "var(--color-background-primary)",
                 border: "1px solid var(--color-code-background700)",
@@ -358,7 +357,7 @@ const ShicaPage = () => {
               </button>
             </div>
             {/* BOTTOM */}
-            <div className="h-full overflow-y-auto">
+            <div className="h-full overflow-hidden">
               <Output
                 height="h-full"
                 isRounded={false}
@@ -370,6 +369,19 @@ const ShicaPage = () => {
           </div>
         </div>
         {/* END TOP */}
+        <div>
+          <div
+            className="flex items-center justify-center p-4"
+            style={{ backgroundColor: "var(--color-background-secondary)" }}
+          >
+            <span
+              className="text-sm text-gray-500"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Shica IDE - Powered by Shikada
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
