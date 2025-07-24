@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface InlineCodeWithCopyProps {
   code: string;
@@ -13,12 +13,18 @@ const InlineCodeWithCopy: React.FC<InlineCodeWithCopyProps> = ({ code }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);
     } catch (e) {
-      console.error('コピー失敗:', e);
+      console.error("コピー失敗:", e);
     }
   };
 
   return (
-    <div className="inline-flex items-center bg-gray-800 text-white px-2 py-1 rounded text-sm font-mono">
+    <div
+      className="inline-flex items-center px-2 py-1 rounded text-sm font-mono"
+      style={{
+        backgroundColor: "var(--color-code-background800)",
+        color: "var(--color-code-text)",
+      }}
+    >
       <code>{code}</code>
       <button
         onClick={handleCopy}

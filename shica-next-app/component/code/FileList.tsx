@@ -31,13 +31,14 @@ const FileList: React.FC<FileListProps> = ({
         display: 'flex',
         alignItems: 'center',
         padding: '10px 12px',
-        borderBottom: '1px solid #3e3e42',
+        borderBottom: '1px solid var(--color-code-background700)',
         cursor: 'pointer',
         fontSize: '13px',
         position: 'relative',
         borderLeft: isSelected ? '3px solid #007acc' : '3px solid transparent',
+        backgroundColor: isSelected ? 'var(--color-background-secondary)' : 'transparent',
+        color: isSelected ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'
       }}
-      className={`${isSelected ? 'bg-gray-800' : 'bg-gray-900'} text-gray-300`}
       onClick={() => setSelectedIndex(index)}
       onMouseEnter={(e) => {
         if (!isSelected) e.currentTarget.classList.add('bg-gray-800');
@@ -61,14 +62,13 @@ const FileList: React.FC<FileListProps> = ({
           e.stopPropagation();
           removeItem(index);
         }}
-        className="bg-gray-700"
         style={{
           marginLeft: '8px',
           width: '16px',
           height: '16px',
           border: 'none',
           cursor: 'pointer',
-          color: '#cccccc',
+          color: 'var(--color-text-secondary)',
           fontSize: '12px',
           display: 'flex',
           alignItems: 'center',
@@ -78,7 +78,7 @@ const FileList: React.FC<FileListProps> = ({
         }}
         disabled={disableRemove}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#3e3e42';
+          e.currentTarget.style.backgroundColor = 'var(--color-background-secondary-hover)';
           e.currentTarget.style.opacity = '1';
         }}
         onMouseLeave={(e) => {

@@ -11,22 +11,87 @@
   --color-text-secondary: #666;
   --color-background-primary: #fff;
   --color-background-secondary: #f0f0f0;
+  --color-background-secondary-hover: #e0e0e0; /* ホバー時の背景色 */
   /* ...その他のライトテーマの変数 */
-  --color-sidebar-item-active: linear-gradient(90deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15)), #ff9800;
+  --color-sidebar-item-active: linear-gradient(
+      90deg,
+      rgba(255, 152, 0, 0.1),
+      rgba(255, 152, 0, 0.15)
+    ),
+    #ff9800;
   --color-sidebar-icon: linear-gradient(135deg, #ff9800, #ffb74d);
+  /* コードエディタの背景色 */
+  --color-code-background1000: rgb(
+    255,
+    255,
+    255
+  ); /* Tailwindの`bg-white`に近い色 */
+  --color-code-background900: rgb(
+    243 244 246
+  ); /* Tailwindの`bg-gray-100`に近い色 */
+  --color-code-background800: rgb(
+    229 231 235
+  ); /* Tailwindの`bg-gray-200`に近い色 */
+  --color-code-background700: rgb(
+    209 213 219
+  ); /* Tailwindの`bg-gray-300`に近い色 */
+  --color-code-background600: rgb(
+    156 163 175
+  ); /* Tailwindの`bg-gray-400`に近い色 */
+  --color-code-text: #333;
+  --color-code-text-secondary: #6b7280; /* Tailwindの`text-gray-500`に近い色 */
 }
 
 /* ダークテーマの変数 */
 html.dark {
   --color-text-primary: #eee;
   --color-text-secondary: #bbb;
-  --color-background-primary: rgb(17, 24, 39); /* Tailwindの`bg-gray-900`に近い色 */
+  --color-background-primary: rgb(
+    17,
+    24,
+    39
+  ); /* Tailwindの`bg-gray-900`に近い色 */
   --color-background-secondary: #2d3748; /* Tailwindの`bg-gray-700`に近い色 */
+  /* ダークテーマのホバー時の背景色 */
+  --color-background-secondary-hover: #374151; /* Tailwindの`bg-gray-600`に近い色 */
 
   /* ...その他のダークテーマの変数 */
-  --color-sidebar-item-active: linear-gradient(90deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.15)), #ffca7b;
+  --color-sidebar-item-active: linear-gradient(
+      90deg,
+      rgba(255, 152, 0, 0.1),
+      rgba(255, 152, 0, 0.15)
+    ),
+    #ffca7b;
   --color-sidebar-icon: linear-gradient(135deg, #ffca7b, #ffb74d);
 
+  /* コードエディタの背景色 */
+  --color-code-background1000: rgb(
+    0,
+    0,
+    0
+  ); /* Tailwindの`bg-gray-900`に近い色 */
+  --color-code-background900: rgb(
+    17,
+    24,
+    39
+  ); /* Tailwindの`bg-gray-900に近い色 */
+  --color-code-background800: rgb(
+    31,
+    41,
+    55
+  ); /* Tailwindの`bg-gray-800`に近い色 */
+  --color-code-background700: rgb(
+    55,
+    65,
+    81
+  ); /* Tailwindの`bg-gray-700`に近い色 */
+  --color-code-background600: rgb(
+    75,
+    85,
+    99
+  ); /* Tailwindの`bg-gray-600`に近い色 */
+  --color-code-text: #f8fafc;
+  --color-code-text-secondary: #9ca3af; /* Tailwindの`text-gray-400`に近い色 */
 }
 
 /* 基本的なスタイル */
@@ -49,8 +114,6 @@ body {
     --foreground: #ededed;
   }
 }
-
-
 
 .container {
   max-width: 1200px;
@@ -125,7 +188,7 @@ body {
 }
 
 .description-component::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -158,7 +221,7 @@ body {
 }
 
 .code-block-component::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -171,7 +234,7 @@ body {
 }
 
 .code-block-component::after {
-  content: '●●●';
+  content: "●●●";
   position: absolute;
   top: 12px;
   left: 15px;
@@ -185,21 +248,21 @@ body {
   margin-bottom: 15px;
   font-size: 0.9rem;
   color: #888;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 .code-white-header {
   margin-top: 15px;
   margin-bottom: 15px;
   font-size: 0.9rem;
   color: #888;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .code-block-content {
   background: #2d2d2d;
   border-radius: 8px;
   padding: 20px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 14px;
   line-height: 1.8;
   color: #f8f8f2;
@@ -218,7 +281,7 @@ body {
   color: blue;
   padding: 4px 8px;
   border-radius: 6px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 0.9em;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
@@ -246,6 +309,20 @@ body {
 
 .copy-button:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.code-button {
+  background: var(--color-code-background700);
+  color: var(--color-code-text);
+}
+.code-button:hover {
+  background: linear-gradient(
+    135deg,
+    var(--color-code-background700),
+    var(--color-code-background600)
+  );
+  color: var(--color-code-text-secondary);
+  transform: scale(1.05);
 }
 
 .feature-grid {
@@ -286,23 +363,28 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 @media (max-width: 768px) {
   .title-component h1 {
     font-size: 2.5rem;
   }
-  
+
   .title-component .subtitle {
     font-size: 1.1rem;
   }
-  
+
   .description-component {
     padding: 25px;
   }
-  
+
   .code-block-component {
     padding: 20px;
   }

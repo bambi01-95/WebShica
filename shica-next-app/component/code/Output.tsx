@@ -15,7 +15,7 @@ export enum LogLevel {
   ERROR = "error",
   WARNING = "warning",
   DEBUG = "debug",
-} 
+}
 
 export interface Log {
   level: LogLevel;
@@ -47,7 +47,6 @@ const Output = ({
   const [title, setTitle] = useState("Output");
   const outputRef = useRef<HTMLDivElement>(null);
 
-
   const getLogStyle = (level: LogLevel) => {
     switch (level) {
       case LogLevel.INFO:
@@ -65,42 +64,62 @@ const Output = ({
 
   return (
     <div
-      className={`h-full bg-gray-900 text-gray-300 font-mono text-sm border border-gray-700 ${
+      className={`h-full font-mono text-sm border ${
         isRounded ? "rounded-lg" : ""
       }`}
+      style={{ borderColor: "var(--color-code-background700)", width, height }}
     >
       <div
-        className={`bg-gray-800 px-4 py-2 ${
+        className={`px-4 py-2 ${
           isRounded ? "rounded-t-lg" : ""
-        } flex items-center justify-between border-b border-gray-700`}
+        } flex items-center justify-between`}
+        style={{
+          backgroundColor: "var(--color-background-secondary)",
+          color: "var(--color-code-text)",
+          borderColor: "var(--color-code-background700)",
+        }}
       >
         <div className="flex items-center space-x-2">
           <Code2Icon className="w-4 h-4" />
-          <span className="text-gray-300">{title}</span>
-          <span className="text-gray-500 text-xs">({logs.length} logs)</span>
+          <span style={{ color: "var(--color-code-text)" }}>{title}</span>
+          <span className="text-xs" style={{ color: "var(--color-code-text)" }}>
+            ({logs.length} logs)
+          </span>
         </div>
         <button
           onClick={onClear}
-          className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+          className="code-button text-xs px-2 py-1 rounded"
         >
           Clear
         </button>
       </div>
+      {/* Output Area */}
+      
       <div
         ref={outputRef}
-        className="p-4 h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+        className="p-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+        style={{
+          backgroundColor: "var(--color-background-primary)",
+          color: "var(--color-code-text)",
+        }}
       >
         {logs.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
+          <div
+            className="text-center py-8"
+            style={{ color: "var(--color-code-text-secondary)" }}
+          >
             No logs to display
           </div>
         ) : (
           logs.map((log, index) => (
             <div key={index} className={`mb-1 ${getLogStyle(log.level)}`}>
-              <span className="text-gray-400 text-xs mr-2">
+              <span
+                className="text-xs mr-2"
+                style={{ color: "var(--color-code-text-secondary)" }}
+              >
                 [{new Date(log.timestamp).toLocaleTimeString()}]
               </span>
-              <span className="text-xs mr-2 px-1 bg-gray-800 rounded">
+              <span className="text-xs mr-2 px-1 rounded">
                 {log.level.toUpperCase()}
               </span>
               <span className="whitespace-pre-wrap">{log.message}</span>

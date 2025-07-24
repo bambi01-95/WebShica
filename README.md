@@ -23,7 +23,8 @@
 +- [2] Web UI/UX
 |  |- (o) add cimpile and run logging
 |  |- (o) Add page outline comp.       
-|  |- (-) light/dark mode            <- in progress
+|  |- (*) light/dark mode            <- in progress
+|. |- (-) select and adapt font.  
 |
 +- [3] Add original shica feature
 |   |(o) state transition

@@ -26,6 +26,8 @@ export default function FileLists({
     <div
       className={`bg-gray-900 ${width} ${height}`}
       style={{
+        backgroundColor: "var(--color-background-primary)",
+        border: "1px solid var(--color-code-background700)",
         display: "flex",
         flexDirection: "column",
         overflow: "auto",
@@ -48,9 +50,8 @@ export default function FileLists({
       <div
         style={{
           padding: "12px",
-          borderTop: "1px solid #3e3e42",
+          borderTop: "1px solid var(--color-code-background700)",
         }}
-        className="bg-gray-800"
       >
         <button
           onClick={() => {
@@ -60,22 +61,19 @@ export default function FileLists({
           style={{
             width: "100%",
             height: "32px",
-            border: "1px solid #3e3e42",
+            border: "1px solid var(--color-code-background700)",
             borderRadius: "3px",
             cursor: "pointer",
-            color: "#cccccc",
+            color: "var(--color-text-secondary)",
             fontSize: "13px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: "var(--color-background-secondary)",
+            transition: "background-color 0.2s",
           }}
-          className="bg-gray-700"
-          onMouseEnter={(e) => {
-            e.currentTarget.classList.add("bg-gray-700");
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.classList.remove("bg-gray-700");
-          }}
+          onMouseOver={e => (e.currentTarget.style.backgroundColor = "var(--color-background-secondary-hover)")}
+          onMouseOut={e => (e.currentTarget.style.backgroundColor = "var(--color-background-secondary)")}
         >
           + Add New File
         </button>

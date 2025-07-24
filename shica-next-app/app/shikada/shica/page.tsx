@@ -199,10 +199,24 @@ const ShicaPage = () => {
       {/* LEFT */}
       <div className="hidden xl:flex flex-col w-full h-full h-screen">
         {/* TOP */}
-        <div className="bg-gray-800 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+        <div
+          className="px-4 py-3 flex items-center justify-between"
+          style={{ backgroundColor: "var(--color-background-primary)" }}
+        >
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-300 font-medium">Shica IDE</span>
+            <div className="flex items-center">
+              <span
+                className="font-medium"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                Shica IDE
+              </span>
+            </div>
+            <div className="ml-4">
+              <ThemeToggleButton
+                background="var(--color-background-secondary)"
+                color="var(--color-text-primary)"
+              />
             </div>
           </div>
         </div>
@@ -210,16 +224,25 @@ const ShicaPage = () => {
         {/* MIDDLE */}
         <div className="flex flex-row h-full">
           <div className="w-1/2">
-            <div className="w-full h-full bg-gray-900 flex flex-col space-y-2 items-center justify-center border border-gray-700">
+            <div
+              className="w-full h-full flex flex-col space-y-2 items-center justify-center"
+              style={{
+                backgroundColor: "var(--color-background-primary)",
+                border: "1px solid var(--color-code-background700)",
+              }}
+            >
               {/* grid map 10x10 */}
-              <div className="h-[500px] w-[500px] bg-gray-800">
+              <div
+                className="h-[500px] w-[500px]"
+                style={{ backgroundColor: "var(--color-background-secondary)" }}
+              >
                 <div
                   className="relative cursor-pointer"
                   style={{
                     width: `500px`,
                     height: `500px`,
                     backgroundImage:
-                      "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                      "linear-gradient(var(--color-code-background800) 1px, transparent 1px), linear-gradient(90deg, var(--color-code-background800) 1px, transparent 1px)",
                     backgroundSize: `10px 10px`,
                   }}
                   ref={mapRef}
@@ -267,6 +290,7 @@ const ShicaPage = () => {
           {/* RIGHT */}
           {/* TOP */}
           <div className="flex flex-col w-1/2">
+
             <div className="flex flex-row h-[700px]">
               <div className="w-1/4">
                 <FileLists
@@ -281,6 +305,7 @@ const ShicaPage = () => {
                   height="h-full"
                 />
               </div>
+
               <div className="w-3/4">
                 <CodeEditor
                   key={code[selectedIndex].filename}
@@ -294,32 +319,46 @@ const ShicaPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-row h-[70px] bg-gray-900 justify-center items-center gap-4">
+            {/* MIDDLE */}
+            <div
+              className="flex flex-row h-[70px] justify-center items-center gap-4"
+              style={{
+                backgroundColor: "var(--color-background-primary)",
+                border: "1px solid var(--color-code-background700)",
+              }}
+            >
               <button
                 onClick={run}
-                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 ${
-                  isRunning
-                    ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105"
-                    : "bg-gray-600 text-gray-400 "
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  backgroundColor: isRunning
+                    ? "var(--color-code-background600)"
+                    : "var(--color-background-secondary)",
+                  color: isRunning
+                    ? "var(--color-code-text-secondary)"
+                    : "var(--color-code-text)",
+                }}
               >
                 {isRunning ? "Stop" : "Run"}
               </button>
               <button
                 onClick={compile}
                 disabled={isCompiling}
-                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 ${
-                  isCompiling
-                    ? "bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 cursor-not-allowed"
-                    : "bg-gray-600 text-gray-400 "
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  background: isCompiling
+                    ? "var(--color-code-background600)"
+                    : "var(--color-background-secondary)",
+                  color: isCompiling
+                    ? "var(--color-code-text-secondary)"
+                    : "var(--color-code-text)",
+                }}
               >
                 {isCompiling ? "Compiling..." : "Compile"}
               </button>
-              <ThemeToggleButton />
             </div>
             {/* BOTTOM */}
-            <div className="h-1/4">
+            <div className="h-full overflow-y-auto">
               <Output
                 height="h-full"
                 isRounded={false}

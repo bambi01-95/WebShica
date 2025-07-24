@@ -79,13 +79,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       className={`w-full bg-gray-900 flex flex-col ${
         isRounded ? "rounded-lg" : ""
       } overflow-hidden`}
-      style={{ height: "100%" }} // ① 外部で高さ制限されている前提
+      style={{
+        height: "100%",
+        border: "1px solid var(--color-code-background700)",
+      }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-800 px-4 py-3 border-b border-gray-700 shrink-0">
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b shrink-0"
+        style={{
+          backgroundColor: "var(--color-background-secondary)",
+          borderColor: "var(--color-code-background700)",
+        }}
+      >
         <div className="flex items-center space-x-3">
-          <span className="text-gray-300 text-sm font-medium">{filename}</span>
-          <span className="text-gray-500 text-xs bg-gray-700 px-2 py-1 rounded">
+          <span
+            className="text-sm font-medium"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {filename}
+          </span>
+          <span
+            className="text-xs px-2 py-1 rounded"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
             {language}
           </span>
         </div>
@@ -95,7 +112,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           style={{
             background: copied
               ? "linear-gradient(45deg, #4CAF50, #45a049)"
-              : "linear-gradient(45deg, #374151, #4B5563)",
+              : "var(--color-code-background700)",
+            color: "var(--color-text-primary)",
           }}
         >
           {copied ? "Copied!" : "Copy"}
@@ -107,7 +125,12 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
-          className="code-background text-gray-400 text-sm font-mono px-3 py-4 border-r border-gray-700 select-none overflow-hidden"
+          className="text-sm font-mono px-3 py-4 select-none overflow-hidden"
+          style={{
+            backgroundColor: "var(--color-background-secondary)",
+            color: "var(--color-text-secondary)",
+            borderRightColor: "var(--color-code-background700)",
+          }}
         >
           {lineNumbers.map((num) => (
             <div key={num} className="leading-6 text-right">
@@ -129,7 +152,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             spellCheck={false}
             style={{
               scrollbarWidth: "thin",
-              scrollbarColor: "#4B5563 #1F2937",
+              scrollbarColor:
+                "var(--color-code-background600) var(--color-code-background900)",
             }}
           />
           {/* Custom scrollbar */}
@@ -156,7 +180,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 px-4 py-2 border-t border-gray-700 flex justify-between items-center text-xs text-gray-400 shrink-0">
+      <div
+        className="px-4 py-2 border-t flex justify-between items-center text-xs text-gray-400 shrink-0"
+        style={{
+          backgroundColor: "var(--color-background-secondary)",
+          borderColor: "var(--color-code-background700)",
+          color: "var(--color-text-secondary)",
+        }}
+      >
         <div className="flex space-x-4">
           <span>Lines: {lineCount}</span>
           <span>Chars: {code.length}</span>
