@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #define MAXROOTS 1024
+extern unsigned long gc_total; // total memory allocated by the GC
 
 extern void **roots[MAXROOTS];	// pointers to the variables pointing to objects
 extern int nroots;	// number of variables addresses in the roots stack
@@ -29,16 +30,17 @@ void gc_pushRoot(const void *varp);
     TYPE VAR = INIT;				\
     gc_pushRoot((void *)&VAR)
 
+
 #ifdef NDEBUG
 void gc_popRoot(void);
 #define GC_POP(VAR)				\
     gc_popRoot()
-
+# define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 #else // !NDEBUG -- enforce LIFO popping of roots
 void gc_popRoot(void *varp,const char *name);
 #define GC_POP(VAR)				\
     gc_popRoot((void *)&VAR, #VAR)
-
+# define gc_debug_log(fmt, ...) ;
 #endif //NDBUG
 
 void gc_popRoots(int n)	;
