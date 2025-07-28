@@ -1,3 +1,10 @@
+/*
+=======================================================================
+== WARNING: THIS GARBAGE COLLECTOR IS DESIGNED FOR SINGLE-THREAD USE ONLY.
+== DO NOT USE IN A MULTI-THREADED ENVIRONMENT.
+=======================================================================
+*/
+
 #ifndef MSGCS_C
 #define MSGCS_C
 #include "msgcs.h"
@@ -69,26 +76,39 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
     memset(ctx->memory, 0, ctx->memend - ctx->memory); //clean memory 0
     unsigned int size = gc_ctx.memend - gc_ctx.memory;
     unsigned int block_size = size / nprocesses; // divide memory into equal blocks
-    gc_header *block_start = ctx->memory;
+    gc_header *block_start = ctx->memory + 1/*hdr*/;
     for(int i = 0; i < nprocesses; i++) {
-        ctx->roots[i] = block_start; // set the start of each context
         // allocate a new context block
-        gc_context *block = (gc_context *)gc_alloc(sizeof(block_size));
+        gc_context *block = (gc_context *)block_start; // cast the start of the block to gc_context
+        // initialize the block header
+        gc_header *hdr = (gc_header *)block_start - 1; // get the header of the block
+        hdr->size = block_size; // set the size of the block
+        hdr->busy = 0; // mark the block as free
+        hdr->mark = 0; // reset mark flag 
+        hdr->atom = 0; // reset atom flag
+        // store the pointer to the new context in the roots array
+        assert(i < MAXROOTS); // ensure we do not exceed the maximum number of roots
+        assert(ctx->nroots < MAXROOTS); // ensure we do not exceed the maximum number of roots
+        ctx->nroots++;
+        assert(ctx->roots[i] == NULL); // ensure the slot is empty
+        ctx->roots[i] = (void **)block; // store the pointer to the new context in the roots array
+        // memory for the new context
         block->memory = block_start + sizeof(gc_context) + sizeof(void *); // set start of memory for this context
         if(i == nprocesses - 1) {
             block->memend = ctx->memend; // last block goes to the end of memory
         } else {
             block->memend = (gc_header *)((char *)block_start + block_size);
         }
+        // initialize the new context
         block->memnext = block->memory; // next block to consider when allocating
         block->nroots = 0; // reset root count for the new context
-        //initialize the block header
+        // initialize the block header
         block->memory->size = block_size - sizeof(gc_context) - sizeof(void *);
         block->memory->busy = 0; // mark the block as free
         block->memory->mark = 0; // reset mark flag
         block->memory->atom = 0; // reset atom flag
         // move to the next block
-        block_start = (gc_header *)((char *)block_start + block_size);
+        block_start = (gc_header *)((char *)block_start + block_size) + 1;
     }
     nctx = nactiveprocesses; // set the number of active processes
     return ; // return to the main context
@@ -96,11 +116,12 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
 
 gc_context *gc_getContextSlot(void)
 {
-    if(nctx == ctx->nroots) {
+    if(nctx == gc_ctx.nroots) {
         printf("gc_getContextSlot: maximum number of contexts reached %d\n", nctx);
         return NULL; // no more contexts can be added
     }
-    return gc_ctx.roots[nctx++];
+    nctx++; // increment the number of contexts
+    return (gc_context *)gc_ctx.roots[nctx++];
 }
 
 
@@ -152,8 +173,11 @@ void gc_defaultCollectFunction(void){
     return;
 }
 // the application should provide a mark function that accurately marks only valid pointers
-extern gc_markFunction_t gc_markFunction;
-extern gc_collectFunction_t gc_collectFunction;
+gc_markFunction_t gc_markFunction = gc_defaultMarkFunction;
+gc_collectFunction_t gc_collectFunction = gc_defaultCollectFunction;
+
+
+
 
 // TIP: it is used to mark the tip pointer address of array or atomic object
 void gc_markOnly(void *ptr)
@@ -284,7 +308,6 @@ void *gc_alloc(const int lbs){
 char *gc_strdup(const char *s)
 {
     int len = strlen(s);
-    assert(len!=NULL); // ensure the string is not NULL
     char *mem = (char*)gc_alloc(len + 1); // allocate memory for the string
     gc_debug_log("gc_strdup: allocated %d bytes for string '%s'\n", len, s);
     memcpy(mem, s, len); // copy the string into the allocated memory
@@ -326,6 +349,27 @@ void *gc_realloc(void *oldptr,const int newsize)
     gc_debug_log("gc_realloc: resized from %d to %d bytes\n", oldsize, newsize);
     return newptr; // return the pointer to the new memory
 }
+#define TESTGC 1 // define TESTGC to enable the test code
+#if TESTGC
+#include <stdio.h>
+#include <assert.h>
 
+int main(){
+    gc_init(1024 * 1024); // initialize the garbage collector with 1 MB of memory
+    gc_separateContext(4, 4); // separate memory for 4 processes
+    gc_context *ctx1 = gc_getContextSlot(); // get a new context slot
+    assert(ctx1 != NULL);
+    gc_pushRoot(&ctx1); // push the context to the root stack
+    int *arr = (int *)gc_alloc_atomic(10 * sizeof(int)); // allocate an atomic array of 10 integers
+    for (int i = 0; i < 10; i++) arr[i] = i; // initialize the array
+    gc_mark(arr); // mark the array as reachable
+    gc_collect(); // collect garbage
+    gc_free(arr); // free the array
+    GC_POP(ctx1); // pop the context from the root stack
+    return 0;
+}
+
+
+#endif // TESTGC
 
 #endif // MSGCS_C

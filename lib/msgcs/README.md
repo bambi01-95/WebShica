@@ -9,6 +9,10 @@ Common functions related to GC, such as `gc_alloc()` and `gc_collect()`, work wi
 `ctx` is a global variable that holds the current context. 
 Therefore, every time you switch processes, you need to use the `set_ctx(I)` macro, where `I` is the process index.
 
+> [!WARNING]
+> This is __DESIGNED__ for __SINGLE_THREAD__.
+>
+> If you want to implement multiple threads, change `SET_CTX(I)` and using `ctx`.
 
 ## Reference
 

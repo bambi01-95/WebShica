@@ -6,17 +6,16 @@
 #include <string.h>
 #include <assert.h>
 
-#define NDEBUG 0
-#if NDEBUG
+#ifndef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 # define set_ctx(I) ({ \
-    assert(I<=gc_ctx.nroots); \
+    assert(I < gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
     assert(gc_ctx.roots[I] != NULL); \
-    ctx = gc_ctx.roots[I]; \
+    ctx = (gc_context*)gc_ctx.roots[I]; \
 })
-#else
-# define gc_debug_log(fmt, ...) ;
-# define set_ctx(I) ctx = gc_ctx.roots[I]
+#else // NDEBUGが「定義されている」場合（リリースビルド）
+# define gc_debug_log(fmt, ...)
+# define set_ctx(I) ctx = (gc_context*)gc_ctx.roots[I]
 #endif
 
 
@@ -36,7 +35,10 @@ typedef struct gc_header gc_header;
 
 struct gc_context
 {
-    void **roots[MAXROOTS];
+    union {
+        void **roots[MAXROOTS];
+        void **subContexts[MAXCONTEXTS];
+    };
     unsigned nroots;
     gc_header *memory;  // start of memory
     gc_header *memend;  // end of memory (first byte after)
@@ -46,6 +48,9 @@ typedef struct gc_context gc_context;
 extern unsigned int nctx; // number of processes (contexts) using the GC
 extern gc_context gc_ctx; // whole memory context
 extern gc_context *ctx; // current context
+
+// msgcs.h に追加
+#define GC_PTR(p) (p && ((void *)gc_ctx.memory <= p) && (p < (void *)gc_ctx.memend))
 
 void gc_init(int size);
 
@@ -85,7 +90,7 @@ extern gc_collectFunction_t gc_collectFunction;
 void *gc_alloc(int lbs);
 void gc_free(void *ptr);
 int gc_collect(void);
-char *gc_strdup(char *s);
+char *gc_strdup(const char *s);
 void *gc_realloc(void *oldptr, int newsize);
 
 
