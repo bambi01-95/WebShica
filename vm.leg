@@ -4,7 +4,7 @@
 #define DEBUG 0
 #endif
 
-// #define getchar getchar_from_text
+#define getchar getchar_from_text
 
 /*
 GLOBAL VARIABLES: should start with a capital letter
@@ -74,7 +74,7 @@ int compileWebCode(const char *code);
     int runWeb();
 
 /* ======================= MSGC ========================= */
-#include "./lib/msgc.h"
+#include "./lib/msgc/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define calloc(n, size) gc_alloc((n) * (size))
 #define realloc(ptr, size) gc_realloc(ptr, size)
