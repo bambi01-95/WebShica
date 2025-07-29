@@ -8,7 +8,7 @@
 
 ```text
 +- [0] FIXME / TASK / THINK
-|   |- (***) runtime error??? -> it does not use msgc??? <- in progress: run!!!
+|   |- (***) runtime error??? -> what is happen...
 |   |- (**-) learn sepa. heap memory.       <- in progress
 |   |          |> copy GC. it is good for generation gc
 |   |          |> how to sepa. and impl. msgc...
@@ -62,6 +62,8 @@
 |   |(-) store one or more argents                <- NEXT
 |   |(-) implement all
 |   |(-) msgc (each heap memory)
+|.        |(*) msgcs: make test.                  <- IN PROGRESS
+|.        |(-) stdatomic.h: pallarel GC
 |
 +- [5] Add C interface generator
 |   |(-) make interface generator that works web

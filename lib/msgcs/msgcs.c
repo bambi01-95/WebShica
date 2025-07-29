@@ -18,6 +18,7 @@
  */
 
 unsigned int nctx = 0; // number of processes (contexts) using the GC
+unsigned long gc_total = 0; // total memory allocated by the GC
 struct gc_context gc_ctx = {
     // .roots = {0},// for momorize each process context pointers
     .nroots = 0, // capacity of process context pointers
@@ -29,7 +30,6 @@ struct gc_context gc_ctx = {
 void gc_init(const int size)
 {
     gc_ctx.memory = (gc_header *)malloc(size);
-    assert(gc_ctx.memory);
     memset(gc_ctx.memory, 0, size);
 
     gc_ctx.memend = (gc_header *)((char *)gc_ctx.memory + size);
@@ -83,9 +83,7 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
         hdr->size = block_size;
         hdr->busy = hdr->mark = hdr->atom = 0;
         // store the pointer to the new context in the roots array
-        assert(gc_ctx.nroots < MAXROOTS); // ensure we do not exceed the maximum number of roots
         gc_ctx.nroots++;
-        assert(gc_ctx.roots[i] == NULL); // ensure the slot is empty
         gc_ctx.roots[i] = (void **)block; // store the pointer to the new context in the roots array
         // memory for the new context
         block->memory = (gc_header *)((char *)block_start + sizeof(gc_context)); // set start of memory for this context
@@ -262,6 +260,7 @@ int gc_collect(void)
 }
 
 void *gc_alloc(const int lbs){
+    gc_total += lbs;
     if (lbs <= 0) return NULL;		// no allocation for zero or negative size
     // round up the allocation size to a multiple of the pointer size
     // TIP: It is used to align the size of the block to pointer size
@@ -311,7 +310,7 @@ char *gc_strdup(const char *s)
     char *mem = (char*)gc_alloc(len + 1); // allocate memory for the string
     gc_debug_log("gc_strdup: allocated %d bytes for string '%s'\n", len, s);
     memcpy(mem, s, len); // copy the string into the allocated memory
-    mem[len] = '\0'; // null-terminate the string
+    mem[len] = 0; // null-terminate the string
     return mem; // return the pointer to the allocated string
 }
 
@@ -330,10 +329,6 @@ void *gc_alloc_atomic(int size)
 void *gc_realloc(void *oldptr,const int newsize)
 {
     if (!oldptr) return gc_alloc(newsize); // if old pointer is NULL, allocate new memory
-    if (newsize <= 0) {
-        gc_free(oldptr); // if new size is zero or negative, free the old memory
-        return NULL;
-    }
     gc_header *oldhdr = (gc_header *)oldptr - 1; // get the header of the old block
     int oldsize = oldhdr->size - sizeof(gc_header); // calculate the size of the old block
     if ( oldsize >= newsize		// object will fit into original block and
@@ -345,7 +340,6 @@ void *gc_realloc(void *oldptr,const int newsize)
     --ctx->nroots; // pop the old pointer from the root stack
     int len = newsize < oldsize ? newsize : oldsize; // determine the length to copy
     memcpy(newptr, oldptr, len); // copy the old data to the new memory
-    gc_free(oldptr); // free the old memory
     gc_debug_log("gc_realloc: resized from %d to %d bytes\n", oldsize, newsize);
     return newptr; // return the pointer to the new memory
 }
@@ -371,8 +365,6 @@ void print_gc_context(const gc_context *ctx)
     }
 }
 
-
-#define TESTGC 1 // define TESTGC to enable the test code
 #if TESTGC
 #include <stdio.h>
 #include <assert.h>
@@ -408,7 +400,11 @@ int main(){
     gc_pushRoot((void *)arr); // push the array to the root stack
     gc_mark(arr); // mark the array as reachable
     gc_collect(); // collect garbage
-    gc_free(arr); // free the array
+    for(int i = 0; i < 10; i++) {
+        printf("arr[%d] = %d\n", i, arr[i]); // print the array elements after garbage collection
+    }
+    gc_popRoot((void *)arr, "arr"); // pop the array from the root stack
+    gc_collect(); // collect garbage again
     ctx = &gc_ctx; // reset the current context to the global context
     GC_POP(ctx1); // pop the context from the root stack
     return 0;

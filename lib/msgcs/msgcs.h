@@ -14,13 +14,13 @@
     ctx = (gc_context*)gc_ctx.roots[I]; \
 })
 #else // NDEBUGが「定義されている」場合（リリースビルド）
-# define gc_debug_log(fmt, ...)
+# define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__);
 # define set_ctx(I) ctx = (gc_context*)gc_ctx.roots[I]
 #endif
 
+extern unsigned long gc_total;
 
-
-#define MAXROOTS 64
+#define MAXROOTS 1024
 #define MAXCONTEXTS 16
 
 struct gc_header
