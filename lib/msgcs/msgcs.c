@@ -73,7 +73,7 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
     unsigned int block_size = size / nprocesses; // divide memory into equal blocks
     gc_header *block_start = (gc_header *)((char *)gc_ctx.memory + 1);/*hdr*/;
     // |hdr(1)|gc_context|memory|
-    printf("Whole memory size %ubytes, %d process, and %d bytes\n", size , nprocesses, block_size);
+    gc_debug_log("Whole memory size %ubytes, %d process, and %d bytes\n", size , nprocesses, block_size);
     gc_header *start = (gc_header *)((char *)gc_ctx.memory + 1); // start of the memory block
     for(int i = 0; i < nprocesses; i++) {
         // allocate a new context block
@@ -101,7 +101,7 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
         block->memory->size = block_size - sizeof(gc_context) - 1;// |hdr|gc_context|memory|
         block->memory->busy = block->memory->mark = block->memory->atom = 0; 
         assert(block->memory < block->memend); // ensure the memory is within bounds
-        printf("[%2d]: start pos%8ld bytes, end pos%8ld bytes, block size%8ld bytes\n", i,
+        gc_debug_log("[%2d]: start pos%8ld bytes, end pos%8ld bytes, block size%8ld bytes\n", i,
             (char *)block - (char *)start,
             (char *)block->memend - (char *)start,
             (char *)block->memend - (char *)block + 1);
@@ -222,7 +222,8 @@ int gc_collect(void)
     gc_collectFunction();			// run pre-collection function to mark static roots
 
     for (int i = 0;  i < ctx->nroots;  ++i){	// mark the pointers stored in each root variable
-        gc_mark(*ctx->roots[i]);
+        gc_mark(ctx->roots[i]);
+        gc_debug_log("gc_mark: root[%d] %p\n", i, ctx->roots[i]);
     }
     for( gc_header *here = ctx->memory;		// iterate over all objects in memory
         here < ctx->memend;
@@ -278,6 +279,7 @@ void *gc_alloc(const int lbs){
                 if (here->size > size + sizeof(gc_header) + sizeof(void *)) { // split it
                     gc_header *next = (gc_header *)((char *)here + size);
                     next->size = here->size - size;	// set size of the new block
+                    here->size = size;			// shrink this block
                     next->busy = 0;			// make new next block free
                     next->mark = 0;			// reset mark flag
                     next->atom = 0;			// reset atom flag
@@ -347,6 +349,29 @@ void *gc_realloc(void *oldptr,const int newsize)
     gc_debug_log("gc_realloc: resized from %d to %d bytes\n", oldsize, newsize);
     return newptr; // return the pointer to the new memory
 }
+void print_gc_header(const gc_header *ptr)
+{
+    gc_header *hdr = (gc_header *)ptr - 1; // convert pointer to header
+    printf("pointer:   %p\n", ptr);
+    printf("gc_header: %p\n", hdr);
+    printf("  size: %u\n", hdr->size);
+    printf("  busy: %u\n", hdr->busy);
+    printf("  mark: %u\n", hdr->mark);
+    printf("  atom: %u\n", hdr->atom);
+}
+void print_gc_context(const gc_context *ctx)
+{
+    printf("gc_context: %p\n", ctx);
+    printf("  roots: %u\n", ctx->nroots);
+    printf("  memory: %p\n", ctx->memory);
+    printf("  memend: %p\n", ctx->memend);
+    printf("  memnext: %p\n", ctx->memnext);
+    for (unsigned i = 0; i < ctx->nroots; ++i) {
+        printf("  root[%u]: %p\n", i, ctx->roots[i]);
+    }
+}
+
+
 #define TESTGC 1 // define TESTGC to enable the test code
 #if TESTGC
 #include <stdio.h>
@@ -359,23 +384,32 @@ int main(){
 
     gc_init(1024 * 1024); // initialize the garbage collector with 1 MB of memory
     gc_separateContext(4, 0); // separate memory for 4 processes
-    return 0;
+
     gc_context *ctx1 = gc_getContextSlot(); // get a new context slot
-    assert(ctx1 != NULL);
+    assert(ctx1 != NULL); // ensure we got a valid context
+
+
     gc_pushRoot(&ctx1); // push the context to the root stack
     printf("context slot %p allocated\n", ctx1);
     printf("context start address: %p\n", ctx1->memory);
     printf("context end address:   %p\n", ctx1->memend);
     printf("context next address:  %p\n", ctx1->memnext);
-    printf("context size : %ld bytes\n", ctx1->memend - ctx1->memory);
-    printf("estimated context size: %ld bytes\n", (1024 * 1024)/4 - sizeof(gc_context) - sizeof(void *));
-    return 0;
+    printf("context size : %ld bytes\n\n", (char *)ctx1->memend - (char *)ctx1->memory);
+
     ctx = ctx1; // set the current context to the new context
+    gc_debug_log("Requesting 10 bytes of atomic memory %lu\n", 10 * sizeof(int));
     int *arr = (int *)gc_alloc_atomic(10 * sizeof(int)); // allocate an atomic array of 10 integers
+
     for (int i = 0; i < 10; i++) arr[i] = i; // initialize the array
+    for (int i = 0; i < 10; i++) {
+        printf("arr[%d] = %d\n", i, arr[i]); // print the array elements
+    }
+    print_gc_header((gc_header *)arr); // print the header of the allocated memory
+    gc_pushRoot((void *)arr); // push the array to the root stack
     gc_mark(arr); // mark the array as reachable
     gc_collect(); // collect garbage
     gc_free(arr); // free the array
+    ctx = &gc_ctx; // reset the current context to the global context
     GC_POP(ctx1); // pop the context from the root stack
     return 0;
 }
