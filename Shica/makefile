@@ -8,16 +8,16 @@ FILES = vm.js vm.wasm
 CC = emcc
 
 # ソースとターゲット
-SRC = vm.c ./lib/msgc/msgc.c
+SRC = vm.c ./gc/msgc/msgc.c
 OUT = vm.js
 
 # コンパイルフラグ
-CFLAGS = -O3 -I./lib -s WASM=1 -s INITIAL_MEMORY=64MB -s ENVIRONMENT=web -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
+CFLAGS = -O3 -I./gc -s WASM=1 -s INITIAL_MEMORY=64MB -s ENVIRONMENT=web -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' --no-entry -o $(OUT)
 
 crun:
 	leg -o vm.c vm.leg
 # ./legstruct_type_inserter
-	gcc vm.c ./lib/msgc/msgc.c -o vm 
+	gcc vm.c ./gc/msgc/msgc.c -o vm
 	
 # build vm.js
 web: $(OUT)

@@ -9,6 +9,10 @@
 ```text
 +- [0] FIXME / TASK / THINK
 |   |- (***) runtime error??? -> what is happen...
+|.  |- (***) display error message!!!
+|.  |.  |> current problem: 
+|.  |.  |> Syntax error or something Shica compile error apper,
+|.  |.  |> Web Shica site will be close...
 |   |- (**-) learn sepa. heap memory.       <- in progress
 |   |          |> copy GC. it is good for generation gc
 |   |          |> how to sepa. and impl. msgc...
