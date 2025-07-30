@@ -59,11 +59,12 @@
 |
 +- [4] Run multiple agent
 |   |(o) sotre one or more codes. 
-|   |(-) store one or more argents                <- NEXT
+|   |(-) store one or more argents                <- IN PROGRESS
 |   |(-) implement all
-|   |(-) msgc (each heap memory)
-|.        |(*) msgcs: make test.                  <- IN PROGRESS
+|   |(o) msgc (each heap memory)
+|.        |(*) msgcs: make test.                  
 |.        |(-) stdatomic.h: pallarel GC
+|.  |(-) communicaton
 |
 +- [5] Add C interface generator
 |   |(-) make interface generator that works web
@@ -72,47 +73,6 @@
 
 ## MECHA. MEMO
 
-### vms
-
-
-
-### entry / exit event handler
-
-append entry() to first elements of event block.
-And also, append exit() to first or second elements of event block.
-
-### MSGC
-
-GC should be change at swtiching compile and executor
-
-### compile
-
-```text
-    step 0
-        define gc_markFunction_t    gc_markFunction    = markObject;
-        define gc_collectFunction_t gc_collectFunction = collectObjects;
-        set collectObjects() that includes
-            - bytefiles
-            - sysmbols
-    step 1
-        call markObject(webSize)
-    step 2
-```
-
-### execute
-
-```text
-    step 1
-        define gc_markFunction_t gc_markFunction       = markIntarray;
-        define gc_collectFunction_t gc_collectFunction = collectIntArray;
-        set collectIntArray() that includes
-            - bytefiles
-            - vms
-    step 2
-        call gc_collect()
-```
-
-### Other README
 
 ## web server
 

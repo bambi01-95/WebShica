@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
-#ifndef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
+#ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 # define set_ctx(I) ({ \
     assert(I < gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
@@ -14,7 +14,7 @@
     ctx = (gc_context*)gc_ctx.roots[I]; \
 })
 #else // NDEBUGが「定義されている」場合（リリースビルド）
-# define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__);
+# define gc_debug_log(fmt, ...) ;
 # define set_ctx(I) ctx = (gc_context*)gc_ctx.roots[I]
 #endif
 
@@ -35,10 +35,7 @@ typedef struct gc_header gc_header;
 
 struct gc_context
 {
-    union {
-        void **roots[MAXROOTS];
-        void **subContexts[MAXCONTEXTS];
-    };
+    void **roots[MAXROOTS];
     unsigned nroots;
     gc_header *memory;  // start of memory
     gc_header *memend;  // end of memory (first byte after)

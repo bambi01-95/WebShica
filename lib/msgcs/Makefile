@@ -27,14 +27,14 @@ msstest.o: msstest.c msgcs.h fatal.h
 msgcs.o: msgcs.c msgcs.h
 	$(CC) $(CFLAGS) $(OFLAGS) -c $<
 
-# fatal.o のビルドルール
 fatal.o: fatal.c fatal.h
 	$(CC) $(CFLAGS) $(OFLAGS) -c $<
 
-# Test targets
-compile : all .FORCE
-	@echo "Compilation complete."
+# LEG to C conversion
+%.c : %.leg
+	leg -o $@ $<
 
+# Test targets
 test : all .FORCE
 	time ./msstest < ../test/test.txt
 
@@ -54,4 +54,3 @@ clean : .FORCE
 	rm -rf $(PROGS) *.o *.dSYM *~
 
 .FORCE :
-

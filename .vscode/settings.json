@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "lex": "tex",
+    "*.txt": "plaintext",
+    "*.leg": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "vector": "c"
+  }
+}
