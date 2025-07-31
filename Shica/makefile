@@ -59,32 +59,6 @@ web: $(WASMOUT)
 
 $(WASMOUT): $(SRC)
 	$(WASMCC) $(SRC) $(CFLAGS)
-
-
-build:
-	@echo "Checking if port $(PORT) is in use..."
-	@PID=$$(lsof -t -i:$(PORT)); \
-	if [ -n "$$PID" ]; then \
-		echo "Port $(PORT) is in use by PID $$PID. Killing..."; \
-		kill -9 $$PID; \
-	else \
-		echo "Port $(PORT) is free."; \
-	fi
-	@echo "Starting server on port $(PORT)..."
-	@nohup python3 -m http.server $(PORT) >/dev/null 2>&1 &
-
-stop:
-	@echo "Checking if port $(PORT) is in use..."
-	@PID=$$(lsof -t -i:$(PORT)); \
-	if [ -n "$$PID" ]; then \
-		echo "Stopping server (PID: $$PID)..."; \
-		kill -9 $$PID; \
-	else \
-		echo "No server is running on port $(PORT)."; \
-	fi
-# Makefile for building vm.c into vm.js using Emscripten
-
-copy:
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
 

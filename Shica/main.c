@@ -21,6 +21,25 @@ UserFunc Name: should start with a lowwer letter
 #include <stdint.h>
 #include <unistd.h>
 
+#include "./Error/error.h"
+#include "./Opcode/opcode.h"
+#include "./Object/object.h"
+#include "./Parser/parser.h"
+
+#ifdef MSGC
+#include "./GC/msgc/msgc.h"
+#define malloc(size) gc_alloc(size)
+#define calloc(n, size) gc_alloc((n) * (size))
+#define realloc(ptr, size) gc_realloc(ptr, size)
+#define strdup(s) gc_strdup(s)
+#elif MSGCS
+#include "./GC/msgcs/msgcs.h"
+#define malloc(size) gc_alloc(size)
+#define calloc(n, size) gc_alloc((n) * (size))
+#define realloc(ptr, size) gc_realloc(ptr, size)
+#define strdup(s) gc_strdup(s)
+#endif
+
 
 
 // #include "./vm.h"
@@ -75,17 +94,8 @@ int compileWebCode(const char *code);
     //Stopボタンが押されるまで、何度も実行される。
     int runWeb();
 
-/* ======================= MSGC ========================= */
-#include "./GC/msgc/msgc.h"
-#include "./Error/error.h"
-#include "./Opcode/opcode.h"
-#include "./Object/object.h"
-#include "./Parser/parser.h"
 
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
+
 
 
 /* ======================= ERROR MSG ==================== */
