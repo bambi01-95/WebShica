@@ -2,7 +2,7 @@
 #ifndef PARSER_C
 #define PARSER_C
 #ifdef MSGC
-#include "../gc/msgc/msgc.h"
+#include "../GC/msgc/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define calloc(n, size) gc_alloc((n) * (size))
 #define realloc(ptr, size) gc_realloc(ptr, size)
@@ -19,8 +19,7 @@ YYSTYPE result;
 
 #define YY_FREE(C, P) P = NULL
 
-
-int nlines = 0;
+static int nlines = 0;
 //LEG AREA
 %}
 
@@ -195,14 +194,18 @@ FOR   = "for" -
 FUNC = "fn" -
 RET = "return" -
 %%;
+void initLine(void)
+{
+	nlines = 0;
+}
 
-void yyinit()
+void initYYContext()
 {
     yyrelease(yyctx);
 }
 
 #ifdef MSGC
-void yycollect()
+void collectYYContext()
 {
 	if(yyctx){
 		gc_markOnly(yyctx);

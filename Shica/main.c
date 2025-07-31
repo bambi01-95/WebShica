@@ -1,0 +1,2447 @@
+
+
+#ifndef DEBUG //for executer
+#define DEBUG 0
+#endif
+
+#define getchar getchar_from_text
+
+/*
+GLOBAL VARIABLES: should start with a capital letter
+Struct Name: should start with a capital letter
+UserFunc Name: should start with a lowwer letter
+*/
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <assert.h>
+#include <stdarg.h>
+#include <setjmp.h>
+#include <stdint.h>
+#include <unistd.h>
+
+
+
+// #include "./vm.h"
+
+// FOR EVENT HANDLING
+    //TIMER
+    //Web内のタイマーイベントのデータ共有で使用
+    int WEB_TIMER = 0;
+    int *initWebTimerPtr();// Initialize the timer pointer and return its address
+    //CLICK
+    //Web内のクリックイベントのデータ共有で使用
+    int WEB_CLICK_STT[3] = {0, 0, 0}; // x, y, click status
+    int *initWebClickSTTPtr();// Initialize the click status pointer and return its address
+
+    //AGENT DATA
+    struct AgentData {
+        int x;
+        int y;
+        int vx;
+        int vy;
+        int isClick;
+        int distance;
+        int status;
+		char red, green, blue, isLEDOn;
+    };
+    struct AgentData AN_AGENT_DATA = {
+		.x = 0,
+		.y = 0,
+		.vx = 0,
+		.vy = 0,
+		.isClick = 0,
+		.distance = 0,
+		.status = 0,
+		.red = 0,
+		.green = 0,
+		.blue = 0,
+		.isLEDOn = 0,
+	};
+    //Web内のゴーストのデータ共有で使用
+    int *initAnAgnetDataPtr(); //Initialize the agent data structure and return its address
+
+//FOR ALL: 一度だけ実行
+int memory_init(); // Initialize the memory for the compiler and runtime
+
+//FOR COMPILE: コンパイルボタンが押されたら実行
+int compileWebCode(const char *code);
+
+//FOR EXECUTION
+    //Runボタンが押されたら実行
+    int initRunWeb();// Initialize the web runtime environment
+    //Runボタンが押されて、initRunWebが実行された後に実行される
+    //Stopボタンが押されるまで、何度も実行される。
+    int runWeb();
+
+/* ======================= MSGC ========================= */
+#include "./GC/msgc/msgc.h"
+#include "./Error/error.h"
+#include "./Opcode/opcode.h"
+#include "./Object/object.h"
+#include "./Parser/parser.h"
+
+#define malloc(size) gc_alloc(size)
+#define calloc(n, size) gc_alloc((n) * (size))
+#define realloc(ptr, size) gc_realloc(ptr, size)
+#define strdup(s) gc_strdup(s)
+
+
+/* ======================= ERROR MSG ==================== */
+
+char devmsg[] = "Contact 2024mm11@kuas.ac.jp\n";
+
+void error(char *msg, ...){
+    va_list ap;
+    va_start(ap, msg);
+    fprintf(stderr, "\n");
+    vfprintf(stderr, msg, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
+}
+
+
+void rprintf(char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	printf("\x1b[31m");
+	printf( msg, ap);
+	printf("\x1b[0m");
+	va_end(ap);
+}
+#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
+
+
+/* ======================= WEBTEXT ===================== */
+//FOR READING CODE FROM WEBTEXT
+#define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
+
+char  WebText[2048];
+int   WebTextPos  = 0;
+
+int store(const char* msg) {
+	printf("store called with msg: \n%s\n", msg);
+
+	int len = 0;
+	while (msg[len] != '\0' && len < WEBTEXT_MAX_SIZE) {
+		WebText[len] = msg[len];
+		len++;
+	}
+	WebText[len] = '\0'; // Null-terminate the string
+	if (len >= WEBTEXT_MAX_SIZE) {
+		printf("Error: Message too long to store in WebText\n");
+		return 0; // Error: message too long
+	}
+	WebTextPos = 0; 
+	printf("end of store function\n");
+	return 1;
+}
+
+int getchar_from_text() {
+    if ( WebText[WebTextPos] == '\0') {
+        return -1; // EOF の代わり
+    }
+    return WebText[WebTextPos++];
+}
+
+
+
+
+
+/*==============   TIMER  ================= */
+int *initWebTimerPtr(){
+    if (WEB_TIMER != 0) {
+        WEB_TIMER = 0; // Initialize to 0 or some default value
+    }
+    return &WEB_TIMER;
+}
+int setWebTimer(int value){
+    WEB_TIMER = value;
+    return 0;
+}
+int *getWebTimerPtr(){
+    return &WEB_TIMER;
+}
+
+
+/*==============   CLICK  ================= */
+int *initWebClickSTTPtr(){
+    WEB_CLICK_STT[0] = 0; // x-coordinate
+    WEB_CLICK_STT[1] = 0; // y-coordinate
+    WEB_CLICK_STT[2] = 0; // click status
+    return WEB_CLICK_STT;
+}
+
+int *getWebClickSTTPtr(){
+    return WEB_CLICK_STT;
+}
+
+
+/*==============   AGENT_INFO  ================= */
+
+typedef struct AgentData *AgentPtr;
+
+int *initAnAgnetDataPtr(){
+	AN_AGENT_DATA.x = 50; // x-coordinate
+	AN_AGENT_DATA.y = 50; // y-coordinate
+	AN_AGENT_DATA.vx = 0; // x velocity
+	AN_AGENT_DATA.vy = 0; // y velocity
+	AN_AGENT_DATA.isClick = 0; // is click
+	AN_AGENT_DATA.distance = 0; // distance
+	AN_AGENT_DATA.status = 0; // status
+	AN_AGENT_DATA.red = 0; // red
+	AN_AGENT_DATA.green = 0; // green
+	return (int*)&AN_AGENT_DATA; // Return pointer to the agent data
+}
+
+int *getAnAgentDataPtr(){
+	return (int*)&AN_AGENT_DATA;
+	return (int*)&AN_AGENT_DATA;
+}
+
+AgentPtr *ALL_AGENT_DATA = {};
+int ALL_AGENT_SIZE = 0;
+
+
+
+int *getAllAgentDataPtr(){
+    if (ALL_AGENT_DATA == NULL) {
+        fprintf(stderr, "ALL_AGENT_DATA is not initialized\n");
+        return NULL;
+    }
+    return (int *)ALL_AGENT_DATA;
+}
+
+int *getAllAgentDataSizePtr(){
+    return &ALL_AGENT_SIZE;
+}
+
+AgentPtr initAgent(){
+    AgentPtr stt = malloc(sizeof(struct AgentData));
+    if (!stt) {
+        fprintf(stderr, "Memory allocation failed for AgentPtr\n");
+        exit(EXIT_FAILURE);
+    }
+    stt->x = 0;
+    stt->y = 0;
+    stt->status = 0;
+    return stt;
+}
+
+AgentPtr *initALLAgentDataPtr(int size){
+    if (ALL_AGENT_DATA == NULL) {
+        ALL_AGENT_DATA = malloc(size * sizeof(AgentPtr));
+        if (!ALL_AGENT_DATA) {
+            fprintf(stderr, "Memory allocation failed for ALL_AGENT_DATA\n");
+            exit(EXIT_FAILURE);
+        }
+        ALL_AGENT_SIZE = size;
+        for (int i = 0; i < size; i++) {
+            ALL_AGENT_DATA[i] = initAgent();
+        }
+    }
+    return ALL_AGENT_DATA;
+}
+
+int testAllEventHandlers(){
+    printf("Testing all event handlers...\n");
+    printf("Timer: %d\n", WEB_TIMER);
+    printf("Click STT: [%d, %d, %d]\n", WEB_CLICK_STT[0], WEB_CLICK_STT[1], WEB_CLICK_STT[2]);
+    for (int i = 0; i < ALL_AGENT_SIZE; i++) {
+        printf("Agent %d: x=%d, y=%d, vx=%d, vy=%d, isClick=%d, distance=%d, status=%d\n",
+                i,
+             ALL_AGENT_DATA[i]->x, ALL_AGENT_DATA[i]->y,
+             ALL_AGENT_DATA[i]->vx, ALL_AGENT_DATA[i]->vy,
+             ALL_AGENT_DATA[i]->isClick, ALL_AGENT_DATA[i]->distance,
+             ALL_AGENT_DATA[i]->status);
+    }
+    printf("SUCCESS: All event handlers tested successfully.\n");
+    return 0;   
+}
+
+
+
+/* ============= IR CODE LIST ================== */
+/* ============================================= */
+typedef union Entity Entity;
+typedef Entity *ent;
+
+typedef enum kind{
+	Undeclar = 0,
+	IntArray,
+	IntQue3,
+	Thread,
+	EventHandler,
+	Agent,
+} kind_t;
+
+struct IntArray{
+	kind_t kind; // kind of the array
+	int size, capacity;
+	int *elements;
+};
+
+struct IntQue3{
+	kind_t kind; // kind of the queue
+	char tail, head,size,nArgs;
+	int *que[3];
+};
+typedef int (*opfunc)(ent q);
+
+struct Thread{
+	kind_t kind;
+	int inProgress; // 0 - not started, 1 - running, 2 - finished
+	int apos;
+	int cpos;
+	int rbp; // base pointer
+	int pc; // program counter
+	ent queue;
+	ent stack;
+};
+
+struct EventHandler{
+	kind_t kind;
+	int size;
+	int EventH;
+	int *data; // data for the event handler
+	ent *threads; // thread that this handler belongs to
+}; 
+
+struct Agent{
+	kind_t kind;
+	int id;
+	int isActive;
+	int nEvents;
+	int pc;
+	int rbp;
+	ent stack;
+	ent *eventHandlers;
+};
+
+union Entity{
+	kind_t kind;
+	struct Agent Agent;
+	struct EventHandler EventHandler;
+	struct Thread Thread;
+	struct IntArray IntArray;
+	struct IntQue3 IntQue3;
+};
+
+ent _newEntity(size_t size, kind_t kind)
+{
+	ent e = (ent)malloc(size);
+	if (!e) {
+		fprintf(stderr, "Out of memory\n");
+		exit(1);
+	}
+	e->kind = kind;
+	return e;
+}
+#define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
+
+ent intArray_init()
+{
+	GC_PUSH(ent, a, newEntity(IntArray));
+	a->IntArray.elements = NULL;
+	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 4));
+	a->IntArray.size     = 0;
+	a->IntArray.capacity = 4;
+	GC_POP(a);
+	return a;
+}
+
+ent newStack(int initVal)
+{
+	GC_PUSH(ent, a, newEntity(IntArray));
+	a->IntArray.elements = NULL;
+	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 10));
+	a->IntArray.elements[0] = initVal; // rbp
+	a->IntArray.size     = 1;// rbp is always 0 at the start
+	a->IntArray.capacity = 10;
+	GC_POP(a);
+	return a;
+}
+/* !!!! FOR VM !!!! */
+void intArray_push(ent a, int value){
+
+	if (a->IntArray.size >= a->IntArray.capacity) {
+		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity + 10000 : 10000;
+		// printf("intArray_push: size %d >= capacity %d\n", a->size, a->capacity);
+		// printf("              %p\n",a);
+		gc_pushRoot((void*)a);
+		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
+		gc_popRoots(1);
+	}
+	a->IntArray.elements[a->IntArray.size++] = value;
+}
+/* !!!! FOR COMPILE !!!! */
+void intArray_append(ent a, int value)
+{
+	if (a->IntArray.size >= a->IntArray.capacity) {
+		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity * 2 : 4;
+		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
+	}
+	a->IntArray.elements[a->IntArray.size++] = value;
+}
+int intArray_pop(ent a)
+{
+	if (a->IntArray.size == 0) fatal("pop: stack is empty");
+	return a->IntArray.elements[--a->IntArray.size];
+}
+int intArray_last(ent a)
+{
+	if (a->IntArray.size == 0) fatal("last: stack is empty");
+	return a->IntArray.elements[a->IntArray.size - 1];
+}
+
+
+// IntQue3
+#define IntQue3Size 3
+ent newQue3(int nArgs)
+{
+	GC_PUSH(ent, q, newEntity(IntQue3));
+	q->IntQue3.nArgs = nArgs;
+	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
+	for (int i = 0;  i < IntQue3Size;  ++i) {
+		q->IntQue3.que[i] = (int*)gc_beAtomic(malloc(sizeof(int) * nArgs));
+	}
+	GC_POP(q);
+	return q;
+}
+
+void enqueue3(ent eh, int *value)
+{
+	ent *threads = eh->EventHandler.threads;
+
+	for (int i = 0; i < eh->EventHandler.size; ++i) {
+		ent q = threads[i]->Thread.queue;
+		if (q->IntQue3.size >= IntQue3Size) {
+			fprintf(stderr, "enqueue3: queue is full\n");//need to fix this
+			q->IntQue3.size = IntQue3Size; // reset size to max
+			//exit(1);
+		}
+		for (int j = 0; j < q->IntQue3.nArgs; ++j) {
+			q->IntQue3.que[q->IntQue3.tail][j] = value[j];
+		}
+		q->IntQue3.tail = (q->IntQue3.tail + 1) % 3;
+		q->IntQue3.size++;
+	}
+}
+
+ent dequeue3(ent thread)
+{
+	ent q = thread->Thread.queue;
+	if (q->IntQue3.size == 0) {
+		return NULL; // queue is empty
+	}
+	ent stack = thread->Thread.stack =  newStack(0);
+	for(int i = 0; i < q->IntQue3.nArgs; ++i){
+		int x = q->IntQue3.que[q->IntQue3.head][i];
+		intArray_push(stack, x);
+	}
+
+	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
+	q->IntQue3.size--;
+	thread->Thread.inProgress = 1; // mark thread as in progress
+	thread->Thread.rbp = 0;
+	thread->Thread.pc = thread->Thread.apos; // reset program counter to the start position
+	return stack;
+}
+
+#define ENTRY_EH        0x00 // Entry Handler
+#define EXIT_EH         0x00 // Exit Handler
+#define EVENT_EH        0x00 // Event Handler
+#define	TIMER_EH	    0x01
+#define	TOUCH_EH	    0x02
+#define	COLLISION_EH	0x03
+#define	SELF_STATE_EH	0x04
+#define CLICK_EH		0x05
+
+
+int event_handler_init(ent eh);
+int event_handler(ent eh);
+
+int timer_handler_init(ent eh);
+int timer_handler(ent eh);
+
+int touch_handler(ent eh);
+int collision_handler(ent eh);
+int self_state_handler(ent eh);
+int click_handler(ent eh);
+
+
+struct EventTable{
+	int (*eh)(ent eh); // event handler function
+	int (*init)(ent eh); // initialize function
+	int nArgs; // number of arguments for the event handler)
+	char nData; // number of data for the event handler
+}EventTables[] = {
+	{event_handler,      event_handler_init, 0, 0},      // EVENT_EH
+	{timer_handler,      timer_handler_init, 1, 2},      // TIMER_EH
+	{touch_handler,      event_handler_init, 1, 0},      // TOUCH_EH
+	{collision_handler,  event_handler_init, 2, 0},  // COLLISION_EH
+	{self_state_handler, event_handler_init, 0, 0}, // SELF_STATE_EH
+	{click_handler,      event_handler_init, 2, 0},      // CLICK_EH
+};
+
+ent newThread(int aPos, int cPos,int ehIndex){
+	GC_PUSH(ent, thread, newEntity(Thread));  
+	thread->Thread.inProgress = 0; // not started
+	thread->Thread.apos = aPos;
+	thread->Thread.cpos = cPos;
+	thread->Thread.queue = NULL;
+	thread->Thread.stack = NULL;
+	thread->Thread.rbp = 0; // base pointer
+	thread->Thread.pc = 0; // program counter
+	thread->Thread.queue = newQue3(EventTables[ehIndex].nArgs);
+	GC_POP(thread);
+	return thread;
+}
+
+ent newEventHandler(int ehIndex, int nThreads)
+{
+	GC_PUSH(ent, eh, newEntity(EventHandler));
+	eh->EventHandler.size = nThreads;
+	eh->EventHandler.EventH = ehIndex;
+	eh->EventHandler.data = NULL;
+	eh->EventHandler.threads = NULL;
+	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTables[ehIndex].nData));
+	eh->EventHandler.threads = (ent*)gc_beAtomic(malloc(sizeof(ent) * nThreads));
+	GC_POP(eh);
+	return eh;
+};
+
+ent *IrCodeList = NULL;
+int nIrCode = 0; // index of getIrCode
+ent getIrCode(int index){
+	if(index < nIrCode && index >= 0){
+		return IrCodeList[index];
+	} 
+	if(index >= nIrCode){
+		IrCodeList = realloc(IrCodeList, sizeof(ent) * (index + 1));	
+		IrCodeList[index] = intArray_init();
+		nIrCode = index + 1;
+	}
+	return IrCodeList[index];
+}
+
+ent newAgent(int id, int nEvents)
+{
+	ent agent = newEntity(Agent);
+	agent->Agent.id = id;
+	agent->Agent.isActive = 1; // active by default
+	agent->Agent.nEvents = nEvents;
+	agent->Agent.pc = 0;
+	agent->Agent.rbp = 0;
+	agent->Agent.stack = newStack(0);
+	if(nEvents <= 0) {
+		agent->Agent.eventHandlers = NULL; // no event handlers
+		agent->Agent.nEvents = 0; // no events
+	}else{
+		agent->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent) * nEvents));
+		for(int i=0; i<nEvents; i++){
+			agent->Agent.eventHandlers[i] = NULL;
+		}
+	}
+	return agent;
+}
+
+/*====================== VM =====================*/
+
+/*===============================================*/
+
+/* ========== OBJECT ============ */
+
+/* ============================== */
+
+
+/* ====== HANDLER FUNCTION ====== */
+
+/* ============================== */
+
+
+// Event Handlers VM
+
+int event_handler(ent eh){
+	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
+		ent thread = eh->EventHandler.threads[0];
+		int val[1] = {0}; // initialize value to 0
+		enqueue3(eh, val);
+	}
+	return 0; // return 0 to indicate no event
+}
+int event_handler_init(ent eh){
+	return 1;
+}
+
+#if __EMSCRIPTEN__
+int timer_handler(ent eh)
+{
+	int time = eh->EventHandler.data[0];
+	if (WEB_TIMER-time >=1000) {
+		eh->EventHandler.data[1]++;
+		eh->EventHandler.data[0] = WEB_TIMER;
+		enqueue3(eh,&eh->EventHandler.data[1]); // dequeue the first element
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+int timer_handler_init(ent eh){
+	eh->EventHandler.data[0] = WEB_TIMER;
+	eh->EventHandler.data[1] = 0;
+	return 1;
+}
+#else
+#include <time.h>
+int timer_handler(ent eh){
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	if(now - eh->EventHandler.data[0] >= 1){
+		eh->EventHandler.data[0] = now;
+		eh->EventHandler.data[1]++;
+		enqueue3(eh, &eh->EventHandler.data[1]);
+		return 1;
+	}
+	return 0; // return 0 to indicate no event
+}
+int timer_handler_init(ent eh){
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	eh->EventHandler.data[0] = now; //start time
+	eh->EventHandler.data[1] = 0;   //count
+	return 1;
+}
+#endif
+int touch_handler(ent eh)
+{
+	stop();
+	int touch = 0;
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &touch); // dequeue the first element
+		printf("touch event: %d\n", touch);
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+int collision_handler(ent eh)
+{
+	stop();
+	int collision = 0;
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &collision); // dequeue the first element
+		printf("collision event: %d\n", collision);
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+
+int self_state_handler(ent eh)
+{
+	stop();
+	int state = 0;
+	if (eh->IntQue3.head < eh->IntQue3.tail) {
+		enqueue3(eh, &state); // dequeue the first element
+		printf("self state event: %d\n", state);
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+
+int click_handler(ent eh)
+{
+	if (WEB_CLICK_STT[2]==1) {
+		int click[2] = {WEB_CLICK_STT[0], WEB_CLICK_STT[1]};
+		enqueue3(eh, click); // dequeue the first element
+		return 1; // return 1 to indicate success
+	}
+	return 0; // return 0 to indicate no event
+}
+
+
+
+int compile_event_init(){
+	//lsl event handler
+	entryEH = intern("entryEH");
+	entryEH->Symbol.value = newEventH(ENTRY_EH,EventTables[ENTRY_EH].nArgs); // 0 argument
+	exitEH = intern("exitEH");
+	exitEH->Symbol.value =  newEventH(EXIT_EH,EventTables[EXIT_EH].nArgs); // 0 argument
+	//standard event handler
+	oop EH = NULL;
+	EH = intern("eventEH");
+	EH->Symbol.value = newEventH(EVENT_EH,EventTables[EVENT_EH].nArgs); // 1 argument
+
+	EH = intern("timerEH");
+	EH->Symbol.value = newEventH(TIMER_EH,EventTables[TIMER_EH].nArgs); // 1 argument
+
+	EH = intern("touchEH");
+	EH->Symbol.value = newEventH(TOUCH_EH,EventTables[TOUCH_EH].nArgs); // 1 argument
+
+	EH = intern("collisionEH");
+	EH->Symbol.value = newEventH(COLLISION_EH,EventTables[COLLISION_EH].nArgs); // 2 arguments
+
+	EH = intern("selfStateEH");
+	EH->Symbol.value = newEventH(SELF_STATE_EH,EventTables[SELF_STATE_EH].nArgs); // 0 arguments
+
+	EH = intern("clickEH");
+	EH->Symbol.value = newEventH(CLICK_EH,EventTables[CLICK_EH].nArgs); // 2
+	return 1; // return 1 to indicate success
+}
+
+
+/* ================== LIBRARY FUNCTIONS ================== */
+int lib_log(ent stack)
+{
+	int value = intArray_pop(stack); // get value from stack
+	printf("log: %d\n", value); // print value to console
+	return 0; // return 0 to indicate success
+}
+
+// This function sets the x and y coordinates of the agent
+int lib_setxy(ent stack)
+{
+	int y = intArray_pop(stack); // get x coordinate from stack
+	int x = intArray_pop(stack); // get y coordinate from stack
+	AN_AGENT_DATA.x = x; // set x coordinate
+	AN_AGENT_DATA.y = y; // set y coordinate
+	AN_AGENT_DATA.x = x; // set x coordinate
+	AN_AGENT_DATA.y = y; // set y coordinate
+	return 0; // return 0 to indicate success
+}
+
+int lib_setvx(ent stack)
+{
+	int vx = intArray_pop(stack); // get x velocity from stack
+	AN_AGENT_DATA.vx = vx; // set x velocity
+	AN_AGENT_DATA.vx = vx; // set x velocity
+	return 0; // return 0 to indicate success
+}
+
+int lib_setvy(ent stack)
+{
+	int vy = intArray_pop(stack); // get y velocity from stack
+	AN_AGENT_DATA.vy = vy; // set y velocity
+	AN_AGENT_DATA.vy = vy; // set y velocity
+	return 0; // return 0 to indicate success
+}
+
+// Function initialization
+typedef enum {
+	LOG_FUNC,   // log function
+	SETXY_FUNC, // setXY function
+	SETVX_FUNC, // setVX function
+	SETVY_FUNC, // setVY function
+}StdFunc_t;
+
+struct StdFuncTable{
+	int (*stdfunc)(ent stack); // standard function
+	int nArgs;
+	//return value
+}StdFuncTable[] =
+{
+	{lib_log, 1}, // log function takes 1 argument
+	{lib_setxy, 2}, // setXY function takes 2 arguments
+	{lib_setvx, 1}, // setVX function takes 1 argument
+	{lib_setvy, 1}, // setVY function takes 1 argument
+};
+
+int compile_func_init(){
+	oop FUNC = NULL;
+	FUNC = intern("log");
+	FUNC->Symbol.value = newStdFunc(LOG_FUNC); // log function
+
+	FUNC = intern("setXY");
+	FUNC->Symbol.value = newStdFunc(SETXY_FUNC);
+
+	FUNC = intern("setVX");
+	FUNC->Symbol.value = newStdFunc(SETVX_FUNC); 
+
+	FUNC = intern("setVY");
+	FUNC->Symbol.value = newStdFunc(SETVY_FUNC);
+	return 1;
+}
+
+
+
+
+
+
+#if DEBUG
+#define dprintf(...) printf("line %d: ", __LINE__); printf(__VA_ARGS__); printf("\n");
+#else
+#define dprintf(...) ;
+#endif
+
+
+#define push(O)	intArray_push(stack, O)
+#define pop()	intArray_pop(stack)
+#define top()	intArray_last(stack)
+#define pick(I)  stack->IntArray.elements[I]
+
+void printStack(ent stack)
+{
+	printf("Stack: \n");
+	for (int i = 0;  i < stack->IntArray.size;  ++i) {
+		printf("%d %d\n", i, stack->IntArray.elements[i]);
+	}
+	printf("\n");
+}
+/*	============== WEB =======================*/
+ent *Agents = NULL;
+int nAgents = 0; // number of agents
+ent *codes = NULL; // codes for each agent
+int nCodes = 0; // number of codes
+ent execute(ent prog, ent entity, ent global);
+#define TAGBITS 2
+#define TAGINT 1
+typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
+#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAGINT))
+
+ent retFlags[7] = {
+	MAKE_FLAG(ERROR_F),
+	MAKE_FLAG(NONE_F),
+	MAKE_FLAG(HALT_F),
+	MAKE_FLAG(EOE_F),
+	MAKE_FLAG(EOC_F),
+	MAKE_FLAG(CONTINUE_F),
+	MAKE_FLAG(TRANSITION_F),
+};
+#undef TAGBITS
+#undef TAINT
+
+ent impleBody(ent code, ent eh, ent gm){
+	ent *threads = eh->EventHandler.threads;
+	ent ret = retFlags[ERROR_F];
+	for(int i=0;i<eh->EventHandler.size; ++i){
+		ent thread = threads[i];
+		if(thread->Thread.inProgress == 1){
+			ret = execute(code,thread, gm);//should be change
+		}else if(thread->Thread.queue->IntQue3.size > 0){
+			thread->Thread.stack = dequeue3(thread);
+			assert(thread->Thread.stack != NULL);
+			ret = execute(code, thread, gm);//should be change
+		}
+		if(ret == retFlags[TRANSITION_F]){
+			return ret;
+		}
+	}
+	return ret; // return 1 to indicate success
+}
+
+
+/* =========================================== */
+int runPC(ent code){
+	GC_PUSH(ent, agent, newAgent(0,0));
+	agent = execute(code, agent, agent->Agent.stack);
+	dprintf("agent: %d\n", agent->Agent.isActive);
+	while(1){
+		if(agent->Agent.isActive == 0) {
+			agent = execute(code ,agent , agent->Agent.stack);
+		}else{
+			for(int i = 0; i< agent->Agent.nEvents; ++i){
+				// get event data
+				ent eh = agent->Agent.eventHandlers[i];
+				EventTables[eh->EventHandler.EventH].eh(eh);
+				if(impleBody(code, eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+					agent->Agent.isActive = 0;
+					break;
+				}
+			}
+		}
+	}
+	GC_POP(agent);
+	return 1; // return 1 to indicate success
+}
+
+
+
+
+			//code, stack , global 
+ent execute(ent prog,ent entity, ent global)
+{
+	int opstep = 20; // number of operations to execute before returning
+    int* code = prog->IntArray.elements;
+	int size = prog->IntArray.size;
+	int *pc;
+	int *rbp;
+	ent stack;
+	switch(entity->kind) {
+		case Thread:{
+			pc = &entity->Thread.pc; // program counter
+			rbp = &entity->Thread.rbp; // base pointer
+			stack = entity->Thread.stack; // stack pointer
+			break;
+		}
+		case Agent:{
+			pc = &entity->Agent.pc; // program counter
+			rbp = &entity->Agent.rbp; // base pointer
+			stack = entity->Agent.stack; // stack pointer
+			opstep = 100; // number of operations to execute before returning
+			break;
+		}
+		default:{
+			fatal("execute: unknown entity kind %d", entity->kind);
+			return NULL; // should never reach here
+		}
+	}
+
+# define fetch()	code[(*pc)++]
+
+    for (;;) {
+	if (opstep-- <= 0) {
+		return retFlags[CONTINUE_F]; // return CONTINUE_F to indicate that the execution is not finished
+	}
+
+	int op = fetch();
+	int l = 0, r = 0;
+
+	switch (op) {
+		case iMKSPACE:{
+			printOP(iMKSPACE);
+			int nvars = fetch();
+			for (int i = 0;  i < nvars;  ++i) {
+				push(0); // reserve space for local variables
+			}
+
+			continue;
+		}
+
+	    case iGT:printOP(iGT);  r = pop();  l = pop();  push(l > r);  continue;
+		case iGE:printOP(iGE);  r = pop();  l = pop();  push(l >= r); continue;
+		case iEQ:printOP(iEQ);  r = pop();  l = pop();  push(l == r); continue;
+		case iNE:printOP(iNE);  r = pop();  l = pop();  push(l != r); continue;
+		case iLE:printOP(iLE);  r = pop();  l = pop();  push(l <= r); continue;
+		case iLT:printOP(iLT);  r = pop();  l = pop();  push(l < r);  continue;
+	    case iADD:printOP(iADD);  r = pop();  l = pop();  push(l + r);  continue;
+	    case iSUB:printOP(iSUB);  r = pop();  l = pop();  push(l - r);  continue;
+	    case iMUL:printOP(iMUL);  r = pop();  l = pop();  push(l * r);  continue;
+	    case iDIV:printOP(iDIV);  r = pop();  l = pop();  push(l / r);  continue;
+	    case iMOD:printOP(iMOD);  r = pop();  l = pop();  push(l % r);  continue;
+	    case iGETVAR:{
+			printOP(iGETVAR);
+			int symIndex = fetch(); // need to change
+			push(stack->IntArray.elements[symIndex + *rbp+1]); // get the variable value
+			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + *rbp+1]);
+			continue;
+		}	    
+	    case iSETVAR:{
+			printOP(iSETVAR);
+			int symIndex = fetch();//need to change
+			stack->IntArray.elements[symIndex+*rbp+1] = pop();
+			continue;
+		}
+		case iJUMP:{
+			printOP(iJUMP);
+			l = fetch();
+			if (l >= size) {
+				fatal("jump to invalid position %d", l);
+			}
+			*pc += l; // set program counter to the jump position
+			continue;
+		}
+		case iJUMPIF:{
+			printOP(iJUMPIF);
+			l = fetch();
+			if (l < 0 || l >= size) {
+				fatal("jump to invalid position %d", l);
+			}
+			if (pop()) { // if top of stack is true
+				continue;
+			} else {
+				*pc+=l; // skip the jump
+			}
+			continue;
+		}
+		case iRETURN:{
+			printOP(iRETURN);
+			if (*rbp == 0) {
+				fatal("return without call");
+			}
+			int retValue = pop(); // get the return value
+			stack->IntArray.size = *rbp+1; // restore the stack size to the base pointer
+			*rbp = pop(); // restore the base pointer
+			*pc = pop(); // restore the program counter
+			
+			push(retValue); // push the return value to the stack
+			continue;
+		}
+		case iPCALL:{
+			printOP(iPCALL);
+			continue;
+		}
+		case iSCALL:{
+			printOP(iSCALL);
+			StdFuncTable[fetch()].stdfunc(stack); // call the standard function
+			continue;
+		}
+		case iUCALL:{
+			printOP(iUCALL);
+			l = fetch(); // get the function rel position
+			r = fetch(); // get the number of arguments
+			push(*pc); // save the current program counter
+			*pc += l; // set program counter to the function position
+
+			push(*rbp); // save the current base pointer
+			*rbp = stack->IntArray.size-1; // set the base pointer to the current stack size
+			dprintf("rbp: %d, pc: %d\n", *rbp, *pc);
+
+			for (int i = 1;  i <= r;  ++i) {
+				push(pick((*rbp - i -1)));//pc
+			}
+			continue;
+		}
+		case iPUSH:{
+		printOP(iPUSH);
+			l = fetch();
+			push(l);
+			continue;
+		}
+		case iCLEAN:{
+			printOP(iCLEAN);
+			l = fetch(); // number of variables to clean
+			int retVal = pop(); // get the return value
+			for(int i = 0;  i < l;  ++i) {
+				if (stack->IntArray.size == 0) {
+					fatal("stack is empty");
+				}
+				pop(); // clean the top element
+			}
+			push(retVal); // push the return value back to the stack
+			// stack->IntArray.size -= l; // clean the top l elements from the stack
+			continue;
+		}
+		case iPRINT:{
+			printOP(iPRINT);
+			int nArgs = fetch();
+			for(int i = 0; i < nArgs; i++) {
+				printf("%d ", pop());
+			}
+			printf("\n");
+			continue;
+		}
+		case iTRANSITION:{
+			printOP(iTRANSITION);
+			int nextStatePos = fetch();
+			intArray_push(global,  nextStatePos+(*pc));//relative position:
+			return retFlags[TRANSITION_F];
+		}
+		case iSETSTATE:{
+			printOP(iSETSTATE);
+			assert(entity->kind == Agent);
+			int ehSize = fetch(); // get the number of event handlers
+			assert(ehSize >= 0);
+			entity->Agent.nEvents = ehSize; // set the number of events
+			ent *ehs = entity->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent*) * ehSize)); //initialize the event handlers
+			for(int i=0; i<ehSize; ++i){
+				op = fetch();
+				assert(op == iSETEVENT);
+				printOP(iSETEVENT);
+				int eventID = fetch(); // get the event ID
+				int nThreads = fetch(); // get the number of threads
+				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler
+				EventTables[eventID].init(ehs[i]);
+				for(int j=0; j<nThreads; ++j){
+					op = fetch();
+					assert(op == iSETPROCESS);
+					printOP(iSETPROCESS);
+					l = fetch(); // get the aPos
+					r = fetch(); // get the cPos
+					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
+				}
+			}
+			op = fetch();
+			assert(op == iIMPL);
+			printOP(iIMPL);
+			entity->Agent.isActive = 1; // set the agent to active
+			return entity; // return the entity
+		}
+		case iSETEVENT:{
+			printOP(iSETEVENT);
+			fatal("iSETEVENT should not be called here");
+			continue;
+		}
+		case iSETPROCESS:{
+			printOP(iSETPROCESS);
+			fatal("iSETPROCESS should not be called here");
+			continue;
+		}
+		case iIMPL:{
+			printOP(iIMPL);
+			continue;
+		}
+		case iEOC:{
+			printOP(iEOC);
+			return retFlags[EOC_F]; // return EOC_F to indicate end of code
+		}
+		case iEOE:{
+			printOP(iEOE);
+			int nVariables = fetch();
+			switch(entity->kind){
+				case Thread:{
+					entity->Thread.inProgress = 0; // set the thread to not in progress
+					entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
+					entity->Thread.rbp = 0;
+					return retFlags[EOE_F]; // return EOE_F to indicate end of execution
+				}
+				case Agent:{
+					entity->Agent.isActive = 0; // set the agent to not active
+					for(int i=0; i<nVariables; i++){
+						pop();
+					}
+					continue;
+				}
+				default:{
+					fatal("execute: unknown entity kind %d", entity->kind);
+					return NULL; // should never reach here
+				}
+			}
+			continue;
+		}
+		case iEOS:{
+			printOP(iEOS);
+			assert(entity->kind == Agent);
+			int variablesSize = fetch();
+			for(int i = 0; i < variablesSize; i++){
+				pop(); // clean the top variablesSize elements from the stack
+			}
+			entity->Agent.isActive = 0;
+			entity->Agent.pc = pop();
+			entity->Agent.eventHandlers = NULL;//TODO: don't remove this in the future
+			continue;
+		}
+	    case iHALT:{
+			printOP(iHALT);
+			pop();//first rbp
+			for(int i = 0;  i < stack->IntArray.size;  ++i) {
+				printf("%d ", stack->IntArray.elements[i]);
+			}
+			printf("\n");
+			return stack; // return the answer
+		}
+	    default:fatal("illegal instruction %d", op);
+	}
+	}
+# undef fetch
+# undef push
+# undef pop
+    return 0; // should never reach here
+}
+
+
+
+/* ========================== COMPILER =============================== */
+
+/* =================================================================== */
+
+
+/* ========== OBJECT ============ */
+
+/* ============================== */
+
+/* = VARIABLE === */
+
+/* =============== */
+ent compile();
+
+
+
+/* ==== STATE ==== */
+
+/* =============== */
+
+// STATESSm
+// s1: pos, name;
+// s2: pos, name;
+// s3: pos, name;
+enum { APSTATE = 0, ATRANSITION = 1 };
+
+oop *states = 0;
+int nstates = 0;
+oop *transitions = 0; // transitions between states
+int ntransitions = 0;
+
+void appendS0T1(oop name, int pos,int type)
+{
+	if(type != 0 && type != 1) {
+		printf("type must be 0 or 1, got %d\n", type);
+		exit(1);
+	}
+	oop *lists = type == APSTATE ? states : transitions;
+	int *listSize = type == APSTATE ? &nstates : &ntransitions;
+	for (int i = 0;  i < *listSize;  ++i) {
+		oop stateName = get(lists[i], Pair,a);
+		if (stateName == name) {
+			printf("state %s already exists\n", get(name, Symbol,name));
+			return;
+		}
+	}
+
+	gc_pushRoot((void*)&name);
+	switch(type){
+		case APSTATE:{
+			states = realloc(states, sizeof(oop) * (nstates + 1));
+			states[nstates] = newPair(name, newInteger(pos));
+			nstates++;
+			break;
+		}
+		case ATRANSITION:{
+			transitions = realloc(transitions, sizeof(oop) * (ntransitions + 1));
+			transitions[ntransitions] = newPair(name, newInteger(pos));
+			ntransitions++;
+			break;
+		}
+	}
+	gc_popRoots(1);
+	return;
+}
+
+void setTransPos(ent prog){
+	int *code = prog->IntArray.elements;
+	for (int i = 0;  i < ntransitions;  ++i) {
+		oop trans = transitions[i];
+		oop transName = get(trans, Pair,a);
+		int transPos = Integer_value(get(trans, Pair,b));//pos of after emitII(prog, iTRANSITION, 0);
+		for (int j = 0;  j < nstates;  ++j) {
+			oop state = states[j];
+			oop stateName = get(state, Pair,a);
+			if (stateName == transName) {
+				int statePos = Integer_value(get(state, Pair,b));
+				code[transPos-1] = statePos - transPos;//relative position
+			}
+		}
+	}
+}
+
+
+/* ==== COMPILEA == */
+
+/* =============== */
+
+#if DEBUG
+#define printTYPE(OP) printf("emit %s\n", #OP)
+#else
+#define printTYPE(OP) ;
+#endif
+
+void emitL (ent array, oop object) 	  { intArray_append(array, Integer_value(object)); }
+void emitI (ent array, int i     ) 	  { intArray_append(array, i); }
+void emitII(ent array, int i, int j)      { emitI(array, i); emitI(array, j); }
+void emitIL(ent array, int i, oop object) { emitI(array, i); emitL(array, object); }
+void emitIII(ent array, int i, int j, int k)
+{
+	emitI(array, i);
+	emitI(array, j);
+	emitI(array, k);
+}
+
+void printCode(ent code);
+
+void emitOn(ent prog,oop vars, oop ast)
+{
+    switch (getType(ast)) {
+		case Undefined:
+		case Integer:{
+			printTYPE(_Integer_);
+			emitIL(prog, iPUSH, ast);
+			return;
+		}
+		case Array:{
+			printTYPE(_Array_);
+			oop *elements = get(ast, Array,elements);
+			int size = get(ast, Array,size);
+			emitII(prog, iPUSH, size); // push the size of the array
+			for (int i = 0;  i < size;  ++i) {
+				emitOn(prog, vars, elements[i]); // compile each element
+			}
+			return;
+		}
+		case Binop:{
+			printTYPE(_Binop_);
+			emitOn(prog, vars, get(ast, Binop,lhs));
+			emitOn(prog, vars, get(ast, Binop,rhs));
+			switch (get(ast, Binop,op)) {
+			case NE: emitI(prog, iNE);  return;
+			case EQ: emitI(prog, iEQ);  return;
+			case LT: emitI(prog, iLT);  return;
+			case LE: emitI(prog, iLE);  return;
+			case GE: emitI(prog, iGE);  return;
+			case GT: emitI(prog, iGT);  return;
+			case ADD: emitI(prog, iADD);  return;
+			case SUB: emitI(prog, iSUB);  return;
+			case MUL: emitI(prog, iMUL);  return;
+			case DIV: emitI(prog, iDIV);  return;
+			case MOD: emitI(prog, iMOD);  return;
+			default:break;
+			}
+			fatal("leg %d: %s",__LINE__, devmsg);
+			break;
+		}
+		case Unyop:{
+			printTYPE(_Unyop_);
+			oop rhs = get(ast, Unyop,rhs);
+			switch (get(ast, Unyop,op)) {
+				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iSUB); return;
+				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iEQ);  return;
+				default: break;;
+			}
+			oop variable = searchVariable(vars, get(rhs, GetVar,id));
+
+			switch(get(ast, Unyop,op)) {
+					case BINC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));emitOn(prog, vars, rhs); return;
+					case BDEC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); emitOn(prog, vars, rhs);return;
+					case AINC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
+					case ADEC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
+				default: break;
+			}
+			fatal("leg %d: %s",__LINE__, devmsg);
+			return ;
+		}
+		case GetVar: {
+			printTYPE(_GetVar_);
+			oop sym = get(ast, GetVar,id);
+			oop variable = searchVariable(vars,sym);
+			if (variable == NULL) {
+				error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
+				exit(1);
+			}
+			emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
+			return;
+		}
+		case Call:{
+			//Standard library functions / user defined functions
+			printTYPE(_Call__);
+			oop id   = get(ast, Call, function);
+			oop func = get(get(id,GetVar,id), Symbol, value); // get the function from the variable;
+			
+			oop args = get(ast, Call,arguments);
+			switch(getType(func)){
+				case EventH:{
+					printTYPE(_EventH_);
+					int index = get(func, EventH,id);// get the index of the event handler
+					int nArgs = get(func, EventH,nArgs);
+					
+					int argsCount = 0;
+					while(args != nil){
+						oop arg = get(args, Pair,a);
+						emitOn(prog, vars, arg); // compile argument
+						args = get(args, Pair,b);
+						argsCount++;
+					}
+					if(nArgs != argsCount){
+						error("line %d ERROR: event %s expects %d arguments, but got %d\n", get(ast,Call,line),get(func, Symbol,name), nArgs, argsCount);
+						exit(1);
+					}
+					emitIII(prog, iPCALL,  index, nArgs); // call the event handler
+					return;
+				}
+				case StdFunc:{
+					printTYPE(_StdFunc_);
+					int funcIndex = get(func, StdFunc, index); // get the index of the standard function
+					int argsCount = 0;
+					while(args != nil){
+						oop arg = get(args, Pair,a);
+						emitOn(prog, vars, arg); // compile argument
+						args = get(args, Pair,b);
+						argsCount++;
+					}
+					if(StdFuncTable[funcIndex].nArgs != argsCount){
+						error("line %d ERROR: standard function %s expects %d arguments, but got %d\n",
+							 get(ast,Call,line),get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+						exit(1);
+					}
+
+					emitII(prog, iSCALL, funcIndex); // call the standard function
+					//NOTE: we don't need to clean the stack after the call, because the standard function will do it
+					//      BUT we need to check the return value (not implemented yet)
+					//emitII(prog, iCLEAN, nReturns); // clean the stack after the call
+					return;
+				}
+				case Closure:{
+					printTYPE(_Closure_);
+					int nArgs = get(func, Closure,nArgs);
+					int pos   = get(func, Closure,pos);
+					int argsCount = 0;
+					while(args != nil){
+						oop arg = get(args, Pair,a);
+						emitOn(prog, vars, arg); // compile argument
+						args = get(args, Pair,b);
+						argsCount++;
+					}
+					if(nArgs != argsCount){
+						error("line %d ERROR: function %s expects %d arguments, but got %d\n", get(func, Symbol,name), nArgs, argsCount);
+						exit(1);
+					}
+					emitIII(prog, iUCALL, 0, nArgs); // call the function
+					int iCallPos = prog->IntArray.size - 2; // remember the position of the call
+					prog->IntArray.elements[iCallPos] = pos - (prog->IntArray.size) ; // set the jump position to the function code
+					emitII(prog, iCLEAN, nArgs); // clean the stack after the call
+					return;
+				}
+				default:{
+					fatal("leg %d: %s", __LINE__, devmsg);
+					fatal("error: call function with type %d\n", getType(func));
+					printlnObject(func,0);
+					exit(1);
+				}
+			}
+			return;
+		}
+		case SetVar: {
+			printTYPE(_SetVar_);
+			oop sym = get(ast, SetVar,id);
+			oop rhs = get(ast, SetVar,rhs);
+			switch(getType(rhs)){
+				case UserFunc:{
+					printTYPE(_Function_);
+					if(sym->Symbol.value !=false) {
+						error("line %d ERROR: variable %s is already defined as a function\n",get(ast,SetVar,line), get(sym, Symbol,name));
+						exit(1);
+					}
+					oop params = get(rhs, UserFunc,parameters);
+					oop body = get(rhs, UserFunc,body);
+					GC_PUSH(oop, localVars, newVariables());
+					GC_PUSH(oop, closure, newClosure());
+					while(params != nil){
+						oop param = get(params, Pair,a);
+						if (searchVariable(localVars, param) != NULL) {
+							error("line %d ERROR: parameter %s is already defined\n",get(ast,SetVar,line), get(param, Symbol,name));
+							exit(1);
+						}
+						insertVariable(localVars, param); // insert parameter into local variables
+						closure->Closure.nArgs++;
+						params = get(params, Pair,b);
+					}
+					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
+					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
+					closure->Closure.pos = prog->IntArray.size; // remember the position of the closure
+					sym->Symbol.value = closure; // set the closure as the value of the variable
+					emitII(prog, iMKSPACE, 0); // reserve space for local variables
+					int codePos = prog->IntArray.size - 1; // remember the position of the function code
+					emitOn(prog, localVars, body); // compile function body
+					prog->IntArray.elements[codePos] = localVars->Variables.size; // set the size of local variables
+					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
+					GC_POP(closure);
+					GC_POP(localVars);
+					return;
+				}
+				case Integer:
+				case GetVar:
+				case Unyop:
+				case Binop:{
+						emitOn(prog,vars, rhs);
+						oop variable = insertVariable(vars,sym);
+						emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
+					return;	
+				}
+				default:{
+					error("line %d ERROR: set variable with type %d\n",get(ast,GetVar,line), getType(rhs));
+					exit(1);
+				}
+			}
+
+			return;
+		}
+		case Pair:{
+			printTYPE(_Pair_);
+			oop a = get(ast, Pair,a);
+			oop b = get(ast, Pair,b);
+			error("leg %d: %s",__LINE__, devmsg);
+			return;
+		}
+		case Print:{
+			printTYPE(_Print_);
+			oop args = get(ast, Print,arguments);
+			int nArgs = 0;
+			while (args != nil) {
+				oop arg = get(args, Pair,a);
+				emitOn(prog, vars, arg); // compile argument
+				args = get(args, Pair,b);
+				nArgs++;
+			}
+			emitII(prog, iPRINT, nArgs); // print the result
+			return;
+		}
+		case If:{
+			printTYPE(_If_);
+			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables	
+			oop condition = get(ast, If,condition);
+			oop statement1 = get(ast, If,statement1);
+			oop statement2 = get(ast, If,statement2);
+
+			emitOn(prog, vars, condition); // compile condition
+
+			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
+			int jumpPos = prog->IntArray.size-1; // remember position for jump
+
+			emitOn(prog, vars, statement1); // compile first statement
+			if (statement2 != false) {
+				emitII(prog, iJUMP, 0);
+				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
+				emitOn(prog, vars, statement2); // compile second statement
+				prog->IntArray.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
+				prog->IntArray.elements[jumpPos2] = (prog->IntArray.size - 1) - jumpPos2; // set jump position
+			} else {
+				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
+			}
+			discardVarialbes(vars, variablesSize); // discard variables
+			return;
+		}
+		case Loop:{
+			printTYPE(_Looop_);
+			oop initialization = get(ast, Loop,initialization);
+			oop condition      = get(ast, Loop,condition);
+			oop iteration      = get(ast, Loop,iteration);
+			oop statement      = get(ast, Loop,statement);
+			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
+
+			if (initialization != false) {
+				emitOn(prog, vars, initialization); // compile initialization
+			}
+			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
+			int jumpPos = 0; // position for the jump if condition is true
+			if(condition != false) {
+				emitOn(prog, vars, condition); // compile condition
+				emitII(prog, iJUMPIF, 0); // emit jump if condition is true
+				jumpPos = prog->IntArray.size - 1; // remember position for jump
+			}
+
+			emitOn(prog, vars, statement); // compile statement
+
+			if (iteration != false) {
+				emitOn(prog, vars, iteration); // compile iteration
+			}
+			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
+			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
+			if(condition != false) {
+				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
+			}
+			discardVarialbes(vars, variablesSize); // discard variables
+			return;
+		}
+		case Return:{
+			printTYPE(_Return_);
+			oop value = get(ast, Return,value);
+			if (value != false) {
+				emitOn(prog, vars, value); // compile return value
+			} else {
+				emitII(prog, iPUSH, 0); // return 0 if no value is specified
+			}
+			emitI(prog, iRETURN); // emit return instruction
+			return;
+		}
+		case Block:{
+			printTYPE(_Block_);
+			oop *statements = ast->Block.statements;
+			int nStatements = ast->Block.size;
+			for (int i = 0;  i < nStatements;  ++i) {
+				emitOn(prog, vars, statements[i]); // compile each statement
+			}
+			return;
+		}
+		case Transition:{
+			printTYPE(_Transition_);
+			oop id = get(ast, Transition,id);
+			emitII(prog, iTRANSITION, 0);
+			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
+			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
+			return;
+		}
+		case State:{
+			printTYPE(_State_);
+			oop id = get(ast, State,id);
+			dprintf("State: %s\n", get(id, Symbol,name));
+			oop params = get(ast, State,parameters);
+			oop events = get(ast, State,events);
+			
+	
+			// compile events
+			oop *eventList = events->Block.statements;
+			int nElements = 0;
+			int elements[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
+			int nEventHandlers = 0;
+			oop preid = false;
+			emitII(prog, iJUMP, 0);
+			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
+			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
+
+			for (int i = 0;  i < get(events, Block, size);  ++i) {
+				dprintf("DEBUG: %s\n", devmsg);
+				if(eventList[i] == NULL)fatal("line %d ERROR: %s\n", __LINE__, devmsg);
+				if((get(eventList[i], Event,id) == entryEH) || (get(eventList[i], Event,id) == exitEH)){
+					dprintf("entryEH or exitEH\n");
+					elements[nElements++] = 0; // collect empty events
+					continue;
+				}
+				if(getType(eventList[i])!=Event){
+					fatal("line %d ERROR: %s\n", __LINE__, devmsg);
+					elements[nElements++] = 0; // collect empty events
+				}
+				else if(get(eventList[i], Event,id) != preid) {
+					dprintf("new event\n");
+					nEventHandlers++;
+					preid = get(eventList[i], Event,id);
+					elements[nElements]=1; // collect unique events
+				}else if(get(eventList[i], Event,id) == preid){
+					dprintf("same event\n");
+					elements[nElements]++;
+				}
+				dprintf("eventList[%d]: %s\n", i, get(eventList[i], Event,id)->Symbol.name);
+				emitOn(prog, vars, eventList[i]); // compile each event
+			}
+			dprintf("Finished collecting events\n");
+
+			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
+			// state initialization
+			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
+			//entryEH
+			if(get(eventList[0], Event,id) == entryEH){
+				emitOn(prog, vars, eventList[0]); // compile entryEH
+			}
+			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
+			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
+				if(elements[i] == 0){ ehi++;continue;} // skip empty events
+				oop id = get(eventList[i], Event,id);
+				printlnObject(id,1);
+				oop eh = get(id,Symbol,value);
+
+				int eventID = eh->EventH.id; // get event ID
+				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
+				for(int j = 0; j < elements[ehi]; ++j) {
+					oop event = eventList[i++];
+					oop posPair = get(event, Event,block);
+					printlnObject(get(event,Event,id),1);
+					emitIII(prog, iSETPROCESS ,Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
+				}
+				ehi++; // increment event handler index
+			}
+			emitI(prog, iIMPL);
+			// exitEH
+			for(int i = 0; i < get(events, Block, size); i++){
+				if(get(eventList[i], Event,id) == exitEH){ 
+					emitOn(prog, vars, eventList[i]); // compile exitEH
+				}
+				if(i == 1)break;//0: entryEH, 1: exitEH ...
+			}
+			discardVarialbes(vars, variablesSize); // discard variables
+			emitII(prog, iEOS, variablesSize); // emit EOS instruction to mark the end of the state
+			return;
+		}
+		case Event:{
+			printTYPE(_Event_);
+
+			oop id = get(ast, Event,id);
+			oop eh = get(id,Symbol,value);
+			if(getType(eh) != EventH) {
+				printf("line %d ERROR: event %s() is not an event ID\n",get(ast, Event, line), get(id, Symbol,name));
+				printlnObject(eh,1);
+				exit(1);
+			}
+			oop params = get(ast, Event,parameters);
+			oop block = get(ast, Event,block);
+
+			GC_PUSH(oop, eventLocalVariables, newVariables()); // create local variables for the event
+			
+			int nArgs = eh->EventH.nArgs;
+			int paramSize =0;
+			int cPos      = 0;
+			while(params != nil) {//a:id-b:cond
+				oop param = get(params, Pair,a);
+				insertVariable(eventLocalVariables, get(param,Pair,a)); // add parameter to local variables
+				if(get(param, Pair, b)!= false){
+					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
+					emitOn(prog, eventLocalVariables, get(param, Pair,b)); // compile condition if exists
+					emitI(prog,iJUDGE); // emit JUDGE instruction
+				}
+				params = get(params, Pair,b);
+				paramSize++;
+			}
+			if(cPos != 0){
+				emitI(prog, iEOC); // emit EOC instruction if condition exists
+			}
+			if(paramSize != nArgs) {
+				error("line %d ERROR: event %s has %d parameters, but expected %d\n",get(ast,Event,line), get(id, Symbol,name), paramSize, nArgs);
+				exit(1);
+			}
+			int aPos = prog->IntArray.size; // remember the position of the event handler
+			emitII(prog, iMKSPACE, 0); // reserve space for local variables
+			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
+
+
+			emitOn(prog, eventLocalVariables, block); // compile block
+			emitII(prog, iEOE, eventLocalVariables->Variables.size); // emit EOE instruction to mark the end of the event handler
+
+			prog->IntArray.elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
+			GC_POP(eventLocalVariables); // pop local variables from GC roots
+			GC_PUSH(oop,apos, newInteger(aPos));
+			GC_PUSH(oop,cpos,newInteger(cPos));
+			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
+			GC_POP(cpos);
+			GC_POP(apos);
+			return;
+		}
+		default:break;
+    }
+	fatal(devmsg);
+    fatal("emitOn: unimplemented emitter for type %d", getType(ast));
+}
+
+void printCode(ent code){
+	for (int i = 0; i < code->IntArray.size; ++i) {
+		int op = code->IntArray.elements[i];
+		const char *inst = "UNKNOWN";
+		switch (op) {
+			case iHALT:
+				inst = "HALT";
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			case iPUSH:
+				inst = "LOAD";
+				int value = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, value);
+				break;
+			case iGT:   inst = "GT"; goto simple;
+			case iGE:   inst = "GE"; goto simple;
+			case iEQ:   inst = "EQ"; goto simple;
+			case iNE:   inst = "NE"; goto simple;
+			case iLE:   inst = "LE"; goto simple;
+			case iLT:   inst = "LT"; goto simple;
+			case iADD:  inst = "ADD"; goto simple;
+			case iSUB:  inst = "SUB"; goto simple;
+			case iMUL:  inst = "MUL"; goto simple;
+			case iDIV:  inst = "DIV"; goto simple;
+			case iMOD:  inst = "MOD"; goto simple;
+			case iJUDGE:inst = "JUDGE"; goto simple;
+			case iEOC:  inst = "EOC"; goto simple;
+			case iRETURN: inst = "RETURN"; goto simple;
+simple:
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			case iEOE:{
+				inst = "EOE";
+				int nVariables = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nVariables);
+				break;
+			}
+			case iEOS:{
+				inst = "EOS";
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			}
+			case iGETVAR:
+				inst = "GETVAR";
+				int varIndex = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, varIndex);
+				break;
+			case iSETVAR:
+				inst = "SETVAR";
+				int varIndexSet = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, varIndexSet);
+				break;
+			case iMKSPACE:
+				inst = "MKSPACE";
+				int space = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, space);
+				break;
+			case iPRINT: {
+				inst = "PRINT";
+				int nArgs = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nArgs);
+				break;
+			}
+			case iJUMP: {
+				inst = "JUMP";
+				int offset = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
+				break;
+			}
+			case iJUMPIF: {
+				inst = "JUMPIF";
+				int offset = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
+				break;
+			}
+			case iCLEAN: {
+				inst = "CLEAN";
+				int nArgs = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nArgs);
+				break;
+			}
+			case iPCALL: {
+				inst = "PCALL";
+				int index = code->IntArray.elements[++i];
+				int nArgs = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, index, index + (i+1), nArgs);
+				break;
+			}
+			case iSCALL: {
+				inst = "SCALL";
+				int index = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, index);
+				break;
+			}
+			case iUCALL: {
+				inst = "CALL";
+				int pos = code->IntArray.elements[++i];
+				int nArgs = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, pos, (i+1)+pos, nArgs);
+				break;
+			}
+			case iTRANSITION: {
+				inst = "TRANSITION";
+				int pos = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d(%d)\n", i-1, inst, pos,(i+1)+pos);
+				break;
+			}
+			case iSETSTATE: {
+				inst = "SETSTATE";
+				int nEvents = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nEvents);
+				break;
+			}
+			case iSETEVENT: {
+				inst = "SETEVENT";
+				int eventID = code->IntArray.elements[++i];
+				int nHandlers = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d %3d\n", i-2, inst, eventID, nHandlers);
+				break;
+			}
+			case iSETPROCESS: {
+				inst = "SETPROCESS";
+				int apos = code->IntArray.elements[++i];
+				int cpos = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d %3d\n", i-2, inst, apos, cpos);
+				break;
+			}
+			case iIMPL:
+				inst = "IMPL";
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			default:
+				printf("%03d: %-10s %03d\n", i, inst, op);
+		}
+	}
+	printf("\n");
+}
+
+
+ent compile()
+{
+	printf("compiling...\n");
+    ent prog = intArray_init(); // create a new program code
+	emitII(prog, iMKSPACE, 0); // reserve space for local variables
+
+	GC_PUSH(oop, globalVars,newVariables()); // create global variables
+	// compile the AST into the program code
+	int line = 1;
+	while(yyparse()){
+		if (result == 0) {
+			break;
+		}
+		printf("compiling statement %d\n", line);
+		emitOn(prog, globalVars, result);
+		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
+	}
+    emitI (prog, iHALT); // end of program
+	prog->IntArray.elements[1] = globalVars->Variables.size; // store number of variables
+	setTransPos(prog); // set transition positions
+	GC_POP(globalVars); // pop global variables from GC roots
+	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
+    return prog;
+}
+
+
+
+
+
+
+
+/*====================== MSGC =====================*/
+
+/* ================================================*/
+
+/*===============COMPILE=============*/
+
+/* ==================================*/
+
+void markObject(oop obj){
+	switch(getType(obj)){
+case Integer :{return;}
+case Symbol  :
+{
+	if (obj->Symbol.value) {
+		gc_mark(obj->Symbol.value);
+	}
+	return;
+}
+case Pair    :
+{
+	if (obj->Pair.a) {
+		gc_mark(obj->Pair.a);
+	}
+	if (obj->Pair.b) {
+		gc_mark(obj->Pair.b);
+	}
+	return;
+}
+case Array   :
+{
+	if (obj->Array.elements) {
+		for (int i = 0;  i < obj->Array.size;  ++i) {
+			if (obj->Array.elements[i]) {
+				gc_mark(obj->Array.elements[i]);
+			}
+		}
+	}
+	if (obj->Array.elements) {
+		gc_markOnly(obj->Array.elements);
+	}
+	return;
+}
+case Closure :{return;}
+case StdFunc:{
+	return;
+}
+case UserFunc:
+{
+	if (obj->UserFunc.parameters) {
+		gc_mark(obj->UserFunc.parameters);
+	}
+	if (obj->UserFunc.body) {
+		gc_mark(obj->UserFunc.body);
+	}
+	if (obj->UserFunc.code) {
+		gc_mark(obj->UserFunc.code);
+	}
+	return;
+}
+case Binop   :
+{
+	if (obj->Binop.lhs) {
+		gc_mark(obj->Binop.lhs);
+	}
+	if (obj->Binop.rhs) {
+		gc_mark(obj->Binop.rhs);
+	}
+	return;
+}
+case Unyop   :
+{
+	if (obj->Unyop.rhs) {
+		gc_mark(obj->Unyop.rhs);
+	}
+	return;
+}
+case GetVar  :
+{
+	if (obj->GetVar.id) {
+		gc_mark(obj->GetVar.id);
+	}
+	return;
+}
+case SetVar  :
+{
+	if (obj->SetVar.id) {
+		gc_mark(obj->SetVar.id);
+	}
+	if (obj->SetVar.rhs) {
+		gc_mark(obj->SetVar.rhs);
+	}
+	return;
+}
+case GetArray:
+{
+	if (obj->GetArray.array) {
+		gc_mark(obj->GetArray.array);
+	}
+	if (obj->GetArray.index) {
+		gc_mark(obj->GetArray.index);
+	}
+	return;
+}
+case SetArray:
+{
+	if (obj->SetArray.array) {
+		gc_mark(obj->SetArray.array);
+	}
+	if (obj->SetArray.index) {
+		gc_mark(obj->SetArray.index);
+	}
+	if (obj->SetArray.value) {
+		gc_mark(obj->SetArray.value);
+	}
+	return;
+}
+case Call    :
+{
+	if (obj->Call.function) {
+		gc_mark(obj->Call.function);
+	}
+	if (obj->Call.arguments) {
+		gc_mark(obj->Call.arguments);
+	}
+	return;
+}
+case Return  :
+{
+	if (obj->Return.value) {
+		gc_mark(obj->Return.value);
+	}
+	return;
+}
+case Break   :
+{
+	return;
+}
+case Continue:
+{
+	return;
+}
+case Print   :
+{
+	if (obj->Print.arguments) {
+		gc_mark(obj->Print.arguments);
+	}
+	return;
+}
+case If      :
+{
+	if (obj->If.condition) {
+		gc_mark(obj->If.condition);
+	}
+	if (obj->If.statement1) {
+		gc_mark(obj->If.statement1);
+	}
+	if (obj->If.statement2) {
+		gc_mark(obj->If.statement2);
+	}
+	return;
+}
+case Loop    :
+{
+	if (obj->Loop.initialization) {
+		gc_mark(obj->Loop.initialization);
+	}
+	if (obj->Loop.condition) {
+		gc_mark(obj->Loop.condition);
+	}
+	if (obj->Loop.iteration) {
+		gc_mark(obj->Loop.iteration);
+	}
+	if (obj->Loop.statement) {
+		gc_mark(obj->Loop.statement);
+	}
+	return;
+}
+case Block   :
+{
+	if (obj->Block.statements) {
+		for (int i = 0;  i < obj->Block.size;  ++i) {
+			if (obj->Block.statements[i]) {
+				gc_mark(obj->Block.statements[i]);
+			}
+		}
+	}
+	if (obj->Block.statements) {
+		gc_markOnly(obj->Block.statements);
+	}
+	return;
+}
+case Transition:
+{
+	if(obj->Transition.id){
+		gc_mark(obj->Transition.id);
+	}
+	return;
+}
+case State   :
+{
+	if (obj->State.id) {
+		gc_mark(obj->State.id);
+	}
+	if (obj->State.parameters) {
+		gc_mark(obj->State.parameters);
+	}
+	if (obj->State.events) {
+		gc_mark(obj->State.events);
+	}
+	return;
+}
+case Event   :
+{
+	if (obj->Event.id) {
+		gc_mark(obj->Event.id);
+	}
+	if (obj->Event.parameters) {
+		gc_mark(obj->Event.parameters);
+	}
+	if (obj->Event.block) {
+		gc_mark(obj->Event.block);
+	}
+	return;
+}
+case EventH :
+{
+	return;
+}
+case Variables:
+{
+	if (obj->Variables.elements) {
+		for (int i = 0;  i < obj->Variables.size;  ++i) {
+			if (obj->Variables.elements[i]) {
+				gc_mark(obj->Variables.elements[i]);
+			}
+		}
+	}
+	if (obj->Variables.elements) {
+		gc_markOnly(obj->Variables.elements);
+	}
+	return;
+}
+default:
+	fprintf(stderr, "markObject: unknown type %d\n", getType(obj));
+	exit(1);
+	}
+}
+
+void collectObjects(void)	// pre-collection funciton to mark all the symbols
+{
+	collectSymbols();
+	if(nstates != 0){
+		gc_markOnly(states); // mark the states array itself
+		for(int i = 0;  i < nstates;  ++i)
+		{
+			oop state = states[i];
+			if (state == NULL) continue; // skip null states
+			gc_mark(state); //PAIR
+		}
+	}
+	if(ntransitions != 0){
+		gc_markOnly(transitions); // mark the transitions array itself
+		for(int i = 0;  i < ntransitions;  ++i)
+		{
+			oop trans = transitions[i];
+			if(trans == NULL) continue; // skip null transitions
+			gc_mark(trans);//PAIR
+		}
+	}
+	// collect ir code
+	if(nIrCode != 0){
+		gc_markOnly(IrCodeList); // mark the ir code array itself
+		for (int i = 0;  i < nIrCode;  ++i)
+		{
+			ent code = IrCodeList[i];
+			if (code == NULL) continue; // skip null codes
+			gc_markOnly(code); // mark the code itself
+			// mark the code elements
+			if (code->IntArray.elements == NULL) continue; // skip null elements
+			// mark the code elements
+			gc_markOnly(code->IntArray.elements); // mark the code elements
+		}
+	}
+    collectYYContext(); // collect yycontext
+}
+
+
+/*===============COMPILE=============*/
+
+/* ==================================*/
+void markEmpty(void* ptr){ return;}
+void collectEmpty(void){ return;}
+
+void markExecutors(ent ptr)
+{
+	// collect ir code
+	switch(ptr->kind){
+		case IntArray:{
+			dprintf("markExecutors IntArray\n");
+			if(ptr->IntArray.elements != NULL){
+				gc_markOnly(ptr->IntArray.elements); // mark the int array elements
+			}
+			dprintf("markExecutors IntArray done\n");
+			return;
+		}
+		case IntQue3:{
+			dprintf("markExecutors IntQue3\n");
+			int pos = ptr->IntQue3.head;
+			for(int i = 0; i < ptr->IntQue3.size; i++){
+				if(ptr->IntQue3.que[pos] != NULL){
+					gc_markOnly(ptr->IntQue3.que[pos]); // mark the int que elements
+				}
+				pos = (pos + 1) % IntQue3Size;
+			}
+			//que[3] is fixed size
+			dprintf("markExecutors IntQue3 done\n");
+			return;
+		}
+		case Thread:{
+			dprintf("markExecutors Thread\n");
+			if(ptr->Thread.stack != NULL){
+				gc_mark(ptr->Thread.stack); // mark the thread stack
+				gc_markOnly(ptr->Thread.stack); // mark the thread pc
+			}
+			if(ptr->Thread.queue != NULL){
+				gc_mark(ptr->Thread.queue); // mark the thread queue
+				gc_markOnly(ptr->Thread.queue); // mark the thread queue itself
+			}
+			dprintf("markExecutors Thread done\n");
+			return;
+		}
+		case EventHandler:{
+			dprintf("markExecutors EventHandler\n");
+			if(ptr->EventHandler.data){
+				gc_markOnly(ptr->EventHandler.data); // mark the event handler data
+			}
+			if(ptr->EventHandler.threads != NULL){
+				for(int i = 0; i<ptr->EventHandler.size; i++){
+					if(ptr->EventHandler.threads[i]!=NULL){
+						gc_mark(ptr->EventHandler.threads[i]); // mark the event handler
+					}
+				}
+				gc_markOnly(ptr->EventHandler.threads); // mark the event handler queue
+			}
+			dprintf("markExecutors EventHandler done\n");
+			return;
+		}
+		case Agent:{
+			dprintf("markExecutors Agent\n");
+			if(ptr->Agent.stack){
+				gc_mark(ptr->Agent.stack); // mark the agent stack
+			}
+			if(ptr->Agent.nEvents > 0){
+				for(int i = 0; i < ptr->Agent.nEvents; i++){
+					if(ptr->Agent.eventHandlers[i]){
+						gc_mark(ptr->Agent.eventHandlers[i]); // mark the agent events
+					}
+				}
+			}
+			if(ptr->Agent.eventHandlers != NULL){
+				gc_markOnly(ptr->Agent.eventHandlers); // mark the agent event handlers
+			}
+			dprintf("markExecutors Agent done\n");
+			return;
+		}
+		default:{
+			dprintf("markExecutors ERROR: unknown type %d\n", ptr->kind);
+			fprintf(stderr, "markExecutors ERROR: unknown type %d\n", ptr->kind);
+			exit(1);
+		}
+	}
+	dprintf("markExecutors ERROR\n");
+	return;
+}
+
+void collectExecutors(void)
+{
+
+	dprintf("collectExecutors\n");
+	// collect ir code
+	if(nIrCode != 0){
+		gc_markOnly(IrCodeList); // mark the ir code array itself
+		for (int i = 0;  i < nIrCode;  ++i)
+		{
+			ent code = IrCodeList[i];
+			if (code == NULL) continue; // skip null codes
+			gc_markOnly(code); // mark the code itself
+			// mark the code elements
+			if (code->IntArray.elements == NULL) continue; // skip null elements
+			// mark the code elements
+			gc_markOnly(code->IntArray.elements); // mark the code elements
+		}
+	}
+	// collect agents
+	// if(nAgents != 0){
+	// 	for(int i = 0;  i < nAgents;  ++i)
+	// 	{
+	// 		gc_markOnly(Agents[i]); // mark the agents
+	// 		ent code = Agents[i]->Agent.code; // get the code of the agent
+
+	// 	}
+	// }
+	dprintf("collectExecutors done\n");
+}
+
+
+/*====================== WEBCONNECTION =====================*/
+
+/* =========================================================*/
+
+// WEB RUN 
+ent webcode  = NULL;
+ent webagent = NULL;
+
+int initRunWeb(){
+	rprintf("Initializing web code...\n");
+	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
+	webagent = newAgent(0, 0); // create a new agent
+	webagent = execute(webcode, webagent, webagent->Agent.stack);
+	return 1;// return 1 to indicate success
+}
+
+int runWeb(){
+	// rprintf("Running web code...\n");
+	// printf("Shared data:\n click: [%d,%d](%s)\n",WEB_CLICK_STT[0],WEB_CLICK_STT[1],WEB_CLICK_STT[2] ? "true" : "false");
+	// printf("malloc AN_AGENT_DATA_PTR at %p\n", AN_AGENT_DATA);
+	if(webagent->Agent.isActive == 0) {
+		webagent = execute(webcode ,webagent , webagent->Agent.stack);
+	}else{
+		for(int i = 0; i< webagent->Agent.nEvents; ++i){
+			// get event data
+			ent eh = webagent->Agent.eventHandlers[i];
+			EventTables[eh->EventHandler.EventH].eh(eh);
+			if(impleBody(webcode, eh, webagent->Agent.stack)==retFlags[TRANSITION_F]){
+				webagent->Agent.isActive = 0;
+				webagent->Agent.pc = intArray_pop(webagent->Agent.stack);
+				webagent->Agent.eventHandlers = NULL;
+				break;
+			}
+		}
+	}
+	return 1; // return 1 to indicate success
+}
+
+int finalizeRunWeb(){
+	gc_popRoots(2); // pop the webagent from the root
+	gc_collect(); // collect garbage
+	return 1; // return 1 to indicate success
+}
+
+int memory_init()
+{
+	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
+	return 1; // return 1 to indicate success
+}
+
+int compile_init()
+{
+	printf("compile_init\n");
+	nroots = 0; // reset the number of roots
+	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
+	// reset global variables
+	initSymbols();
+	states = NULL;
+	nstates = 0;
+	transitions = NULL;
+	ntransitions = 0;
+	// IrCodeList = NULL;
+	// nIrCode = 0;
+	// reset line number
+	initLine();
+	gc_collect(); // collect garbage
+
+	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
+
+
+	gc_pushRoot((void*)&webcode); // push webcode to the root
+	gc_pushRoot((void*)&webagent); // push webagent to the root
+
+    nil   = newUndefine();	gc_pushRoot(nil);
+    false = newInteger(0);			gc_pushRoot(false);
+    true  = newInteger(1);			gc_pushRoot(true);
+
+	printf("compile_event_init\n");
+	compile_event_init(); // initialize the event system
+	printf("compile_func_init\n");
+	compile_func_init(); // initialize the standard functions
+	printf("compile_init done\n");
+	return 1;
+}
+
+int compile_finalize()
+{
+	// garbage collection
+	rprintf("Running garbage collector...\n");
+    gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
+	gc_collect(); // collect garbage
+	return 1; // return 1 to indicate success
+}
+
+int compileWebCode(const char *code) //<--------------------------------------WEB_CONNECTION
+{
+	rprintf("compileWebCode\n");
+
+
+	compile_init(); // initialize the compiler
+	store(code); // store the code to the memory
+	rprintf("Compiling code:\n");
+	initYYContext();
+	webcode = compile();
+	// print bytecode 
+	printCode(webcode);
+	compile_finalize(); // finalize the compilation
+	return 1; // return 1 to indicate success
+}
+
+
+
+
+
+/*====================== MAIN =====================*/
+
+/* ================================================*/
+
+#ifndef __EMSCRIPTEN__
+int main(int argc, char **argv)
+{
+	int opt_c = 0;
+
+	for(int i = 0; i < argc; i++){
+		if(strcmp(argv[i], "-c") == 0){
+			opt_c = 1;
+		}
+	}
+#if TAGFLT
+    assert(sizeof(double) == sizeof(intptr_t));
+#endif
+	gc_init(1024 * 1024);// initialize the garbage collector with 1MB of memory 
+
+    nil   = newUndefine();	gc_pushRoot(nil);
+    false = newInteger(0);			gc_pushRoot(false);
+    true  = newInteger(1);			gc_pushRoot(true);
+
+	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
+	rprintf("Compiling code:\n");
+	compile_event_init(); // initialize the event system
+	compile_func_init(); // initialize the standard functions
+	// compile code
+	ent code = compile();
+
+	// print bytecode 
+	rprintf("Print IR code:\n");
+	printCode(code);
+
+	// garbage collection
+	rprintf("Running garbage collector...\n");
+    gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
+	initYYContext();// initialize the yycontext
+	nroots = 0; // reset the number of roots
+	gc_collect();
+
+	if(opt_c == 1){
+		rprintf("end of compilation\n");
+		return 0;
+	}
+
+
+	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
+
+	// execute code
+	rprintf("Executing code...\n");
+	runPC(code);
+
+
+	rprintf("Execution finished.\n");
+	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
+	// free memory
+	gc_collect(); 
+}
+#endif

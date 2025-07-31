@@ -7,10 +7,11 @@
 extern YYTYPE result;
 
 int yyparse();
-void yyinit(); //yyrelease(ctx);
+void initLine(void);
+void initYYContext(); //yyrelease(ctx);
 
 #ifdef MSGC
-void yycollect();//
+void collectYYContext();//
 #endif // MSGC
 
 

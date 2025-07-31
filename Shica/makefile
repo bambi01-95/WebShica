@@ -18,7 +18,7 @@ FILES = vm.js vm.wasm
 WASMCC = emcc
 
 # ソースとターゲット
-SRC = vm.c \
+SRC = main.c \
       ./GC/msgc/msgc.c  \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
@@ -30,8 +30,11 @@ INCLUDE_DIRS = -I ./GC \
 			   -I ./Opcode \
 			   -I ./Object \
 			   -I ./Parser 
-
+# shica-web.js
 WASMOUT = vm.js
+# shica-native
+NATIVEOUT = vm
+
 FLAGS = -DMSGC
 
 # コンパイルフラグ
@@ -47,10 +50,9 @@ CFLAGS = -O3 \
          -o $(WASMOUT)
 
 crun:
-	leg -o vm.c vm.leg
 	leg -o ./Parser/parser.c ./Parser/parser.leg
 # ./legstruct_type_inserter
-	gcc $(SRC) -o vm $(FLAGS) $(INCLUDE_DIRS)
+	gcc $(SRC) -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS)
 
 # build vm.js
 web: $(WASMOUT)
