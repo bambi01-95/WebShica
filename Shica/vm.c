@@ -81,7 +81,7 @@ int compileWebCode(const char *code);
     int runWeb();
 
 /* ======================= MSGC ========================= */
-#include "./lib/msgc/msgc.h"
+#include "./gc/msgc/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define calloc(n, size) gc_alloc((n) * (size))
 #define realloc(ptr, size) gc_realloc(ptr, size)

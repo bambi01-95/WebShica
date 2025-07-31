@@ -43,6 +43,7 @@
 |   |  |- (o) mark
 |   |
 |   |(-) global variable               <- IN PROGRESS
+|.  |(-) error message                 <- IN PROGRESS
 |   |(-) local variable
 |   |(-) type checking
 |   |  |> push function into function list.

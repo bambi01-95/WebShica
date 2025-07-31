@@ -1,0 +1,252 @@
+%{
+#ifndef PARSER_C
+#define PARSER_C
+#ifdef MSGC
+#include "../gc/msgc/msgc.h"
+#define malloc(size) gc_alloc(size)
+#define calloc(n, size) gc_alloc((n) * (size))
+#define realloc(ptr, size) gc_realloc(ptr, size)
+#define strdup(s) gc_strdup(s)
+#else
+#include <stdlib.h>
+#include <string.h>
+#endif
+
+#include "parser.h"
+
+#define YYSTYPE oop
+YYSTYPE result;
+
+#define YY_FREE(C, P) P = NULL
+
+
+int nlines = 0;
+//LEG AREA
+%}
+
+start	=  - s:state {result = s;}
+		|  - s:define { result = s; }
+		|  - a:assignment {result = a; }
+		|  - s:stmt { result = s; }
+        | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
+		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); }
+
+state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
+
+events = LBRACE b:mkBlock
+	  (
+	    !RBRACE
+	    (e:event|e:assignment)              { Event_Block_append(b, e) }
+	  )+
+	  RBRACE			{ $$ = b }
+
+
+event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
+
+eparams	= LPAR p:mkNil
+	  ( i:id c:mkFalse (c:eqop)?			{ p = newPair(newPair(i,c), p) }
+	    ( COMMA i:id	c:mkFalse (c:eqop)?	{ p = newPair(newPair(i,c), p) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = p }
+
+params	= LPAR p:mkNil
+	  ( i:id			{ p = newPair(i, p) }
+	    ( COMMA i:id		{ p = newPair(i, p) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = p }
+
+mkNil	= 				{ $$ = nil }
+mkFalse = 				{ $$ = false }
+
+block   = LBRACE b:mkBlock
+	  (
+	    !RBRACE
+	    s:stmt                      { Block_append(b, s) }
+	  )+
+	  RBRACE			{ $$ = b }
+
+mkBlock =                               { $$ = newBlock() }
+
+define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nlines); }
+
+stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }	
+		| IF LPAR c:expr RPAR (s:expr | s:block )
+	  		ELSE (t:expr | t:block)          	  { $$ = newIf(c, s, t) }
+		| IF LPAR c:expr RPAR (s:block|s:expr)	  { $$ = newIf(c, s, false) }
+		| WHILE LPAR c:expr RPAR (s:stmt|s:block)	  { $$ = newLoop(false, c,false, s) }
+		| FOR LPAR (i:expr|i:mkFalse) SEMI 
+		  		   (c:expr|c:mkFalse) SEMI 
+		  		   (t:expr|k:mkFalse) RPAR 
+		  (s:block|s:expr)	  { $$ = newLoop(i, c, t, s) }
+		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
+		| STATE i:id SEMI                 { $$ = newTransition(i); }
+		| x:expr SEMI			  		  { result = x; }
+		| - SEMI				  		  { result = false; }
+		| x:expr 						  { fatal("line %d ERROR: syntax error ';'\n",nlines);}
+
+args	= LPAR a:mkNil
+	  ( i:expr			{ a = newPair(i, a) }
+	    ( COMMA i:expr		{ a = newPair(i, a) }
+	    )*
+	  )?
+ 	  RPAR				{ $$ = a }
+
+expr	= assignment
+
+assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x,  0,nlines) }
+			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x) }
+			| eqop
+
+eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }
+	  	   | NOTEQ rhs:ineq	{ lhs = newBinop(NE, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+ineq    = lhs:add ( GREATER rhs:add	{ lhs = newBinop(GT, lhs, rhs) }
+	          | GREATEQ rhs:add	{ lhs = newBinop(GE, lhs, rhs) }
+	          | LESSEQ  rhs:add	{ lhs = newBinop(LE, lhs, rhs) }
+	          | LESS    rhs:add	{ lhs = newBinop(LT, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+add	= lhs:mul ( PLUS   rhs:mul	{ lhs = newBinop(ADD, lhs, rhs) }
+	  	  | MINUS  rhs:mul	{ lhs = newBinop(SUB, lhs, rhs) }
+	  	  )*			{ $$ = lhs }
+
+mul	= lhs:prefix ( STAR  rhs:prefix	{ lhs = newBinop(MUL, lhs, rhs) }
+	  	     | SLASH rhs:prefix	{ lhs = newBinop(DIV, lhs, rhs) }
+	  	     | PCENT rhs:prefix	{ lhs = newBinop(MOD, lhs, rhs) }
+	  	     )*			{ $$ = lhs }
+
+
+prefix	= MINUS x:postfix		{ $$ = newUnyop(NEG, x) }
+		| PLING x:postfix		{ $$ = newUnyop(NOT, x) }
+		| PPLUS x:postfix		{ $$ = newUnyop(BINC, x) }
+		| MMINUS x:postfix		{ $$ = newUnyop(BDEC, x) }
+		| postfix
+
+postfix = v:value PPLUS { $$ = newUnyop(AINC, v) }
+		| v:value MMINUS{ $$ = newUnyop(ADEC, v) }
+		| v:value ( a:args		{ v = newCall(a, v, nlines) }
+	    | i:index		{ v = newGetArray(v, i) }
+	  	  )*			{ $$ = v }
+
+index	= LBRAK e:expr RBRAK		{ $$ = e }
+
+value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
+	| integer
+	| i:id				{ $$ = newGetVar(i,nlines) }
+	| array
+
+array	= LBRACE a:mkArray
+	  ( e:expr			{ Array_append(a, e) }
+	    ( COMMA e:expr		{ Array_append(a, e) }
+	    )* )? RBRACE			{ $$ = a }
+mkArray	=      	  			{ $$ = newArray(0) }
+
+integer	= < [0-9]+ > -  		{ $$ = newInteger(atoi(yytext)) }
+
+id	= < alpha alnum* > -		{ $$ = intern(yytext);  }
+
+alpha	= [a-zA-Z_]
+alnum	= [a-zA-Z_0-9]
+
+
+-	= blank*
+
+blank	= [ \t]
+	| newline
+	| '//' (![\n\r] .)*
+
+eol	= [\r\n]
+
+newline = [\n\r] { nlines++;}
+
+COMMA	= ","       -
+SEMI	= ";"       -
+ASSIGN	= "=" !"="  -
+EQUAL   = "=="	    -
+NOTEQ   = "!="      -
+LESS    = "<" ![=<] -
+LESSEQ  = "<="      -
+GREATEQ = ">="      -
+GREATER = ">" ![=>] -
+PLUS	= "+" !"+"  -
+PPLUS	= "++" !"+" 
+MINUS	= "-" !"-"  -
+MMINUS  = "--" !"-"
+STAR	= "*" 	    -
+SLASH	= "/" 	    -
+PCENT	= "%" 	    -
+LPAR	= "(" 	    -
+RPAR	= ")" 	    -
+LBRACE  = "{" 	    -
+RBRACE  = "}" 	    -
+LBRAK   = "[" 	    -
+RBRAK   = "]" 	    -
+PLING	= "!" !"="  -
+
+STATE = "stt" -
+IF    = "if" -
+ELSE  = "else" -
+PRINT = "print" -
+WHILE = "while" -
+FOR   = "for" -
+FUNC = "fn" -
+RET = "return" -
+%%;
+
+void yyinit()
+{
+    yyrelease(yyctx);
+}
+
+#ifdef MSGC
+void yycollect()
+{
+	if(yyctx){
+		gc_markOnly(yyctx);
+		// char     *__buf;
+		// int       __buflen;
+		gc_markOnly(yyctx->__buf);
+		// int       __pos;
+		// int       __limit;
+		// char     *__text;
+		// int       __textlen;
+		gc_markOnly(yyctx->__text);
+		// int       __begin;
+		// int       __end;
+		// int       __textmax;
+		// yythunk  *__thunks;
+		// int       __thunkslen;
+		// int       __thunkpos;
+		gc_markOnly(yyctx->__thunks);
+// 		for(int i=0; i<yyctx->__thunkslen;i++){
+// // typedef struct _yythunk { int begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;
+// 			gc_markOnly(yyctx->__thunks[i].next)
+// 			//action is function pointer
+// 			//next is maybe not need ...
+// 		}
+		// YYSTYPE   __;
+		// YYSTYPE  *__val;
+		// YYSTYPE  *__vals;
+		// int       __valslen;
+		#undef yy
+		#undef __
+		gc_mark(yyctx->__);
+		gc_mark(yyctx->__val);
+		for(int i=0;i<yyctx->__valslen;i++){
+			gc_mark(yyctx->__vals[i]);
+		}
+	}
+}
+#endif // MSGC
+
+#ifdef MSGC
+#undef malloc
+#undef calloc
+#undef realloc
+#undef strdup
+#endif // MSGC
+
+#endif // PARSER_C
