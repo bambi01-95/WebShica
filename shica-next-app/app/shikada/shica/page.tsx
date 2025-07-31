@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Output, { Log, LogLevel } from "@/component/code/Output";
 import { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
-import { useVM } from "@/hooks/shikada/useVM";
+import { useVM } from "@/hooks/shikada/useShica";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 import { Roboto } from "next/font/google";

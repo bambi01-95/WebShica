@@ -11,8 +11,8 @@
 PORT=8000
 
 # copy
-DEST = ./shica-next-app/public/shikada/js
-FILES = vm.js vm.wasm
+DEST = ../shica-next-app/public/shikada/js
+FILES = ./WebShica/shica.js ./WebShica/shica.wasm
 
 # コンパイラ
 WASMCC = emcc
@@ -30,10 +30,10 @@ INCLUDE_DIRS = -I ./GC \
 			   -I ./Opcode \
 			   -I ./Object \
 			   -I ./Parser 
-# shica-web.js
-WASMOUT = vm.js
+# shica.js
+WASMOUT = ./WebShica/shica.js
 # shica-native
-NATIVEOUT = vm
+NATIVEOUT = shica
 
 FLAGS = -DMSGC
 
@@ -64,7 +64,7 @@ $(WASMOUT): $(SRC)
 
 
 clean:
-	rm -f vm.c vm vm.js vm.wasm 
+	rm -f shica.c shica shica.js shica.wasm
 
 
 .PHONY: all clean

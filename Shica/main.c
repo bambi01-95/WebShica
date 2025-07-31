@@ -4,7 +4,7 @@
 #define DEBUG 0
 #endif
 
-#define getchar getchar_from_text
+
 
 /*
 GLOBAL VARIABLES: should start with a capital letter

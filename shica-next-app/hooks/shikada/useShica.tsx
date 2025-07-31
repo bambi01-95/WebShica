@@ -23,11 +23,11 @@ export function useVM() {
         }
 
         const script = document.createElement("script");
-        script.src = "/shikada/js/vm.js";
+        script.src = "/shikada/js/shica.js";
         script.async = true;
-
+        
         script.onload = () => {
-          // vm.jsがグローバルにModuleを定義している前提
+          // shica-web.jsがグローバルにModuleを定義している前提
           const instance = (window as any).Module;
           if (instance) {
             // locateFileやonRuntimeInitializedをセット
