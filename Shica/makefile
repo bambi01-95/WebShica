@@ -22,8 +22,15 @@ SRC = vm.c \
       ./GC/msgc/msgc.c  \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
+	  ./Object/object.c \
+	  ./Parser/parser.c 
 
-INCLUDE_DIRS = -I ./GC -I ./Error -I ./Opcode
+INCLUDE_DIRS = -I ./GC \
+           	   -I ./Error \
+			   -I ./Opcode \
+			   -I ./Object \
+			   -I ./Parser 
+
 WASMOUT = vm.js
 FLAGS = -DMSGC
 

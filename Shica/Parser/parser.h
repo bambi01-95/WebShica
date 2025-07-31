@@ -1,11 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#ifndef OBJECT_C
-union Object;
-typedef union Object *oop;
-#endif
-//#include "./Object.h"
+#include "../Object/object.h"
 
 #define YYTYPE oop
 extern YYTYPE result;
