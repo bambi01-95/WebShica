@@ -1,12 +1,12 @@
 #ifndef Error_c
 #define Error_c
-#include "Error.h"
+#include "error.h"
 
 #include <string.h>
 #include <assert.h>
 
 #ifdef MSGC
-#include "./gc/msgc/msgc.h"
+#include "../GC/msgc/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define free(ptr) gc_free(ptr)
 #else 

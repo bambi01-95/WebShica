@@ -1,3 +1,13 @@
+# <!-- Please write the following content in English -->
+# Shica makefile
+# Option Flags:
+# <GC>
+#  - MSGC:
+#. - MSGCS:
+#. <DEBUG>
+#  - DEBUG:
+
+
 PORT=8000
 
 # copy
@@ -5,36 +15,41 @@ DEST = ./shica-next-app/public/shikada/js
 FILES = vm.js vm.wasm
 
 # コンパイラ
-CC = emcc
+WASMCC = emcc
 
 # ソースとターゲット
-SRC = vm.c ./gc/msgc/msgc.c 
-INCLUDE_DIRS = -I ./gc -I ./Error -I ./Parser
-OUT = vm.js
+SRC = vm.c \
+      ./GC/msgc/msgc.c  \
+	  ./Error/error.c   \
+	  ./Opcode/opcode.c \
+
+INCLUDE_DIRS = -I ./GC -I ./Error -I ./Opcode
+WASMOUT = vm.js
+FLAGS = -DMSGC
 
 # コンパイルフラグ
 CFLAGS = -O3 \
          $(INCLUDE_DIRS) \
+		 $(FLAGS) \
          -s WASM=1 \
          -s INITIAL_MEMORY=64MB \
          -s ENVIRONMENT=web \
          -s EXPORTED_FUNCTIONS='["_memory_init","_compileWebCode","_initRunWeb","_runWeb","_initWebTimerPtr","_initWebClickSTTPtr","_initAnAgnetDataPtr"]' \
          -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' \
          --no-entry \
-         -o $(OUT)
+         -o $(WASMOUT)
 
 crun:
 	leg -o vm.c vm.leg
 	leg -o ./Parser/parser.c ./Parser/parser.leg
 # ./legstruct_type_inserter
-	gcc vm.c ./gc/msgc/msgc.c -o vm
-	
+	gcc $(SRC) -o vm $(FLAGS) $(INCLUDE_DIRS)
+
 # build vm.js
-web: $(OUT)
+web: $(WASMOUT)
 
-$(OUT): $(SRC)
-	$(CC) $(SRC) $(CFLAGS)
-
+$(WASMOUT): $(SRC)
+	$(WASMCC) $(SRC) $(CFLAGS)
 
 
 build:
