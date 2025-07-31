@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #ifdef MSGC
 #include "../GC/msgc/msgc.h"
@@ -13,6 +14,17 @@
 #include <stdlib.h>
 #endif
 
+void fatal(const char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	fprintf(stderr, "\nFatal error: ");
+	vfprintf(stderr, msg, ap);
+	fprintf(stderr, "\n");
+	va_end(ap);
+	fprintf(stderr, "%s", "Please report this bug to the developers.\n");
+	exit(1);
+}
 
 void initErrorList(Error **list) {
     *list = NULL; // Initialize the error list to NULL

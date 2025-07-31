@@ -3,8 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
-void fatal(char *msg, ...);
+#include "../Error/error.h"
 
 union Object;
 typedef union Object Object;

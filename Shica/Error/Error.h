@@ -6,6 +6,8 @@
 
 #define MESSAGE_MAX_LENGTH 256
 
+void fatal(const char *msg, ...);
+
 typedef enum {
     ERROR_WARNING = 0,
     ERROR_ERROR,

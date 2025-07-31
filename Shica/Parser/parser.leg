@@ -7,14 +7,10 @@
 #define calloc(n, size) gc_alloc((n) * (size))
 #define realloc(ptr, size) gc_realloc(ptr, size)
 #define strdup(s) gc_strdup(s)
-#else
+#endif
 #include <stdlib.h>
 #include <string.h>
-#endif
-
 #include "parser.h"
-
-#define getchar getchar_from_text
 
 #define YYSTYPE oop
 YYSTYPE result;

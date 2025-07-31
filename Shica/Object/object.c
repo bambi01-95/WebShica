@@ -12,19 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #define newAtomicObject(TYPE) newObject(TYPE)
-#endif
+#endif // MSGC
 #include <stdarg.h>
-
-void fatal(char *msg, ...)
-{
-    va_list ap;
-    va_start(ap, msg);
-    fprintf(stderr, "\n");
-    vfprintf(stderr, msg, ap);
-    fprintf(stderr, "\n");
-    va_end(ap);
-    exit(1);
-}
 
 
 #define TAGINT	1			// tag bits value for Integer  ........1

@@ -12,7 +12,7 @@ PORT=8000
 
 # copy
 DEST = ../shica-next-app/public/shikada/js
-FILES = ./WebShica/shica.js ./WebShica/shica.wasm
+FILES = ./Platform/WebShica/shica.js ./Platform/WebShica/shica.wasm
 
 # コンパイラ
 WASMCC = emcc
@@ -23,15 +23,17 @@ SRC = main.c \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
 	  ./Object/object.c \
+	  ./Entity/entity.c \
 	  ./Parser/parser.c 
 
 INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
 			   -I ./Opcode \
 			   -I ./Object \
+			   -I ./Entity \
 			   -I ./Parser 
 # shica.js
-WASMOUT = ./WebShica/shica.js
+WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
@@ -40,7 +42,9 @@ FLAGS = -DMSGC
 # コンパイルフラグ
 CFLAGS = -O3 \
          $(INCLUDE_DIRS) \
+		-I ./Platform/WebShica/ \
 		 $(FLAGS) \
+		 -DWEBSHICA \
          -s WASM=1 \
          -s INITIAL_MEMORY=64MB \
          -s ENVIRONMENT=web \
@@ -52,7 +56,7 @@ CFLAGS = -O3 \
 crun:
 	leg -o ./Parser/parser.c ./Parser/parser.leg
 # ./legstruct_type_inserter
-	gcc $(SRC) -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS)
+	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 # build vm.js
 web: $(WASMOUT)

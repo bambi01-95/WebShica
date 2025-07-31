@@ -21,10 +21,49 @@ UserFunc Name: should start with a lowwer letter
 #include <stdint.h>
 #include <unistd.h>
 
+
 #include "./Error/error.h"
 #include "./Opcode/opcode.h"
 #include "./Object/object.h"
 #include "./Parser/parser.h"
+#include "./Entity/entity.h"
+
+#define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
+char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
+int   WebTextPos  = 0;
+
+int store(const char* msg) {
+	printf("store called with msg: \n%s\n", msg);
+
+	int len = 0;
+	while (msg[len] != '\0' && len < WEBTEXT_MAX_SIZE) {
+		WebText[len] = msg[len];
+		len++;
+	}
+	WebText[len] = '\0'; // Null-terminate the string
+	if (len >= WEBTEXT_MAX_SIZE) {
+		printf("Error: Message too long to store in WebText\n");
+		return 0; // Error: message too long
+	}
+	WebTextPos = 0; 
+	printf("end of store function\n");
+	return 1;
+}
+
+#if WEBSHICA
+#include "./Platform/WebShica/Library/library.h"
+#define getchar getchar_from_text
+int getchar_from_text() {
+    if ( WebText[WebTextPos] == '\0') {
+        return -1; // EOF の代わり
+    }
+    return WebText[WebTextPos++];
+}
+#else // LINUX
+#include "./Platform/Linux/Library/library.h"
+#endif
+
+
 
 #ifdef MSGC
 #include "./GC/msgc/msgc.h"
@@ -39,6 +78,34 @@ UserFunc Name: should start with a lowwer letter
 #define realloc(ptr, size) gc_realloc(ptr, size)
 #define strdup(s) gc_strdup(s)
 #endif
+
+
+/* ======================= ERROR MSG ==================== */
+
+char devmsg[] = "Contact 2024mm11@kuas.ac.jp\n";
+
+void error(char *msg, ...){
+    va_list ap;
+    va_start(ap, msg);
+    fprintf(stderr, "\n");
+    vfprintf(stderr, msg, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
+}
+
+
+void rprintf(char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	printf("\x1b[31m");
+	printf( msg, ap);
+	printf("\x1b[0m");
+	va_end(ap);
+}
+#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
+
 
 
 
@@ -93,72 +160,6 @@ int compileWebCode(const char *code);
     //Runボタンが押されて、initRunWebが実行された後に実行される
     //Stopボタンが押されるまで、何度も実行される。
     int runWeb();
-
-
-
-
-
-/* ======================= ERROR MSG ==================== */
-
-char devmsg[] = "Contact 2024mm11@kuas.ac.jp\n";
-
-void error(char *msg, ...){
-    va_list ap;
-    va_start(ap, msg);
-    fprintf(stderr, "\n");
-    vfprintf(stderr, msg, ap);
-    fprintf(stderr, "\n");
-    va_end(ap);
-    exit(1);
-}
-
-
-void rprintf(char *msg, ...)
-{
-	va_list ap;
-	va_start(ap, msg);
-	printf("\x1b[31m");
-	printf( msg, ap);
-	printf("\x1b[0m");
-	va_end(ap);
-}
-#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
-
-
-/* ======================= WEBTEXT ===================== */
-//FOR READING CODE FROM WEBTEXT
-#define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
-
-char  WebText[2048];
-int   WebTextPos  = 0;
-
-int store(const char* msg) {
-	printf("store called with msg: \n%s\n", msg);
-
-	int len = 0;
-	while (msg[len] != '\0' && len < WEBTEXT_MAX_SIZE) {
-		WebText[len] = msg[len];
-		len++;
-	}
-	WebText[len] = '\0'; // Null-terminate the string
-	if (len >= WEBTEXT_MAX_SIZE) {
-		printf("Error: Message too long to store in WebText\n");
-		return 0; // Error: message too long
-	}
-	WebTextPos = 0; 
-	printf("end of store function\n");
-	return 1;
-}
-
-int getchar_from_text() {
-    if ( WebText[WebTextPos] == '\0') {
-        return -1; // EOF の代わり
-    }
-    return WebText[WebTextPos++];
-}
-
-
-
 
 
 /*==============   TIMER  ================= */
@@ -233,7 +234,7 @@ AgentPtr initAgent(){
     AgentPtr stt = malloc(sizeof(struct AgentData));
     if (!stt) {
         fprintf(stderr, "Memory allocation failed for AgentPtr\n");
-        exit(EXIT_FAILURE);
+        exit(0);
     }
     stt->x = 0;
     stt->y = 0;
@@ -246,7 +247,7 @@ AgentPtr *initALLAgentDataPtr(int size){
         ALL_AGENT_DATA = malloc(size * sizeof(AgentPtr));
         if (!ALL_AGENT_DATA) {
             fprintf(stderr, "Memory allocation failed for ALL_AGENT_DATA\n");
-            exit(EXIT_FAILURE);
+            exit(0);
         }
         ALL_AGENT_SIZE = size;
         for (int i = 0; i < size; i++) {
@@ -256,447 +257,22 @@ AgentPtr *initALLAgentDataPtr(int size){
     return ALL_AGENT_DATA;
 }
 
-int testAllEventHandlers(){
-    printf("Testing all event handlers...\n");
-    printf("Timer: %d\n", WEB_TIMER);
-    printf("Click STT: [%d, %d, %d]\n", WEB_CLICK_STT[0], WEB_CLICK_STT[1], WEB_CLICK_STT[2]);
-    for (int i = 0; i < ALL_AGENT_SIZE; i++) {
-        printf("Agent %d: x=%d, y=%d, vx=%d, vy=%d, isClick=%d, distance=%d, status=%d\n",
-                i,
-             ALL_AGENT_DATA[i]->x, ALL_AGENT_DATA[i]->y,
-             ALL_AGENT_DATA[i]->vx, ALL_AGENT_DATA[i]->vy,
-             ALL_AGENT_DATA[i]->isClick, ALL_AGENT_DATA[i]->distance,
-             ALL_AGENT_DATA[i]->status);
-    }
-    printf("SUCCESS: All event handlers tested successfully.\n");
-    return 0;   
-}
-
-
-
-/* ============= IR CODE LIST ================== */
-/* ============================================= */
-typedef union Entity Entity;
-typedef Entity *ent;
-
-typedef enum kind{
-	Undeclar = 0,
-	IntArray,
-	IntQue3,
-	Thread,
-	EventHandler,
-	Agent,
-} kind_t;
-
-struct IntArray{
-	kind_t kind; // kind of the array
-	int size, capacity;
-	int *elements;
-};
-
-struct IntQue3{
-	kind_t kind; // kind of the queue
-	char tail, head,size,nArgs;
-	int *que[3];
-};
-typedef int (*opfunc)(ent q);
-
-struct Thread{
-	kind_t kind;
-	int inProgress; // 0 - not started, 1 - running, 2 - finished
-	int apos;
-	int cpos;
-	int rbp; // base pointer
-	int pc; // program counter
-	ent queue;
-	ent stack;
-};
-
-struct EventHandler{
-	kind_t kind;
-	int size;
-	int EventH;
-	int *data; // data for the event handler
-	ent *threads; // thread that this handler belongs to
-}; 
-
-struct Agent{
-	kind_t kind;
-	int id;
-	int isActive;
-	int nEvents;
-	int pc;
-	int rbp;
-	ent stack;
-	ent *eventHandlers;
-};
-
-union Entity{
-	kind_t kind;
-	struct Agent Agent;
-	struct EventHandler EventHandler;
-	struct Thread Thread;
-	struct IntArray IntArray;
-	struct IntQue3 IntQue3;
-};
-
-ent _newEntity(size_t size, kind_t kind)
-{
-	ent e = (ent)malloc(size);
-	if (!e) {
-		fprintf(stderr, "Out of memory\n");
-		exit(1);
-	}
-	e->kind = kind;
-	return e;
-}
-#define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
-
-ent intArray_init()
-{
-	GC_PUSH(ent, a, newEntity(IntArray));
-	a->IntArray.elements = NULL;
-	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 4));
-	a->IntArray.size     = 0;
-	a->IntArray.capacity = 4;
-	GC_POP(a);
-	return a;
-}
-
-ent newStack(int initVal)
-{
-	GC_PUSH(ent, a, newEntity(IntArray));
-	a->IntArray.elements = NULL;
-	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 10));
-	a->IntArray.elements[0] = initVal; // rbp
-	a->IntArray.size     = 1;// rbp is always 0 at the start
-	a->IntArray.capacity = 10;
-	GC_POP(a);
-	return a;
-}
-/* !!!! FOR VM !!!! */
-void intArray_push(ent a, int value){
-
-	if (a->IntArray.size >= a->IntArray.capacity) {
-		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity + 10000 : 10000;
-		// printf("intArray_push: size %d >= capacity %d\n", a->size, a->capacity);
-		// printf("              %p\n",a);
-		gc_pushRoot((void*)a);
-		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
-		gc_popRoots(1);
-	}
-	a->IntArray.elements[a->IntArray.size++] = value;
-}
-/* !!!! FOR COMPILE !!!! */
-void intArray_append(ent a, int value)
-{
-	if (a->IntArray.size >= a->IntArray.capacity) {
-		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity * 2 : 4;
-		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
-	}
-	a->IntArray.elements[a->IntArray.size++] = value;
-}
-int intArray_pop(ent a)
-{
-	if (a->IntArray.size == 0) fatal("pop: stack is empty");
-	return a->IntArray.elements[--a->IntArray.size];
-}
-int intArray_last(ent a)
-{
-	if (a->IntArray.size == 0) fatal("last: stack is empty");
-	return a->IntArray.elements[a->IntArray.size - 1];
-}
-
-
-// IntQue3
-#define IntQue3Size 3
-ent newQue3(int nArgs)
-{
-	GC_PUSH(ent, q, newEntity(IntQue3));
-	q->IntQue3.nArgs = nArgs;
-	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
-	for (int i = 0;  i < IntQue3Size;  ++i) {
-		q->IntQue3.que[i] = (int*)gc_beAtomic(malloc(sizeof(int) * nArgs));
-	}
-	GC_POP(q);
-	return q;
-}
-
-void enqueue3(ent eh, int *value)
-{
-	ent *threads = eh->EventHandler.threads;
-
-	for (int i = 0; i < eh->EventHandler.size; ++i) {
-		ent q = threads[i]->Thread.queue;
-		if (q->IntQue3.size >= IntQue3Size) {
-			fprintf(stderr, "enqueue3: queue is full\n");//need to fix this
-			q->IntQue3.size = IntQue3Size; // reset size to max
-			//exit(1);
-		}
-		for (int j = 0; j < q->IntQue3.nArgs; ++j) {
-			q->IntQue3.que[q->IntQue3.tail][j] = value[j];
-		}
-		q->IntQue3.tail = (q->IntQue3.tail + 1) % 3;
-		q->IntQue3.size++;
-	}
-}
-
-ent dequeue3(ent thread)
-{
-	ent q = thread->Thread.queue;
-	if (q->IntQue3.size == 0) {
-		return NULL; // queue is empty
-	}
-	ent stack = thread->Thread.stack =  newStack(0);
-	for(int i = 0; i < q->IntQue3.nArgs; ++i){
-		int x = q->IntQue3.que[q->IntQue3.head][i];
-		intArray_push(stack, x);
-	}
-
-	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
-	q->IntQue3.size--;
-	thread->Thread.inProgress = 1; // mark thread as in progress
-	thread->Thread.rbp = 0;
-	thread->Thread.pc = thread->Thread.apos; // reset program counter to the start position
-	return stack;
-}
-
-#define ENTRY_EH        0x00 // Entry Handler
-#define EXIT_EH         0x00 // Exit Handler
-#define EVENT_EH        0x00 // Event Handler
-#define	TIMER_EH	    0x01
-#define	TOUCH_EH	    0x02
-#define	COLLISION_EH	0x03
-#define	SELF_STATE_EH	0x04
-#define CLICK_EH		0x05
-
-
-int event_handler_init(ent eh);
-int event_handler(ent eh);
-
-int timer_handler_init(ent eh);
-int timer_handler(ent eh);
-
-int touch_handler(ent eh);
-int collision_handler(ent eh);
-int self_state_handler(ent eh);
-int click_handler(ent eh);
-
-
-struct EventTable{
-	int (*eh)(ent eh); // event handler function
-	int (*init)(ent eh); // initialize function
-	int nArgs; // number of arguments for the event handler)
-	char nData; // number of data for the event handler
-}EventTables[] = {
-	{event_handler,      event_handler_init, 0, 0},      // EVENT_EH
-	{timer_handler,      timer_handler_init, 1, 2},      // TIMER_EH
-	{touch_handler,      event_handler_init, 1, 0},      // TOUCH_EH
-	{collision_handler,  event_handler_init, 2, 0},  // COLLISION_EH
-	{self_state_handler, event_handler_init, 0, 0}, // SELF_STATE_EH
-	{click_handler,      event_handler_init, 2, 0},      // CLICK_EH
-};
-
-ent newThread(int aPos, int cPos,int ehIndex){
-	GC_PUSH(ent, thread, newEntity(Thread));  
-	thread->Thread.inProgress = 0; // not started
-	thread->Thread.apos = aPos;
-	thread->Thread.cpos = cPos;
-	thread->Thread.queue = NULL;
-	thread->Thread.stack = NULL;
-	thread->Thread.rbp = 0; // base pointer
-	thread->Thread.pc = 0; // program counter
-	thread->Thread.queue = newQue3(EventTables[ehIndex].nArgs);
-	GC_POP(thread);
-	return thread;
-}
-
-ent newEventHandler(int ehIndex, int nThreads)
-{
-	GC_PUSH(ent, eh, newEntity(EventHandler));
-	eh->EventHandler.size = nThreads;
-	eh->EventHandler.EventH = ehIndex;
-	eh->EventHandler.data = NULL;
-	eh->EventHandler.threads = NULL;
-	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTables[ehIndex].nData));
-	eh->EventHandler.threads = (ent*)gc_beAtomic(malloc(sizeof(ent) * nThreads));
-	GC_POP(eh);
-	return eh;
-};
-
-ent *IrCodeList = NULL;
-int nIrCode = 0; // index of getIrCode
-ent getIrCode(int index){
-	if(index < nIrCode && index >= 0){
-		return IrCodeList[index];
-	} 
-	if(index >= nIrCode){
-		IrCodeList = realloc(IrCodeList, sizeof(ent) * (index + 1));	
-		IrCodeList[index] = intArray_init();
-		nIrCode = index + 1;
-	}
-	return IrCodeList[index];
-}
-
-ent newAgent(int id, int nEvents)
-{
-	ent agent = newEntity(Agent);
-	agent->Agent.id = id;
-	agent->Agent.isActive = 1; // active by default
-	agent->Agent.nEvents = nEvents;
-	agent->Agent.pc = 0;
-	agent->Agent.rbp = 0;
-	agent->Agent.stack = newStack(0);
-	if(nEvents <= 0) {
-		agent->Agent.eventHandlers = NULL; // no event handlers
-		agent->Agent.nEvents = 0; // no events
-	}else{
-		agent->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent) * nEvents));
-		for(int i=0; i<nEvents; i++){
-			agent->Agent.eventHandlers[i] = NULL;
-		}
-	}
-	return agent;
-}
-
-/*====================== VM =====================*/
-
-/*===============================================*/
-
-/* ========== OBJECT ============ */
-
-/* ============================== */
-
-
-/* ====== HANDLER FUNCTION ====== */
-
-/* ============================== */
-
-
-// Event Handlers VM
-
-int event_handler(ent eh){
-	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
-		ent thread = eh->EventHandler.threads[0];
-		int val[1] = {0}; // initialize value to 0
-		enqueue3(eh, val);
-	}
-	return 0; // return 0 to indicate no event
-}
-int event_handler_init(ent eh){
-	return 1;
-}
-
-#if __EMSCRIPTEN__
-int timer_handler(ent eh)
-{
-	int time = eh->EventHandler.data[0];
-	if (WEB_TIMER-time >=1000) {
-		eh->EventHandler.data[1]++;
-		eh->EventHandler.data[0] = WEB_TIMER;
-		enqueue3(eh,&eh->EventHandler.data[1]); // dequeue the first element
-		return 1; // return 1 to indicate success
-	}
-	return 0; // return 0 to indicate no event
-}
-int timer_handler_init(ent eh){
-	eh->EventHandler.data[0] = WEB_TIMER;
-	eh->EventHandler.data[1] = 0;
-	return 1;
-}
-#else
-#include <time.h>
-int timer_handler(ent eh){
-	time_t t = time(NULL);
-	int now = (int)(t % 10000);
-	if(now - eh->EventHandler.data[0] >= 1){
-		eh->EventHandler.data[0] = now;
-		eh->EventHandler.data[1]++;
-		enqueue3(eh, &eh->EventHandler.data[1]);
-		return 1;
-	}
-	return 0; // return 0 to indicate no event
-}
-int timer_handler_init(ent eh){
-	time_t t = time(NULL);
-	int now = (int)(t % 10000);
-	eh->EventHandler.data[0] = now; //start time
-	eh->EventHandler.data[1] = 0;   //count
-	return 1;
-}
-#endif
-int touch_handler(ent eh)
-{
-	stop();
-	int touch = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &touch); // dequeue the first element
-		printf("touch event: %d\n", touch);
-		return 1; // return 1 to indicate success
-	}
-	return 0; // return 0 to indicate no event
-}
-int collision_handler(ent eh)
-{
-	stop();
-	int collision = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &collision); // dequeue the first element
-		printf("collision event: %d\n", collision);
-		return 1; // return 1 to indicate success
-	}
-	return 0; // return 0 to indicate no event
-}
-
-int self_state_handler(ent eh)
-{
-	stop();
-	int state = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &state); // dequeue the first element
-		printf("self state event: %d\n", state);
-		return 1; // return 1 to indicate success
-	}
-	return 0; // return 0 to indicate no event
-}
-
-int click_handler(ent eh)
-{
-	if (WEB_CLICK_STT[2]==1) {
-		int click[2] = {WEB_CLICK_STT[0], WEB_CLICK_STT[1]};
-		enqueue3(eh, click); // dequeue the first element
-		return 1; // return 1 to indicate success
-	}
-	return 0; // return 0 to indicate no event
-}
-
-
+/*======================= COMPILE =======================*/
 
 int compile_event_init(){
 	//lsl event handler
 	entryEH = intern("entryEH");
-	entryEH->Symbol.value = newEventH(ENTRY_EH,EventTables[ENTRY_EH].nArgs); // 0 argument
+	entryEH->Symbol.value = newEventH(0,0); // 0 argument
 	exitEH = intern("exitEH");
-	exitEH->Symbol.value =  newEventH(EXIT_EH,EventTables[EXIT_EH].nArgs); // 0 argument
+	exitEH->Symbol.value =  newEventH(0,0); // 0 argument
 	//standard event handler
-	oop EH = NULL;
-	EH = intern("eventEH");
-	EH->Symbol.value = newEventH(EVENT_EH,EventTables[EVENT_EH].nArgs); // 1 argument
 
-	EH = intern("timerEH");
-	EH->Symbol.value = newEventH(TIMER_EH,EventTables[TIMER_EH].nArgs); // 1 argument
+#ifdef WEBSHICA
+	compile_eh_init();
+#else // LINUX
+	compile_eh_init();
+#endif
 
-	EH = intern("touchEH");
-	EH->Symbol.value = newEventH(TOUCH_EH,EventTables[TOUCH_EH].nArgs); // 1 argument
-
-	EH = intern("collisionEH");
-	EH->Symbol.value = newEventH(COLLISION_EH,EventTables[COLLISION_EH].nArgs); // 2 arguments
-
-	EH = intern("selfStateEH");
-	EH->Symbol.value = newEventH(SELF_STATE_EH,EventTables[SELF_STATE_EH].nArgs); // 0 arguments
-
-	EH = intern("clickEH");
-	EH->Symbol.value = newEventH(CLICK_EH,EventTables[CLICK_EH].nArgs); // 2
 	return 1; // return 1 to indicate success
 }
 
@@ -757,6 +333,8 @@ struct StdFuncTable{
 	{lib_setvy, 1}, // setVY function takes 1 argument
 };
 
+
+/* COMPILE */
 int compile_func_init(){
 	oop FUNC = NULL;
 	FUNC = intern("log");
@@ -864,9 +442,6 @@ int runPC(ent code){
 	GC_POP(agent);
 	return 1; // return 1 to indicate success
 }
-
-
-
 
 			//code, stack , global 
 ent execute(ent prog,ent entity, ent global)
