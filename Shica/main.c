@@ -28,37 +28,9 @@ UserFunc Name: should start with a lowwer letter
 #include "./Parser/parser.h"
 #include "./Entity/entity.h"
 
-#define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
-char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
-int   WebTextPos  = 0;
-
-int store(const char* msg) {
-	printf("store called with msg: \n%s\n", msg);
-
-	int len = 0;
-	while (msg[len] != '\0' && len < WEBTEXT_MAX_SIZE) {
-		WebText[len] = msg[len];
-		len++;
-	}
-	WebText[len] = '\0'; // Null-terminate the string
-	if (len >= WEBTEXT_MAX_SIZE) {
-		printf("Error: Message too long to store in WebText\n");
-		return 0; // Error: message too long
-	}
-	WebTextPos = 0; 
-	printf("end of store function\n");
-	return 1;
-}
 
 #if WEBSHICA
 #include "./Platform/WebShica/Library/library.h"
-#define getchar getchar_from_text
-int getchar_from_text() {
-    if ( WebText[WebTextPos] == '\0') {
-        return -1; // EOF の代わり
-    }
-    return WebText[WebTextPos++];
-}
 #else // LINUX
 #include "./Platform/Linux/Library/library.h"
 #endif
@@ -79,6 +51,14 @@ int getchar_from_text() {
 #define strdup(s) gc_strdup(s)
 #endif
 
+/* GARBAGE? */
+
+// ent *Agents = NULL;
+// int nAgents = 0; // number of agents
+// ent *codes = NULL; // codes for each agent
+// int nCodes = 0; // number of codes
+
+/* end of GARBAGE */
 
 /* ======================= ERROR MSG ==================== */
 
@@ -108,157 +88,8 @@ void rprintf(char *msg, ...)
 
 
 
-
-// #include "./vm.h"
-
-// FOR EVENT HANDLING
-    //TIMER
-    //Web内のタイマーイベントのデータ共有で使用
-    int WEB_TIMER = 0;
-    int *initWebTimerPtr();// Initialize the timer pointer and return its address
-    //CLICK
-    //Web内のクリックイベントのデータ共有で使用
-    int WEB_CLICK_STT[3] = {0, 0, 0}; // x, y, click status
-    int *initWebClickSTTPtr();// Initialize the click status pointer and return its address
-
-    //AGENT DATA
-    struct AgentData {
-        int x;
-        int y;
-        int vx;
-        int vy;
-        int isClick;
-        int distance;
-        int status;
-		char red, green, blue, isLEDOn;
-    };
-    struct AgentData AN_AGENT_DATA = {
-		.x = 0,
-		.y = 0,
-		.vx = 0,
-		.vy = 0,
-		.isClick = 0,
-		.distance = 0,
-		.status = 0,
-		.red = 0,
-		.green = 0,
-		.blue = 0,
-		.isLEDOn = 0,
-	};
-    //Web内のゴーストのデータ共有で使用
-    int *initAnAgnetDataPtr(); //Initialize the agent data structure and return its address
-
-//FOR ALL: 一度だけ実行
-int memory_init(); // Initialize the memory for the compiler and runtime
-
-//FOR COMPILE: コンパイルボタンが押されたら実行
-int compileWebCode(const char *code);
-
-//FOR EXECUTION
-    //Runボタンが押されたら実行
-    int initRunWeb();// Initialize the web runtime environment
-    //Runボタンが押されて、initRunWebが実行された後に実行される
-    //Stopボタンが押されるまで、何度も実行される。
-    int runWeb();
-
-
-/*==============   TIMER  ================= */
-int *initWebTimerPtr(){
-    if (WEB_TIMER != 0) {
-        WEB_TIMER = 0; // Initialize to 0 or some default value
-    }
-    return &WEB_TIMER;
-}
-int setWebTimer(int value){
-    WEB_TIMER = value;
-    return 0;
-}
-int *getWebTimerPtr(){
-    return &WEB_TIMER;
-}
-
-
-/*==============   CLICK  ================= */
-int *initWebClickSTTPtr(){
-    WEB_CLICK_STT[0] = 0; // x-coordinate
-    WEB_CLICK_STT[1] = 0; // y-coordinate
-    WEB_CLICK_STT[2] = 0; // click status
-    return WEB_CLICK_STT;
-}
-
-int *getWebClickSTTPtr(){
-    return WEB_CLICK_STT;
-}
-
-
-/*==============   AGENT_INFO  ================= */
-
-typedef struct AgentData *AgentPtr;
-
-int *initAnAgnetDataPtr(){
-	AN_AGENT_DATA.x = 50; // x-coordinate
-	AN_AGENT_DATA.y = 50; // y-coordinate
-	AN_AGENT_DATA.vx = 0; // x velocity
-	AN_AGENT_DATA.vy = 0; // y velocity
-	AN_AGENT_DATA.isClick = 0; // is click
-	AN_AGENT_DATA.distance = 0; // distance
-	AN_AGENT_DATA.status = 0; // status
-	AN_AGENT_DATA.red = 0; // red
-	AN_AGENT_DATA.green = 0; // green
-	return (int*)&AN_AGENT_DATA; // Return pointer to the agent data
-}
-
-int *getAnAgentDataPtr(){
-	return (int*)&AN_AGENT_DATA;
-	return (int*)&AN_AGENT_DATA;
-}
-
-AgentPtr *ALL_AGENT_DATA = {};
-int ALL_AGENT_SIZE = 0;
-
-
-
-int *getAllAgentDataPtr(){
-    if (ALL_AGENT_DATA == NULL) {
-        fprintf(stderr, "ALL_AGENT_DATA is not initialized\n");
-        return NULL;
-    }
-    return (int *)ALL_AGENT_DATA;
-}
-
-int *getAllAgentDataSizePtr(){
-    return &ALL_AGENT_SIZE;
-}
-
-AgentPtr initAgent(){
-    AgentPtr stt = malloc(sizeof(struct AgentData));
-    if (!stt) {
-        fprintf(stderr, "Memory allocation failed for AgentPtr\n");
-        exit(0);
-    }
-    stt->x = 0;
-    stt->y = 0;
-    stt->status = 0;
-    return stt;
-}
-
-AgentPtr *initALLAgentDataPtr(int size){
-    if (ALL_AGENT_DATA == NULL) {
-        ALL_AGENT_DATA = malloc(size * sizeof(AgentPtr));
-        if (!ALL_AGENT_DATA) {
-            fprintf(stderr, "Memory allocation failed for ALL_AGENT_DATA\n");
-            exit(0);
-        }
-        ALL_AGENT_SIZE = size;
-        for (int i = 0; i < size; i++) {
-            ALL_AGENT_DATA[i] = initAgent();
-        }
-    }
-    return ALL_AGENT_DATA;
-}
-
 /*======================= COMPILE =======================*/
-
+/* EVENT HANDLER */
 int compile_event_init(){
 	//lsl event handler
 	entryEH = intern("entryEH");
@@ -267,93 +98,36 @@ int compile_event_init(){
 	exitEH->Symbol.value =  newEventH(0,0); // 0 argument
 	//standard event handler
 
-#ifdef WEBSHICA
-	compile_eh_init();
-#else // LINUX
-	compile_eh_init();
-#endif
+	compile_eh_init();//platform/platformName/library.c
 
 	return 1; // return 1 to indicate success
 }
+/* STANDARD LIBRARY */
+//compile_func_init();//platform/platformName/library.c
 
 
-/* ================== LIBRARY FUNCTIONS ================== */
-int lib_log(ent stack)
+/* ==================== EXECUTOR ==================== */
+/* EVENT HANDLER */
+int executor_event_init()
 {
-	int value = intArray_pop(stack); // get value from stack
-	printf("log: %d\n", value); // print value to console
-	return 0; // return 0 to indicate success
+	// Initialize the event handler for the executor
+	setEventTable(__EventTable__);
+	return 1;
 }
 
-// This function sets the x and y coordinates of the agent
-int lib_setxy(ent stack)
+/* STANDARD LIBRARY */
+int executor_func_init()
 {
-	int y = intArray_pop(stack); // get x coordinate from stack
-	int x = intArray_pop(stack); // get y coordinate from stack
-	AN_AGENT_DATA.x = x; // set x coordinate
-	AN_AGENT_DATA.y = y; // set y coordinate
-	AN_AGENT_DATA.x = x; // set x coordinate
-	AN_AGENT_DATA.y = y; // set y coordinate
-	return 0; // return 0 to indicate success
-}
-
-int lib_setvx(ent stack)
-{
-	int vx = intArray_pop(stack); // get x velocity from stack
-	AN_AGENT_DATA.vx = vx; // set x velocity
-	AN_AGENT_DATA.vx = vx; // set x velocity
-	return 0; // return 0 to indicate success
-}
-
-int lib_setvy(ent stack)
-{
-	int vy = intArray_pop(stack); // get y velocity from stack
-	AN_AGENT_DATA.vy = vy; // set y velocity
-	AN_AGENT_DATA.vy = vy; // set y velocity
-	return 0; // return 0 to indicate success
-}
-
-// Function initialization
-typedef enum {
-	LOG_FUNC,   // log function
-	SETXY_FUNC, // setXY function
-	SETVX_FUNC, // setVX function
-	SETVY_FUNC, // setVY function
-}StdFunc_t;
-
-struct StdFuncTable{
-	int (*stdfunc)(ent stack); // standard function
-	int nArgs;
-	//return value
-}StdFuncTable[] =
-{
-	{lib_log, 1}, // log function takes 1 argument
-	{lib_setxy, 2}, // setXY function takes 2 arguments
-	{lib_setvx, 1}, // setVX function takes 1 argument
-	{lib_setvy, 1}, // setVY function takes 1 argument
-};
-
-
-/* COMPILE */
-int compile_func_init(){
-	oop FUNC = NULL;
-	FUNC = intern("log");
-	FUNC->Symbol.value = newStdFunc(LOG_FUNC); // log function
-
-	FUNC = intern("setXY");
-	FUNC->Symbol.value = newStdFunc(SETXY_FUNC);
-
-	FUNC = intern("setVX");
-	FUNC->Symbol.value = newStdFunc(SETVX_FUNC); 
-
-	FUNC = intern("setVY");
-	FUNC->Symbol.value = newStdFunc(SETVY_FUNC);
+	// Initialize the function handler for the executor
+	setStdFuncTable(__StdFuncTable__);
 	return 1;
 }
 
 
 
-
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
 
 
 #if DEBUG
@@ -368,19 +142,7 @@ int compile_func_init(){
 #define top()	intArray_last(stack)
 #define pick(I)  stack->IntArray.elements[I]
 
-void printStack(ent stack)
-{
-	printf("Stack: \n");
-	for (int i = 0;  i < stack->IntArray.size;  ++i) {
-		printf("%d %d\n", i, stack->IntArray.elements[i]);
-	}
-	printf("\n");
-}
-/*	============== WEB =======================*/
-ent *Agents = NULL;
-int nAgents = 0; // number of agents
-ent *codes = NULL; // codes for each agent
-int nCodes = 0; // number of codes
+
 ent execute(ent prog, ent entity, ent global);
 #define TAGBITS 2
 #define TAGINT 1
@@ -420,7 +182,7 @@ ent impleBody(ent code, ent eh, ent gm){
 
 
 /* =========================================== */
-int runPC(ent code){
+int runNative(ent code){
 	GC_PUSH(ent, agent, newAgent(0,0));
 	agent = execute(code, agent, agent->Agent.stack);
 	dprintf("agent: %d\n", agent->Agent.isActive);
@@ -431,7 +193,7 @@ int runPC(ent code){
 			for(int i = 0; i< agent->Agent.nEvents; ++i){
 				// get event data
 				ent eh = agent->Agent.eventHandlers[i];
-				EventTables[eh->EventHandler.EventH].eh(eh);
+				EventTable[eh->EventHandler.EventH].eh(eh);
 				if(impleBody(code, eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
 					break;
@@ -626,7 +388,7 @@ ent execute(ent prog,ent entity, ent global)
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
 				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler
-				EventTables[eventID].init(ehs[i]);
+				EventTable[eventID].init(ehs[i]);
 				for(int j=0; j<nThreads; ++j){
 					op = fetch();
 					assert(op == iSETPROCESS);
@@ -742,10 +504,43 @@ ent compile();
 // s3: pos, name;
 enum { APSTATE = 0, ATRANSITION = 1 };
 
-oop *states = 0;
-int nstates = 0;
-oop *transitions = 0; // transitions between states
-int ntransitions = 0;
+static oop *states = 0;
+static int nstates = 0;
+static oop *transitions = 0; // transitions between states
+static int ntransitions = 0;
+
+int initSttTrans()
+{
+	states = NULL;
+	nstates = 0;
+	transitions = NULL;
+	ntransitions = 0;
+	return 0; // return 0 to indicate success
+}
+
+int collectSttTrans()
+{
+	if(nstates != 0){
+		gc_markOnly(states); // mark the states array itself
+		for(int i = 0;  i < nstates;  ++i)
+		{
+			oop state = states[i];
+			if (state == NULL) continue; // skip null states
+			gc_mark(state); //PAIR
+		}
+	}
+	if(ntransitions != 0){
+		gc_markOnly(transitions); // mark the transitions array itself
+		for(int i = 0;  i < ntransitions;  ++i)
+		{
+			oop trans = transitions[i];
+			if(trans == NULL) continue; // skip null transitions
+			gc_mark(trans);//PAIR
+		}
+	}
+	return 0; // return 0 to indicate success
+}
+
 
 void appendS0T1(oop name, int pos,int type)
 {
@@ -798,11 +593,6 @@ void setTransPos(ent prog){
 		}
 	}
 }
-
-
-/* ==== COMPILEA == */
-
-/* =============== */
 
 #if DEBUG
 #define printTYPE(OP) printf("emit %s\n", #OP)
@@ -1446,7 +1236,14 @@ ent compile()
 
 /* ================================================*/
 
-/*===============COMPILE=============*/
+/*=============== DEFAULT MARKER ==============*/
+
+/* ==================================*/
+
+void markEmpty(void* ptr){ return;}
+void collectEmpty(void){ return;}
+
+/*===============COMPILE MARKER=============*/
 
 /* ==================================*/
 
@@ -1693,24 +1490,7 @@ default:
 void collectObjects(void)	// pre-collection funciton to mark all the symbols
 {
 	collectSymbols();
-	if(nstates != 0){
-		gc_markOnly(states); // mark the states array itself
-		for(int i = 0;  i < nstates;  ++i)
-		{
-			oop state = states[i];
-			if (state == NULL) continue; // skip null states
-			gc_mark(state); //PAIR
-		}
-	}
-	if(ntransitions != 0){
-		gc_markOnly(transitions); // mark the transitions array itself
-		for(int i = 0;  i < ntransitions;  ++i)
-		{
-			oop trans = transitions[i];
-			if(trans == NULL) continue; // skip null transitions
-			gc_mark(trans);//PAIR
-		}
-	}
+	collectSttTrans();
 	// collect ir code
 	if(nIrCode != 0){
 		gc_markOnly(IrCodeList); // mark the ir code array itself
@@ -1729,11 +1509,10 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 }
 
 
-/*===============COMPILE=============*/
+/*=============== EXECUTOR MARKER ==============*/
 
 /* ==================================*/
-void markEmpty(void* ptr){ return;}
-void collectEmpty(void){ return;}
+
 
 void markExecutors(ent ptr)
 {
@@ -1835,15 +1614,6 @@ void collectExecutors(void)
 			gc_markOnly(code->IntArray.elements); // mark the code elements
 		}
 	}
-	// collect agents
-	// if(nAgents != 0){
-	// 	for(int i = 0;  i < nAgents;  ++i)
-	// 	{
-	// 		gc_markOnly(Agents[i]); // mark the agents
-	// 		ent code = Agents[i]->Agent.code; // get the code of the agent
-
-	// 	}
-	// }
 	dprintf("collectExecutors done\n");
 }
 
@@ -1852,6 +1622,10 @@ void collectExecutors(void)
 
 /* =========================================================*/
 
+#ifdef __EMSCRIPTEN__
+// #include <emscripten.h>
+// #include <emscripten/bind.h>
+// #include <emscripten/val.h>
 // WEB RUN 
 ent webcode  = NULL;
 ent webagent = NULL;
@@ -1865,6 +1639,12 @@ int initRunWeb(){
 	return 1;// return 1 to indicate success
 }
 
+int finalizeRunWeb(){
+	gc_popRoots(2); // pop the webagent from the root
+	gc_collect(); // collect garbage
+	return 1; // return 1 to indicate success
+}
+
 int runWeb(){
 	// rprintf("Running web code...\n");
 	// printf("Shared data:\n click: [%d,%d](%s)\n",WEB_CLICK_STT[0],WEB_CLICK_STT[1],WEB_CLICK_STT[2] ? "true" : "false");
@@ -1875,7 +1655,7 @@ int runWeb(){
 		for(int i = 0; i< webagent->Agent.nEvents; ++i){
 			// get event data
 			ent eh = webagent->Agent.eventHandlers[i];
-			EventTables[eh->EventHandler.EventH].eh(eh);
+			EventTable[eh->EventHandler.EventH].eh(eh);
 			if(impleBody(webcode, eh, webagent->Agent.stack)==retFlags[TRANSITION_F]){
 				webagent->Agent.isActive = 0;
 				webagent->Agent.pc = intArray_pop(webagent->Agent.stack);
@@ -1887,11 +1667,7 @@ int runWeb(){
 	return 1; // return 1 to indicate success
 }
 
-int finalizeRunWeb(){
-	gc_popRoots(2); // pop the webagent from the root
-	gc_collect(); // collect garbage
-	return 1; // return 1 to indicate success
-}
+
 
 int memory_init()
 {
@@ -1907,10 +1683,8 @@ int compile_init()
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
 	// reset global variables
 	initSymbols();
-	states = NULL;
-	nstates = 0;
-	transitions = NULL;
-	ntransitions = 0;
+	initSttTrans();
+
 	// IrCodeList = NULL;
 	// nIrCode = 0;
 	// reset line number
@@ -1961,10 +1735,7 @@ int compileWebCode(const char *code) //<--------------------------------------WE
 	compile_finalize(); // finalize the compilation
 	return 1; // return 1 to indicate success
 }
-
-
-
-
+#endif // __EMSCRIPTEN__
 
 /*====================== MAIN =====================*/
 
@@ -2020,7 +1791,9 @@ int main(int argc, char **argv)
 
 	// execute code
 	rprintf("Executing code...\n");
-	runPC(code);
+	executor_event_init(); // initialize the event system for the executor
+	executor_func_init(); // initialize the standard functions for the executor
+	runNative(code);
 
 
 	rprintf("Execution finished.\n");

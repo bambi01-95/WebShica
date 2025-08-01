@@ -52,6 +52,14 @@ ent newStack(const int initVal)
 	GC_POP(a);
 	return a;
 }
+void printStack(ent stack)
+{
+	printf("Stack: \n");
+	for (int i = 0;  i < stack->IntArray.size;  ++i) {
+		printf("%d %d\n", i, stack->IntArray.elements[i]);
+	}
+	printf("\n");
+}
 /* !!!! FOR VM !!!! */
 void intArray_push(ent a, int value)
 {
@@ -141,17 +149,6 @@ ent dequeue3(ent thread)
 	return stack;
 }
 
-
-struct EventTable *EventTables = NULL;
-static int nEventTables = 0;
-
-void setEventTables(struct EventTable *tables, int nTables)
-{
-    EventTables = tables;
-    nEventTables = nTables;
-}
-
-
 ent newThread(int aPos, int cPos,int ehIndex)
 {
 	GC_PUSH(ent, thread, newEntity(Thread));  
@@ -162,7 +159,7 @@ ent newThread(int aPos, int cPos,int ehIndex)
 	thread->Thread.stack = NULL;
 	thread->Thread.rbp = 0; // base pointer
 	thread->Thread.pc = 0; // program counter
-	thread->Thread.queue = newQue3(EventTables[ehIndex].nArgs);
+	thread->Thread.queue = newQue3(EventTable[ehIndex].nArgs);
 	GC_POP(thread);
 	return thread;
 }
@@ -174,7 +171,7 @@ ent newEventHandler(int ehIndex, int nThreads)
 	eh->EventHandler.EventH = ehIndex;
 	eh->EventHandler.data = NULL;
 	eh->EventHandler.threads = NULL;
-	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTables[ehIndex].nData));
+	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTable[ehIndex].nData));
 	eh->EventHandler.threads = (ent*)gc_beAtomic(malloc(sizeof(ent) * nThreads));
 	GC_POP(eh);
 	return eh;
@@ -214,6 +211,20 @@ ent newAgent(int id, int nEvents)
 	}
 	return agent;
 }
+
+
+
+struct EventTable *EventTable = NULL;
+void setEventTable(struct EventTable *table)
+{
+	EventTable = table;
+}
+struct StdFuncTable *StdFuncTable = NULL;
+void setStdFuncTable(struct StdFuncTable *table)
+{
+	StdFuncTable = table;
+}
+
 
 #ifdef MSGC
 #undef malloc

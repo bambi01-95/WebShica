@@ -68,6 +68,7 @@ union Entity{
 
 ent intArray_init(void);
 ent newStack(const int initVal);
+void printStack(ent stack);
 void intArray_push(ent a, int value);
 void intArray_append(ent a, int value);
 int intArray_pop(ent a);
@@ -86,8 +87,8 @@ struct EventTable{
 	char nData; // number of data for the event handler
 };
 
-extern struct EventTable *EventTables;
-void setEventTables(struct EventTable *tables, int nTables);
+extern struct EventTable *EventTable;
+void setEventTable(struct EventTable *tables);
 
 ent newThread(int aPos, int cPos,int ehIndex);
 
@@ -99,5 +100,12 @@ extern ent *IrCodeList;
 extern int nIrCode; // index of getIrCode
 ent getIrCode(int index);
 
+struct StdFuncTable{
+	int (*stdfunc)(ent stack); // standard function
+	int nArgs;
+	//return value
+};
+extern struct StdFuncTable *StdFuncTable;
+void setStdFuncTable(struct StdFuncTable *tables);
 
 #endif // ENTITY_H

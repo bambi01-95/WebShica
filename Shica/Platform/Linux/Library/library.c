@@ -40,16 +40,45 @@ int compile_eh_init(){
 	//standard event handler
 	oop EH = NULL;
 	EH = intern("eventEH");
-	EH->Symbol.value = newEventH(EVENT_EH,EventTables[EVENT_EH].nArgs); // 1 argument
+	EH->Symbol.value = newEventH(EVENT_EH,EventTable[EVENT_EH].nArgs); // 1 argument
     EH = intern("timerEH");
-    EH->Symbol.value = newEventH(TIMER_EH,EventTables[TIMER_EH].nArgs); // 1 argument
+    EH->Symbol.value = newEventH(TIMER_EH,EventTable[TIMER_EH].nArgs); // 1 argument
 	return 0; // return 0 to indicate success
 }
 
-const struct EventTable LinuxEventTable[] = {
+ struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1, 2},      // TIMER_EH
 };
 
 
+/*
+ * Standard library functions
+ * These functions are used in the web code to interact with the web environment.
+*/
+ enum {
+	EXIT_FUNC=0,   // exit function
+};
+
+int lib_exit(ent stack)
+{
+	int status = intArray_pop(stack); // get exit status from stack
+	exit(status); // exit with the given status
+	return 0; // return 0 to indicate success
+}
+
+ struct StdFuncTable __StdFuncTable__[] =
+{
+	{lib_exit, 1}, // exit function takes 1 argument
+};
+
+
+int compile_func_init()
+{
+	oop FUNC = NULL;
+	FUNC = intern("exit");
+	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
+
+	return 0; // return 0 to indicate success
+}
 #endif // STDLIB_C
