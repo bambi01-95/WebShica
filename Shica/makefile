@@ -19,7 +19,7 @@ WASMCC = emcc
 
 # ソースとターゲット
 SRC = main.c \
-      ./GC/msgc/msgc.c  \
+      ./GC/msgcs/msgcs.c  \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
 	  ./Object/object.c \
@@ -37,7 +37,7 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGC
+FLAGS = -DMSGCS
 
 # コンパイルフラグ
 CFLAGS = -O3 \

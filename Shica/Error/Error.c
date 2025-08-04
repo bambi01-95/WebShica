@@ -7,7 +7,6 @@
 #include <stdarg.h>
 
 #ifdef MSGC
-#include "../GC/msgc/msgc.h"
 #define malloc(size) gc_alloc(size)
 #define free(ptr) gc_free(ptr)
 #else 
@@ -26,33 +25,90 @@ void fatal(const char *msg, ...)
 	exit(1);
 }
 
-void initErrorList(Error **list) {
-    *list = NULL; // Initialize the error list to NULL
+static ErrorList *errorListHeader = NULL; // Global error list header
+
+void initErrorList() {
+    errorListHeader = NULL; // Initialize the error list to NULL
 }
 
-void reportError(Error **list,const int type, const int line, const char *message) {
-    Error* e = malloc(sizeof(Error));
+void reportError(const int type, const int line, const char *message) {
+    ErrorList* e = malloc(sizeof(ErrorList));
     e->line = line;
     assert(type < ERROR_UNSUPPORTED); // Ensure type is valid
     e->type = type;
     assert(strlen(message) < MESSAGE_MAX_LENGTH); // Ensure message length is within bounds
-    strncpy(e->message, message, MESSAGE_MAX_LENGTH - 1);
-    e->message[MESSAGE_MAX_LENGTH - 1] = '\0'; // Ensure null termination
-    e->next = *list;
-    *list = e;
+    e->message = strdup(message); // Duplicate the message string
+    e->next = errorListHeader;
+    errorListHeader = e;
+    return; 
 }
 
-void freeErrorList(Error **list) {
-    Error *current = *list;
-    Error *next;
+void freeErrorList() {
+    ErrorList *current = errorListHeader;
+    ErrorList *next;
     while (current != NULL) {
         next = current->next;
-        free(current); // ガベージコレクタを使わない場合、ここで解放が必要
+        free(current); // Free the current error node
         current = next;
     }
-    *list = NULL; // Set the original list pointer to NULL
+    errorListHeader = NULL; // Set the original list pointer to NULL
     // to avoid dangling pointers
 }
+
+void collectErrorList(void)
+{
+    ErrorList *current = errorListHeader;
+    while (current != NULL) {
+        ErrorList *next = current->next;
+        gc_markOnly(current); // Mark the error node itself
+        gc_markOnly(current->message); // Mark the message string
+        current = next; // Move to the next error
+    }
+    return ;
+}
+
+
+
+#ifdef WEBSHICA
+
+char webErrorMsg[MESSAGE_MAX_LENGTH];
+
+int getNumOfErrorMsg()
+{
+    int count = 0;
+    ErrorList *current = errorListHeader;
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+    return count;
+}
+
+char* getErrorMsg(void)
+{
+#define MAX_CODE_LINE 4
+    assert(errorListHeader != NULL); // Ensure the error list is not empty
+    ErrorList *current = errorListHeader;
+    webErrorMsg[0] = '\0'; // Initialize the error message buffer
+    int index = 0;
+    webErrorMsg[index++] = current->type; // Store the error type
+    int line = current->line;
+    for(int i = MAX_CODE_LINE; i > 0; i--) {
+        webErrorMsg[i] = line % 10 + '0'; // Store the line number as a character
+        line /= 10; // Move to the next digit
+    }
+    char *msg = current->message;
+    int msgLen = strlen(msg);
+    for(int i = 0; i < msgLen && index < MESSAGE_MAX_LENGTH - 1; i++) {
+        webErrorMsg[index++] = msg[i]; // Copy the message into the buffer
+    }
+    webErrorMsg[index] = '\0'; // Null-terminate the string
+    errorListHeader = current->next; // Remove the first error from the list
+    return webErrorMsg; // Return the message of the first error
+#undef MAX_CODE_LINE
+}
+
+#endif // WEBSHICA
 
 #ifdef MSGC
 #undef malloc

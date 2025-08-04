@@ -95,7 +95,6 @@ int intArray_last(ent a)
 	return a->IntArray.elements[a->IntArray.size - 1];
 }
 
-
 // IntQue3
 
 ent newQue3(int nArgs)

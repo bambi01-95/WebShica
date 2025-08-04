@@ -3,30 +3,38 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "../GC/gc.h"
 #define MESSAGE_MAX_LENGTH 256
 
 void fatal(const char *msg, ...);
 
 typedef enum {
-    ERROR_WARNING = 0,
-    ERROR_ERROR,
+    WANNING,
+    ERROR,
+    FATAL,
+    DEVELOPER,
     /* UNSUPPORTED */
     ERROR_UNSUPPORTED
 } ErrorType;
 
-typedef struct Error {
+typedef struct ErrorList {
     ErrorType type;
     int line;
-    char message[MESSAGE_MAX_LENGTH];
-    struct Error *next; // Pointer to the next error in the list
-} Error;
+    char* message;
+    struct ErrorList *next; // Pointer to the next error in the list
+} ErrorList;
 
+void initErrorList();
 
-void initErrorList(Error **list);
+void reportError(const int type, const int line, const char *message);
 
-void reportError(Error **list,const int type,const int line, const char *message);
+void freeErrorList();
 
-void freeErrorList(Error **list);
+void collectErrorList(void);
+
+#ifdef WEBSHICA
+int getNumOfErrorMsg();
+char* getErrorMsg(void);
+#endif // WEBSHICA
 
 #endif // Error_h

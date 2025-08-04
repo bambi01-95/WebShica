@@ -2,6 +2,7 @@
 #define ENTITY_H
 #include "../Opcode/opcode.h"
 #include "../Error/error.h"
+#include "../GC/gc.h"
 typedef union Entity Entity;
 typedef Entity *ent;
 
@@ -63,7 +64,7 @@ union Entity{
 	struct EventHandler EventHandler;
 	struct Thread Thread;
 	struct IntArray IntArray;
-	struct IntQue3 IntQue3;
+	struct IntQue3 IntQue3;	
 };
 
 ent intArray_init(void);
