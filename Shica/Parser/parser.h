@@ -3,6 +3,12 @@
 
 #include "../Object/object.h"
 
+#ifdef WEBSHICA
+#include "../Platform/WebShica/Library/library.h" // for WebText, WebTextPos
+#else // LINUX
+#include "../Platform/Linux/Library/library.h"
+#endif 
+
 #define YYTYPE oop
 extern YYTYPE result;
 

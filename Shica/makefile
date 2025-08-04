@@ -62,7 +62,8 @@ crun:
 web: $(WASMOUT)
 
 $(WASMOUT): $(SRC)
-	$(WASMCC) $(SRC) ./Platform/WebShica/library/library.c $(CFLAGS)
+	gcc $(SRC) ./Platform/WebShica/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/WebShica/Library/
+	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(CFLAGS) 
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
 

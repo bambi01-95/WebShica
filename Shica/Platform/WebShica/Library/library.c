@@ -239,6 +239,7 @@ int click_handler(ent eh)
 
 int compile_eh_init(){
 	//standard event handler
+	printf("compile_eh_init\n");
 	oop EH = NULL;
 
 	EH = intern("eventEH");

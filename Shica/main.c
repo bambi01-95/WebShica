@@ -29,7 +29,7 @@ UserFunc Name: should start with a lowwer letter
 #include "./Entity/entity.h"
 
 
-#if WEBSHICA
+#ifdef WEBSHICA
 #include "./Platform/WebShica/Library/library.h"
 #else // LINUX
 #include "./Platform/Linux/Library/library.h"
@@ -97,7 +97,8 @@ int compile_event_init(){
 	exitEH = intern("exitEH");
 	exitEH->Symbol.value =  newEventH(0,0); // 0 argument
 	//standard event handler
-
+	setEventTable(__EventTable__);
+	setStdFuncTable(__StdFuncTable__);
 	compile_eh_init();//platform/platformName/library.c
 
 	return 1; // return 1 to indicate success

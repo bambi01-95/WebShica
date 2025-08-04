@@ -1,8 +1,8 @@
 // WEBSHICA
 #ifndef SHICA_LIBRARY_H
 #define SHICA_LIBRARY_H
-#include "../../Entity/entity.h"
-#include "../../Object/object.h"
+#include "../../../Entity/entity.h"
+#include "../../../Object/object.h"
 
 #define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
 extern char  WebText[WEBTEXT_MAX_SIZE];
