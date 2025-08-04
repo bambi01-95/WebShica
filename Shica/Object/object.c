@@ -1,19 +1,17 @@
 #ifndef OBJECT_C
 #define OBJECT_C
-#include "object.h"
-#ifdef MSGC
-#include "../GC/msgc/msgc.h"
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
-#define newAtomicObject(TYPE) (oop)(gc_beAtomic(newObject(TYPE)))
-#else
-#include <stdlib.h>
-#include <string.h>
-#define newAtomicObject(TYPE) newObject(TYPE)
-#endif // MSGC
 #include <stdarg.h>
+#include <string.h>
+#include "object.h"
+
+//GC
+#ifdef MSGC
+#define newAtomicObject(TYPE) gc_beAtomic(newObject(TYPE))
+#elif defined(MSGCS)
+#define newAtomicObject(TYPE) gc_beAtomic(newObject(TYPE))
+#else
+	#error "GC is not defined, please define MSGC or MSGCS"
+#endif
 
 
 #define TAGINT	1			// tag bits value for Integer  ........1
@@ -771,16 +769,17 @@ void print(oop node)
 }
 
 #ifdef MSGC
-#undef malloc
-#undef calloc
-#undef realloc
-#undef strdup
 #undef newAtomicObject
+#elif defined(MSGCS)
+#undef newAtomicObject
+#else
+   #error "GC is not defined, please define MSGC or MSGCS"
+#endif
+
 #undef newObject
 #undef TAGINT		
 #undef TAGFLT	
 #undef TAGBITS		
 #undef TAGMASK
-#endif // MSGC
 
 #endif // OBJECT_C

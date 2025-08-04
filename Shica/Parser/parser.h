@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "../Object/object.h"
+#include "../GC/gc.h"
 
 #ifdef WEBSHICA
 #include "../Platform/WebShica/Library/library.h" // for WebText, WebTextPos
@@ -18,7 +19,11 @@ void initYYContext(); //yyrelease(ctx);
 
 #ifdef MSGC
 void collectYYContext();//
-#endif // MSGC
+#elif defined(MSGCS)
+void collectYYContext();//
+#else
+   #error "GC is not defined, please define MSGC or MSGCS"
+#endif
 
 
 #endif // PARSER_H

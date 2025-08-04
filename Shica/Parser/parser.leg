@@ -1,13 +1,7 @@
 %{
 #ifndef PARSER_C
 #define PARSER_C
-#ifdef MSGC
-#include "../GC/msgc/msgc.h"
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
-#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
@@ -241,13 +235,47 @@ void collectYYContext()
 		}
 	}
 }
-#endif // MSGC
+#elif defined(MSGCS)
+void collectYYContext()
+{
+	if(yyctx){
+		gc_markOnly(yyctx);
+		// char     *__buf;
+		// int       __buflen;
+		gc_markOnly(yyctx->__buf);
+		// int       __pos;
+		// int       __limit;
+		// char     *__text;
+		// int       __textlen;
+		gc_markOnly(yyctx->__text);
+		// int       __begin;
+		// int       __end;
+		// int       __textmax;
+		// yythunk  *__thunks;
+		// int       __thunkslen;
+		// int       __thunkpos;
+		gc_markOnly(yyctx->__thunks);
+// 		for(int i=0; i<yyctx->__thunkslen;i++){
+// // typedef struct _yythunk { int begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;
+// 			gc_markOnly(yyctx->__thunks[i].next)
+// 			//action is function pointer
+// 			//next is maybe not need ...
+// 		}
+		// YYSTYPE   __;
+		// YYSTYPE  *__val;
+		// YYSTYPE  *__vals;
+		// int       __valslen;
+		#undef yy
+		#undef __
+		gc_mark(yyctx->__);
+		gc_mark(yyctx->__val);
+		for(int i=0;i<yyctx->__valslen;i++){
+			gc_mark(yyctx->__vals[i]);
+		}
+	}
+}
+#else
+   #error "GC is not defined, please define MSGC or MSGCS or add your own GC"
+#endif // GC_SECTION
 
-#ifdef MSGC
-#undef malloc
-#undef calloc
-#undef realloc
-#undef strdup
-#endif // MSGC
-
-#endif // PARSER_C
+#endif // PARSER_H

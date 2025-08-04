@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "../GC/gc.h"
 #include "../Error/error.h"
 
 union Object;

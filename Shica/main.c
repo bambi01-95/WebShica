@@ -21,34 +21,17 @@ UserFunc Name: should start with a lowwer letter
 #include <stdint.h>
 #include <unistd.h>
 
-
+#include "./GC/gc.h"
 #include "./Error/error.h"
 #include "./Opcode/opcode.h"
 #include "./Object/object.h"
 #include "./Parser/parser.h"
 #include "./Entity/entity.h"
 
-
 #ifdef WEBSHICA
 #include "./Platform/WebShica/Library/library.h"
 #else // LINUX
 #include "./Platform/Linux/Library/library.h"
-#endif
-
-
-
-#ifdef MSGC
-#include "./GC/msgc/msgc.h"
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
-#elif MSGCS
-#include "./GC/msgcs/msgcs.h"
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
 #endif
 
 /* GARBAGE? */
