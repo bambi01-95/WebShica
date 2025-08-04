@@ -9,7 +9,7 @@
 #define MSGCS_C
 #include "msgcs.h"
 #include "fatal.h"
-
+void print_gc_header(const gc_header *ptr);
 /* MEMO
  * Initialize the garbage collector with a given size of memory.
  * The memory is allocated and initialized to zero.
@@ -27,6 +27,24 @@ struct gc_context gc_ctx = {
     .memend = 0,
     .memnext = 0
 };
+gc_context *newGCContext(const int size)
+{
+    gc_context *ctx = (gc_context *)malloc(sizeof(gc_context));
+    if (!ctx) fatal("out of memory");
+    ctx->memory = (void *)malloc(size);
+    if (!ctx->memory) fatal("out of memory");
+    ctx->memend = (void *)ctx->memory + size;
+    ctx->memnext = ctx->memory;
+    ctx->nroots = 0;
+
+    // initialize the memory block as a single free block
+    ctx->memory->size = size;
+    ctx->memory->busy = 0; // not busy
+    ctx->memory->mark = 0; // not marked
+    ctx->memory->atom = 0; // not atomic
+    assert(ctx->memory < ctx->memend); // ensure the memory is within bounds
+    return ctx;
+}
 
 void gc_init(const int size)
 {
@@ -40,6 +58,8 @@ void gc_init(const int size)
     gc_ctx.memory->busy = 0;
     gc_ctx.memory->mark = 0;
     gc_ctx.memory->atom = 0;
+    gc_ctx.nroots = 0; // no roots at the start
+    assert(gc_ctx.memory < gc_ctx.memend); // ensure the memory is within bounds
 }
 
 gc_context *ctx = &gc_ctx; // current context
@@ -109,6 +129,7 @@ void gc_markOnly(void *ptr)
 // TIP: it is used to any object that is not marked
 void gc_mark(void *ptr)
 {
+    gc_debug_log("gc_mark: marking %p\n", ptr);
     if (!GC_PTR(ptr)) return;			// NULL or outside memory
     gc_header *here = (gc_header *)ptr - 1;	// object to header
     assert(ctx->memory <= here);
@@ -129,13 +150,17 @@ int gc_collect(void)
 
     int nfree = 0, nbusy = 0;			// count memory in use and free
     gc_collectFunction();			// run pre-collection function to mark static roots
-    for (int i = 0;  i < ctx->nroots;  ++i)		// mark the pointers stored in each root variable
-	gc_mark(*ctx->roots[i]);
+    for (int i = 0;  i < ctx->nroots;  ++i){		// mark the pointers stored in each root variable
+        gc_debug_log("Root %d\n", i);
+	    gc_mark(*ctx->roots[i]);
+        gc_debug_log("Root pointer %p\n", ctx->roots[i]);
+    }
 
     // phase two: sweep the memory looking for objects that are busy but do not have their
     // mark bit set.
     // these objects are unreachable from any of the roots, cannot ever take part in future
     // computation, and so can be collected as garbage.
+
     
     for ( gc_header *here = ctx->memory;		// iterate over all objects in memory
 	  here < ctx->memend;
@@ -372,7 +397,7 @@ gc_context *gc_getContextSlot(void)
     return (gc_context *)gc_ctx.roots[nctx++];
 }
 
-#if TESTGC
+#ifdef TESTGC 
 #include <stdio.h>
 #include <assert.h>
 
@@ -440,9 +465,9 @@ int main(){
     // return 0;
 
     gc_init(1024 * 1024); // initialize the garbage collector with 1 MB of memory
-    gc_separateContext(4, 0); // separate memory for 4 processes
-
-    gc_context *ctx1 = gc_getContextSlot(); // get a new context slot
+    // gc_separateContext(4, 0); // separate memory for 4 processes
+    // gc_context *ctx1 = gc_getContextSlot(); // get a new context slot
+    gc_context *ctx1 = newGCContext(1024 * 1024); // create a new GC context with 1 MB of memory
     assert(ctx1 != NULL); // ensure we got a valid context
 
     gc_pushRoot(&ctx1); // push the context to the root stack
@@ -461,13 +486,12 @@ int main(){
         printf("arr[%d] = %d\n", i, arr[i]); // print the array elements
     }
     print_gc_header((gc_header *)arr); // print the header of the allocated memory
-    gc_pushRoot((void *)arr); // push the array to the root stack
-    gc_mark(arr); // mark the array as reachable
+    gc_pushRoot((void *)&arr); // push the array to the root stack
     gc_collect(); // collect garbage
     for(int i = 0; i < 10; i++) {
         printf("arr[%d] = %d\n", i, arr[i]); // print the array elements after garbage collection
     }
-    gc_popRoot((void *)arr, "arr"); // pop the array from the root stack
+    gc_popRoot((void *)&arr, "arr"); // pop the array from the root stack
     gc_collect(); // collect garbage again
     ctx = &gc_ctx; // reset the current context to the global context
     GC_POP(ctx1); // pop the context from the root stack
