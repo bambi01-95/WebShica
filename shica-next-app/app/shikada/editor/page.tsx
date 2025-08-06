@@ -1,98 +1,90 @@
 "use client";
 import { CodeEditor } from "@/component/code/CodeEditor";
 import { useState } from "react";
-import FileLists from "@/component/code/FileLists";
-import Console from "@/component/code/Console";
-import Terminal from "@/component/code/Terminal";
+import Output from "@/component/code/Output";
+import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 
 const EditorPage = () => {
-  const [code, setCode] = useState<{ filename: string; code: string }[]>([
-    { filename: "test0.shica", code: "" },
-  ]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  // 配列に要素を追加する例
-  const addItem = (newItem: string = "") => {
-    setCode((prev) => [
-      ...prev,
-      { filename: `test${code.length}.shica`, code: newItem },
-    ]);
-    setSelectedIndex(code.length); // 新しく追加したファイルを選択
-  };
-
-  // インデックスで要素を更新する例
-  const updateItem = (index: number, newValue: string) => {
-    setCode((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
-    );
-  };
-
-  // 条件で要素を削除する例
-  const removeItem = (index: number) => {
-    if (code.length <= 1) return; // 最低1つのファイルは残す
-
-    setCode((prev) => prev.filter((_, i) => i !== index));
-
-    // 選択中のファイルが削除された場合の処理
-    if (selectedIndex === index) {
-      setSelectedIndex(Math.max(0, index - 1));
-    } else if (selectedIndex > index) {
-      setSelectedIndex(selectedIndex - 1);
-    }
-  };
+  const [code, setCode] = useState<{ filename: string; code: string }>({
+    filename: "test0.shica",
+    code: "",
+  });
 
   return (
-    <div style={{ height: "100vh", display: "flex" }}>
-      {/* 縦タブバー */}
-      <FileLists
-        code={code}
-        selectedIndex={selectedIndex}
-        setSelectedIndex={setSelectedIndex}
-        removeItem={removeItem}
-        disableRemove={code.length <= 1}
-        addItem={addItem}
-      />
-
-      {/* エディタエリア */}
+    <div className="hidden xl:flex flex-col w-full h-screen">
+      {/* メインエディタエリア */}
       <div
+        className="flex-1 flex flex-col"
         style={{
-          flex: 1,
-          backgroundColor: "#1e1e1e",
-          display: "flex",
-          flexDirection: "column",
+          backgroundColor: "var(--color-background-primary)",
         }}
       >
-        {code.length > 0 && (
-          <>
-            {/* 現在のファイル名表示 */}
-            <div
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#2d2d30",
-                borderBottom: "1px solid #3e3e42",
-                color: "#cccccc",
-                fontSize: "13px",
-                fontWeight: "500",
-              }}
-            >
-              {code[selectedIndex].filename}
-            </div>
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center p-2">
+          <h1 className="text-lg font-bold">
+            Shica Code Editor for Native Environment
+          </h1>
+          <ThemeToggleButton
+            background="var(--color-code-background-800)"
+            color="var(--color-text-primary)"
+          />
+        </div>
 
-            {/* エディタ */}
-            <div className="flex-1">
+        {/* メインコンテンツ */}
+        <div
+          className="flex flex-1 h-full"
+          style={{ border: "1px solid var(--code-background-700)" }}
+        >
+          {/* サイドバー - コントロールボタン */}
+          <div className="flex flex-col items-start p-4 w-64">
+            <button className="code-button shadow-md w-full p-2 mb-2 rounded-full">
+              Compile
+            </button>
+            <button className="code-button shadow-md w-full p-2 mb-2 rounded-full">
+              Download .shica
+            </button>
+            <button className="code-button shadow-md w-full p-2 mb-2 rounded-full">
+              Download .stt
+            </button>
+          </div>
+
+          {/* エディタ・出力エリア */}
+          <div className="flex-1 flex flex-col">
+            {/* コードエディタ */}
+            <div className="flex-1 min-h-0">
               <CodeEditor
-                key={code[selectedIndex].filename}
-                filename={code[selectedIndex].filename}
-                initialCode={code[selectedIndex].code}
-                onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
+                filename={code.filename}
+                initialCode={code.code}
+                onCodeChange={(newCode) =>
+                  setCode((prev) => ({ ...prev, code: newCode }))
+                }
+                width="w-full"
+                height="h-full"
+                isRounded={false}
               />
             </div>
-            <div style={{ display: "flex", flexDirection: "row" }}>
-              <Console />
-              <Terminal />
+
+            {/* 出力セクション */}
+            <div className="flex-1 min-h-0">
+              <div className="h-full overflow-y-auto">
+                <Output isRounded={false} />
+              </div>
             </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* フッター */}
+        <div
+          className="py-2"
+          style={{ backgroundColor: "var(--color-background-secondary)" }}
+        >
+          <p
+            className="text-xs text-center"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            Programming system lab
+          </p>
+        </div>
       </div>
     </div>
   );
