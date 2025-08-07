@@ -13,7 +13,7 @@
 |.  |.  |> current problem: 
 |.  |.  |> Syntax error or something Shica compile error apper,
 |.  |.  |> Web Shica site will be close...
-|   |- (**-) learn sepa. heap memory.       <- in progress
+|   |- (**-) learn sepa. heap memory.        <- IN PROGRESS
 |   |          |> copy GC. it is good for generation gc
 |   |          |> how to sepa. and impl. msgc...
 |.  |- (**-) Shared data (timer, click ) is out of gc_memory range!?
@@ -21,7 +21,7 @@
 |
 +- [1] Add more web event handler and function
 |   |(o) change the speed
-|   |(-) change the color                 <- NEXT
+|   |(-) change the color                 <- IN PROGRESS
 |   |(-) detect touch
 |   |(-) detect collision
 |   |(-) trigger web timer
@@ -32,8 +32,8 @@
 |  |- (o) Add page outline comp.       
 |  |- (o) light/dark mode            
 |. |- (o) select and adapt font.  
-|. |- (-) coloring code                   <- NEXT
-|. |- (-) download .shica code and .stt compiled code
+|. |- (-) coloring code                   
+|. |- (-) download .shica code and .stt compiled code.            <- IN PROGRESS
 |.      | (-) change the text to file, and then to be donwloadble
 |.      | (-) make `binary()` function that is used in ccall().
 |.      | (-) filename changable
@@ -46,8 +46,8 @@
 |   |  |- (o) yyrelease 
 |   |  |- (o) mark
 |   |
-|   |(-) global variable               <- IN PROGRESS
-|.  |(-) error message                 <- IN PROGRESS
+|   |(*) global variable               <- IN PROGRESS
+|.  |(*) error message                 <- IN PROGRESS FIXME d>.<b
 |   |(-) local variable
 |   |(-) type checking
 |   |  |> push function into function list.
@@ -69,15 +69,16 @@
 +- [4] Run multiple agent
 |   |(o) sotre one or more codes. 
 |   |(o) store one or more argents                
-|   |(-) implement all.                <- IN PROGRESS
+|   |(o) implement all.               
 |   |(o) msgc (each heap memory)
-|.        |(o) msgcs: make test.
-|.        |(-) copyGC:                
-|.        |(-) stdatomic.h: pallarel GC
-|.  |(-) communicaton
+|.  |     |(o) msgcs: make test.
+|.  |     |(-) copyGC:                
+|.  |     |(-) stdatomic.h: pallarel GC
+|.  |(-) communicaton                      
+|.        |(*) think about witch communication model we use.  <- IN PROGRESS
 |
 +- [5] C web editor
-|   |(-) web Native (Linux) compiler
+|   |(*) web Native (Linux) compiler                       <- IN PROGRESS
 |   |(-) make interface generator that works web
 
 ```

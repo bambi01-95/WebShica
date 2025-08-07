@@ -28,7 +28,7 @@ const ShicaPage = () => {
   const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
     {
       filename: "Agent0.shica",
-      code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+      code: "stt s1(){\n    clickEH(x,y){\n        setXY(50,50);\n        setVX(5);\n        setVY(0);\n    }\n}",
     },
   ]);
 
@@ -121,34 +121,6 @@ const ShicaPage = () => {
   // once when the page is loaded
   useEffect(() => {
     if (!Module || !isReady) return;
-    // for (let i = 0; i < 12; i++) {
-    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
-    //   console.log(`Agent ${i} data pointer: ${agent}`);
-    // }
-    // for (let i = 0; i < 12; i++) {
-    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
-    //   const x = Module.getValue(agent + 0, "i32");
-    //   const y = Module.getValue(agent + 4, "i32");
-    //   const vx = Module.getValue(agent + 8, "i32");
-    //   const vy = Module.getValue(agent + 12, "i32");
-    //   console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
-    // }
-    // for (let i = 0; i < 12; i++) {
-    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
-    //   Module.setValue(agent + 0, 20 * i, "i32"); // x
-    //   Module.setValue(agent + 4, 20 * i, "i32"); // y
-    //   Module.setValue(agent + 8, 1, "i32"); // vx
-    //   Module.setValue(agent + 12, 1, "i32"); // vy
-    //   console.log(`Agent ${i} initialized - x: ${20 * i}, y: ${20 * i}, vx: 1, vy: 1`);
-    // }
-    // for (let i = 0; i < 12; i++) {
-    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
-    //   const x = Module.getValue(agent + 0, "i32");
-    //   const y = Module.getValue(agent + 4, "i32");
-    //   const vx = Module.getValue(agent + 8, "i32");
-    //   const vy = Module.getValue(agent + 12, "i32");
-    //   console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
-    // }
     const agentDataPtr = Module.ccall(
       "getAnAgentDataPtr",
       "number",
