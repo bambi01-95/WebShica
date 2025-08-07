@@ -118,7 +118,7 @@ int *initAnAgentDataPtr(){
 	AN_AGENT_DATA->isLEDOn = 0; // is LED on
 	return (int*)AN_AGENT_DATA; // Return pointer to the agent data
 }
-
+//DON'T CHANGE 2025/08/07-2025/08/08
 int *getAnAgentDataPtr(int index){
 	return (int*)&allAgentData[index]; // Return pointer to the agent data at the given index
 }
@@ -130,7 +130,7 @@ int setActiveAgent(int index)
 		return -1; // Error: index out of range
 	}
 
-	AN_AGENT_DATA = ALL_AGENT_DATA[index]; // Set the active agent data
+	AN_AGENT_DATA = &allAgentData[index]; // Set the active agent data
 	printf("CAgent %d - x: %d y: %d vx: %d vy: %d\n", index, AN_AGENT_DATA->x, AN_AGENT_DATA->y, AN_AGENT_DATA->vx, AN_AGENT_DATA->vy);
 	return 0; // Success
 }
@@ -302,6 +302,7 @@ int lib_setxy(ent stack)
 	int x = intArray_pop(stack); // get y coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
 	AN_AGENT_DATA->y = y; // set y coordinate
+	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
 	return 0; // return 0 to indicate success
 }
 
@@ -309,14 +310,12 @@ int lib_setvx(ent stack)
 {
 	int vx = intArray_pop(stack); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
-	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvy(ent stack)
 {
 	int vy = intArray_pop(stack); // get y velocity from stack
-	AN_AGENT_DATA->vy = vy; // set y velocity
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }

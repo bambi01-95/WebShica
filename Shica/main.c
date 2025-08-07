@@ -1839,19 +1839,14 @@ int executeWebCodes(void)
 			}
 			for(int j = 0; j < agent->Agent.nEvents; ++j){
 				// get event data
-				printf("step 3\n");
 				ent eh = agent->Agent.eventHandlers[j];
-				printf("1isActive: %d\n", agent->Agent.isActive);
 				EventTable[eh->EventHandler.EventH].eh(eh);
-				printf("2isActive: %d\n", agent->Agent.isActive);
 				if(impleBody(webCodes[i], eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
-					printf("step 4\n");
 					agent->Agent.isActive = 0;
 					agent->Agent.pc = intArray_pop(agent->Agent.stack);
 					agent->Agent.eventHandlers = NULL;
 					break;
 				}
-				printf("3isActive: %d\n", agent->Agent.isActive);
 			}
 		}
 		// printCode(webCodes[i]); // print the bytecode of the web code
