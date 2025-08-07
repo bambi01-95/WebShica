@@ -8,7 +8,7 @@
 
 ```text
 +- [0] FIXME / TASK / THINK
-|   |- (***) runtime error??? -> what is happen...
+|   |- (***) runtime error??? -> what is happen... <-- forgettting collect main roots. maybe???
 |.  |- (***) display error message!!!
 |.  |.  |> current problem: 
 |.  |.  |> Syntax error or something Shica compile error apper,
@@ -33,6 +33,10 @@
 |  |- (o) light/dark mode            
 |. |- (o) select and adapt font.  
 |. |- (-) coloring code                   <- NEXT
+|. |- (-) download .shica code and .stt compiled code
+|.      | (-) change the text to file, and then to be donwloadble
+|.      | (-) make `binary()` function that is used in ccall().
+|.      | (-) filename changable
 |
 +- [3] Add original shica feature
 |   |(o) state transition
@@ -64,16 +68,18 @@
 |
 +- [4] Run multiple agent
 |   |(o) sotre one or more codes. 
-|   |(-) store one or more argents                <- IN PROGRESS
-|   |(-) implement all
+|   |(o) store one or more argents                
+|   |(-) implement all.                <- IN PROGRESS
 |   |(o) msgc (each heap memory)
-|.        |(*) msgcs: make test.                  
+|.        |(o) msgcs: make test.
+|.        |(-) copyGC:                
 |.        |(-) stdatomic.h: pallarel GC
 |.  |(-) communicaton
 |
-+- [5] Add C interface generator
++- [5] C web editor
+|   |(-) web Native (Linux) compiler
 |   |(-) make interface generator that works web
-|   |(-) 
+
 ```
 
 ## MECHA. MEMO
