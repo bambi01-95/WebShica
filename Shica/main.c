@@ -47,7 +47,6 @@ UserFunc Name: should start with a lowwer letter
 
 /* ======================= ERROR MSG ==================== */
 
-char devmsg[] = "Contact 2024mm11@kuas.ac.jp\n";
 
 void error(char *msg, ...){
     va_list ap;
@@ -644,7 +643,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			case MOD: emitI(prog, iMOD);  return;
 			default:break;
 			}
-			fatal("leg %d: %s",__LINE__, devmsg);
+			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 			break;
 		}
 		case Unyop:{
@@ -664,7 +663,7 @@ void emitOn(ent prog,oop vars, oop ast)
 					case ADEC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
 				default: break;
 			}
-			fatal("leg %d: %s",__LINE__, devmsg);
+			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 			return ;
 		}
 		case GetVar: {
@@ -749,7 +748,7 @@ void emitOn(ent prog,oop vars, oop ast)
 					return;
 				}
 				default:{
-					fatal("leg %d: %s", __LINE__, devmsg);
+					fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 					fatal("error: call function with type %d\n", getType(func));
 					printlnObject(func,0);
 					exit(1);
@@ -816,7 +815,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			printTYPE(_Pair_);
 			oop a = get(ast, Pair,a);
 			oop b = get(ast, Pair,b);
-			error("leg %d: %s",__LINE__, devmsg);
+			error("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 			return;
 		}
 		case Print:{
@@ -936,15 +935,15 @@ void emitOn(ent prog,oop vars, oop ast)
 			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
-				dprintf("DEBUG: %s\n", devmsg);
-				if(eventList[i] == NULL)fatal("line %d ERROR: %s\n", __LINE__, devmsg);
+				dprintf("DEBUG: %s\n", "Contact 2024mm11@kuas.ac.jp\n");
+				if(eventList[i] == NULL)fatal("line %d ERROR: %s\n", __LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 				if((get(eventList[i], Event,id) == entryEH) || (get(eventList[i], Event,id) == exitEH)){
 					dprintf("entryEH or exitEH\n");
 					elements[nElements++] = 0; // collect empty events
 					continue;
 				}
 				if(getType(eventList[i])!=Event){
-					fatal("line %d ERROR: %s\n", __LINE__, devmsg);
+					fatal("%s %d ERROR: %s\n", __FILE__, __LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 					elements[nElements++] = 0; // collect empty events
 				}
 				else if(get(eventList[i], Event,id) != preid) {
@@ -1052,7 +1051,6 @@ void emitOn(ent prog,oop vars, oop ast)
 		}
 		default:break;
     }
-	fatal(devmsg);
     fatal("emitOn: unimplemented emitter for type %d", getType(ast));
 }
 
@@ -1696,7 +1694,7 @@ int addWebCode(void)
 {
 	assert(ctx == comctx); // check if the context is equal to the compilation context
 	if(nWebCodes >= maxNumWebCodes){
-		printf("contact the developer %s\n",DEVELOPER_EMAIL);
+		printf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
@@ -1747,9 +1745,9 @@ int compile_finalize()
 
 int compileWebCode(const int doInit,const int index, const char *code)
 {
-	assert(ctx == comctx); // check if the context is equal to the compilation context
+	ctx = comctx; // use the context for the garbage collector
 	if(index < 0 || index >= maxNumWebCodes){
-		printf("contact the developer %s\n",DEVELOPER_EMAIL);
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
@@ -1772,7 +1770,7 @@ int compileWebCode(const int doInit,const int index, const char *code)
 int deleteWebCode(const int index)
 {
 	if(index < 0 || index >= maxNumWebCodes){
-		printf("contact the developer %s\n",DEVELOPER_EMAIL);
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
@@ -1789,8 +1787,8 @@ int deleteWebCode(const int index)
 int initWebAgents(int num)
 {
 	ctx = comctx; // use the context for the garbage collector
-	if(num <= 0 || num > maxNumWebAgents){
-		printf("contact the developer %s\n",DEVELOPER_EMAIL);
+	if(num <= 0){
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
@@ -1815,6 +1813,7 @@ int initWebAgents(int num)
 		assert(((ent)*ctx->roots[0])->kind == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
+	printf("Initialized %d web agents.\n", num);
 	nWebAgents = num; // set the number of web agents
 	ctx = exectx; // reset the context to the execution context
 	return 0; // return 0 to indicate success
@@ -1824,17 +1823,15 @@ int initWebAgents(int num)
 int executeWebCodes(void)
 {
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
+		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		ent agent = (ent)*ctx->roots[0]; // get the agent from the context memory
 		assert(agent->kind == Agent); // check if the agent is of type Agent
-		printf("step 1 isActive: %d\n", agent->Agent.isActive);
 		if(agent->Agent.isActive == 0){
-			printf("step 2-0\n");
 			agent = execute(webCodes[i] ,agent , agent->Agent.stack);
 		}else{
-			printf("step 2-1\n");
-			setActiveAgent(i); // set the agent as active
 			printf("nEvents: %d\n", agent->Agent.nEvents);
 			if(agent->Agent.nEvents == 0){
 				printAgent(agent); // print the agent if it has no events
@@ -1860,6 +1857,11 @@ int executeWebCodes(void)
 		// printCode(webCodes[i]); // print the bytecode of the web code
 	}
 	ctx = exectx; // reset the context to the execution context
+	return 0; // return 0 to indicate success
+}
+int stopWebCodes(void)
+{
+	ctx = comctx; // use the context for the garbage collector
 	return 0; // return 0 to indicate success
 }
 

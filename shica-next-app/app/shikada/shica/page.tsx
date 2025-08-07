@@ -25,7 +25,7 @@ const hexToRgb = (hex: string) => {
 };
 
 const ShicaPage = () => {
-  const [code, setCode] = useState<{ filename: string; code: string }[]>([
+  const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
     {
       filename: "Agent0.shica",
       code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
@@ -35,6 +35,7 @@ const ShicaPage = () => {
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
   const mapRef = useRef<HTMLDivElement>(null);
   const [time, setTime] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0); // 強制再レンダリング用
 
   const [Module, isReady] = useVM();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -52,42 +53,53 @@ const ShicaPage = () => {
   });
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
 
+  const addRobot = () => {
+    const numRobots = robotsRef.current.length;
+    const newRobot: Robot = { x: 50 * numRobots, y: 0, vx: 1, vy: 1 };
+    robotsRef.current = [...robotsRef.current, newRobot];
+    setForceUpdate((prev) => prev + 1); // 強制再レンダリング
+  };
+
   // 配列に要素を追加する例
   const addItem = (newItem: string = "") => {
-    setCode((prev) => [
+    setCodes((prev) => [
       ...prev,
-      { filename: `Agent${code.length}.shica`, code: newItem },
+      {
+        filename: `Agent${codes.length}.shica`,
+        code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+      },
     ]);
-    setSelectedIndex(code.length); // 新しく追加したファイルを選択
+    setSelectedIndex(codes.length); // 新しく追加したファイルを選択
+    addRobot();
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");
       addLog(LogLevel.ERROR, "touch failed - maximum file count reached");
       return;
     } else {
-      addLog(LogLevel.SUCCESS, `touch Agent${code.length}.shica`);
+      addLog(LogLevel.SUCCESS, `touch Agent${codes.length}.shica`);
     }
   };
 
   // インデックスで要素を更新する例
   const updateItem = (index: number, newValue: string) => {
-    setCode((prev) =>
+    setCodes((prev) =>
       prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
     );
   };
 
   // 条件で要素を削除する例
   const removeItem = (index: number) => {
-    if (code.length <= 1) return; // 最低1つのファイルは残す
+    if (codes.length <= 1) return; // 最低1つのファイルは残す
 
-    setCode((prev) => prev.filter((_, i) => i !== index));
+    setCodes((prev) => prev.filter((_, i) => i !== index));
     const ret = Module?.ccall("deleteWebCode", "number", ["number"], [index]);
     if (ret !== 0) {
       console.error("Failed to delete web code");
       addLog(LogLevel.ERROR, "rm failed - minimum file count reached");
       return;
     } else {
-      addLog(LogLevel.SUCCESS, `rm ${code[index].filename}`);
+      addLog(LogLevel.SUCCESS, `rm ${codes[index].filename}`);
     }
     // 選択中のファイルが削除された場合の処理
     if (selectedIndex === index) {
@@ -109,6 +121,48 @@ const ShicaPage = () => {
   // once when the page is loaded
   useEffect(() => {
     if (!Module || !isReady) return;
+    // for (let i = 0; i < 12; i++) {
+    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
+    //   console.log(`Agent ${i} data pointer: ${agent}`);
+    // }
+    // for (let i = 0; i < 12; i++) {
+    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
+    //   const x = Module.getValue(agent + 0, "i32");
+    //   const y = Module.getValue(agent + 4, "i32");
+    //   const vx = Module.getValue(agent + 8, "i32");
+    //   const vy = Module.getValue(agent + 12, "i32");
+    //   console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+    // }
+    // for (let i = 0; i < 12; i++) {
+    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
+    //   Module.setValue(agent + 0, 20 * i, "i32"); // x
+    //   Module.setValue(agent + 4, 20 * i, "i32"); // y
+    //   Module.setValue(agent + 8, 1, "i32"); // vx
+    //   Module.setValue(agent + 12, 1, "i32"); // vy
+    //   console.log(`Agent ${i} initialized - x: ${20 * i}, y: ${20 * i}, vx: 1, vy: 1`);
+    // }
+    // for (let i = 0; i < 12; i++) {
+    //   const agent = Module.ccall("getAnAgentDataPtr", "number", ["number"], [i]);
+    //   const x = Module.getValue(agent + 0, "i32");
+    //   const y = Module.getValue(agent + 4, "i32");
+    //   const vx = Module.getValue(agent + 8, "i32");
+    //   const vy = Module.getValue(agent + 12, "i32");
+    //   console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+    // }
+    const agentDataPtr = Module.ccall(
+      "getAnAgentDataPtr",
+      "number",
+      ["number"],
+      [0]
+    );
+    for (let i = 0; i < 12; i++) {
+      const x = Module.getValue(agentDataPtr + i * 32 + 0, "i32");
+      const y = Module.getValue(agentDataPtr + i * 32 + 4, "i32");
+      const vx = Module.getValue(agentDataPtr + i * 32 + 8, "i32");
+      const vy = Module.getValue(agentDataPtr + i * 32 + 12, "i32");
+      console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+    }
+
     if (process === "none") {
       addLog(LogLevel.SHICA, "Welcome to Shica Code Simulator d-.-b");
       // Initialize web codes if not already done
@@ -126,14 +180,14 @@ const ShicaPage = () => {
         return;
       } else {
         addLog(LogLevel.INFO, "Initialized web codes");
-        addLog(LogLevel.SUCCESS, `touch ${code[0].filename}`);
+        addLog(LogLevel.SUCCESS, `touch ${codes[0].filename}`);
       }
     }
   }, [Module]);
 
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
-    const selectedCode = code[selectedIndex].code;
+    const selectedCode = codes[selectedIndex].code;
     const bool = process === "compile" ? 1 : 0;
     const ret = Module.ccall(
       "compileWebCode",
@@ -142,17 +196,20 @@ const ShicaPage = () => {
       [bool, selectedIndex, selectedCode]
     );
     // change .shica to .stt, and meke output filename
-    const outputFilename = code[selectedIndex].filename.replace(/\.shica$/, ".stt");
+    const outputFilename = codes[selectedIndex].filename.replace(
+      /\.shica$/,
+      ".stt"
+    );
 
     if (ret === 0) {
       addLog(
         LogLevel.SUCCESS,
-        `shica ${outputFilename} -o ${code[selectedIndex].filename}`
+        `shica ${outputFilename} -o ${codes[selectedIndex].filename}`
       );
     } else {
       addLog(
         LogLevel.ERROR,
-        `shica ${outputFilename} -o ${code[selectedIndex].filename}`
+        `shica ${outputFilename} -o ${codes[selectedIndex].filename}`
       );
     }
     setProcess("compile");
@@ -171,18 +228,6 @@ const ShicaPage = () => {
     setIsCompiled(true);
   };
 
-  const drawRobots = () => {
-    const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
-    if (!robotElems) return;
-
-    robotsRef.current.forEach((robot, index) => {
-      const elem = robotElems[index] as HTMLDivElement;
-      if (elem) {
-        elem.style.left = `${robot.x}px`;
-        elem.style.top = `${robot.y}px`;
-      }
-    });
-  };
   const clickEH = (x: number, y: number) => {
     if (!Module || !isReady) return;
     const rect = mapRef.current?.getBoundingClientRect();
@@ -203,15 +248,25 @@ const ShicaPage = () => {
     if (!Module || !isReady) return;
     if (isRunning) {
       if (!isRunInit) {
+        const numCodes = codes.length;
+        console.log(`${numCodes} web codes to run`);
+
         const ret = Module.ccall(
           "initWebAgents",
           "number",
           ["number"],
-          [code.length]
+          [numCodes]
         );
+        if (ret !== 0) {
+          addLog(
+            LogLevel.ERROR,
+            "run failed - error in initializing web agents"
+          );
+          return;
+        }
         setIsRunInit(true);
         setProcess("run");
-        const allFFileNames = code.map((c) => c.filename).join(" ./");
+        const allFFileNames = codes.map((c) => c.filename).join(" ./");
         addLog(LogLevel.SUCCESS, "run ./" + allFFileNames);
       } else {
         addLog(LogLevel.SUCCESS, "run continued - running web codes");
@@ -219,39 +274,50 @@ const ShicaPage = () => {
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
         Module.setValue(Module.timerPtr, time, "i32");
-        const robot = robotsRef.current[0];
+
         const res = Module.ccall("executeWebCodes", "number", [], []);
         if (res !== 0) {
           addLog(LogLevel.ERROR, "run failed - error in web codes");
           clearInterval(intervalRef.current!);
           return;
         }
-        for (let i = 0; i < code.length; i++) {
-          console.log(`Agent ${i} data:`);
-          const offset = i * 16; // 4 bytes each for x, y, vx, vy
-          const x = Module.getValue(Module.agentsPtr + offset + 0, "i32");
-          const y = Module.getValue(Module.agentsPtr + offset + 4, "i32");
-          const vx = Module.getValue(Module.agentsPtr + offset + 8, "i32");
-          const vy = Module.getValue(Module.agentsPtr + offset + 12, "i32");
+        const agentptr = Module.ccall(
+          "getAnAgentDataPtr",
+          "number",
+          ["number"],
+          [0]
+        );
+        for (let i = 0; i < codes.length; i++) {
+          const robot = robotsRef.current[i];
+          const offset = i * 32; // 4 bytes each for x, y, vx, vy
+          const x = Module.getValue(agentptr + offset + 0, "i32");
+          const y = Module.getValue(agentptr + offset + 4, "i32");
+          const vx = Module.getValue(agentptr + offset + 8, "i32");
+          const vy = Module.getValue(agentptr + offset + 12, "i32");
           robot.x = x + vx;
           robot.y = y + vy;
           robot.vx = vx;
           robot.vy = vy;
-          drawRobots();
-          Module.setValue(Module.agentsPtr + offset + 0, robot.x, "i32");
-          Module.setValue(Module.agentsPtr + offset + 4, robot.y, "i32");
+          Module.setValue(agentptr + offset + 0, robot.x, "i32");
+          Module.setValue(agentptr + offset + 4, robot.y, "i32");
           console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
         }
+        setForceUpdate((prev) => prev + 1); // 位置更新を画面に反映
         setTime(time + 500);
         Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
       }, 500);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        addLog(LogLevel.SUCCESS, "run stopped - stopped by user");
+        const ret = Module.ccall("stopWebCodes", "number", [], []);
+        if (ret !== 0) {
+          addLog(LogLevel.ERROR, "run failed - error in stopping web codes");
+        } else {
+          addLog(LogLevel.SUCCESS, "run stopped - web codes stopped");
+        }
       }
     }
-  }, [isRunning, Module, isReady]);
+  }, [isRunning, Module, isReady, codes]);
 
   const run = () => {
     if (!isCompiled) {
@@ -326,7 +392,7 @@ const ShicaPage = () => {
                     clickEH(e.clientX, e.clientY);
                   }}
                 >
-                  {robotsRef.current.map((_, i) => (
+                  {robotsRef.current.map((robot, i) => (
                     <div
                       key={i}
                       className="robot-vacuum"
@@ -337,8 +403,8 @@ const ShicaPage = () => {
                         borderRadius: "50%",
                         position: "absolute",
                         transition: "all 0.1s linear",
-                        left: "0px",
-                        top: "0px",
+                        left: `${robot.x}px`,
+                        top: `${robot.y}px`,
                       }}
                     />
                   ))}
@@ -369,11 +435,11 @@ const ShicaPage = () => {
             <div className="flex flex-row h-[600px]">
               <div className="w-1/4">
                 <FileLists
-                  code={code}
+                  code={codes}
                   selectedIndex={selectedIndex}
                   setSelectedIndex={setSelectedIndex}
                   removeItem={removeItem}
-                  disableRemove={code.length <= 1}
+                  disableRemove={codes.length <= 1}
                   addItem={addItem}
                   MAX_FILE_COUNT={12}
                   width="w-full"
@@ -383,9 +449,9 @@ const ShicaPage = () => {
 
               <div className="w-3/4">
                 <CodeEditor
-                  key={code[selectedIndex].filename}
-                  filename={code[selectedIndex].filename}
-                  initialCode={code[selectedIndex].code}
+                  key={codes[selectedIndex].filename}
+                  filename={codes[selectedIndex].filename}
+                  initialCode={codes[selectedIndex].code}
                   onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
                   isRounded={false}
                   width="w-full"

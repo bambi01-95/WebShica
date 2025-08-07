@@ -53,17 +53,22 @@ struct AgentData anAgentData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Initialize the
 
 int ALL_AGENT_SIZE = 0; // Size of the agent data array
 struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ共有で使用
-struct AgentData allAgentData[12] = {0}; // Initialize the agent data array with 12 agents
+struct AgentData allAgentData[12] = {
+	[0] = { 50, 50, 5,0,0,0,0,0,0,0},
+	[1] = {450, 50, 0,5,0,0,0,0,0,0},
+	[2] = {450,450, -5,0,0,0,0,0,0,0},
+	[3] = { 50,450, 0,-5,0,0,0,0,0,0},
+	[4] = {250,250,0,0,0,0,0,0,0,0},
+	[5] = {300,300,0,0,0,0,0,0,0,0},
+	[6] = {350,350,0,0,0,0,0,0,0,0},
+	[7] = {400,400,0,0,0,0,0,0,0,0},
+	[8] = {450,450,0,0,0,0,0,0,0,0},
+	[9] = {500,500,1,-1,1,-1,'r','g','b',1},
+	[10] = {550,550,-1,-1,'r','g','b',1},
+	[11] = {600,600,-1,-1,'r','g','b',1}
+}; // Initialize the agent data array with 12 agents
 
-int setActiveAgent(int index)
-{
-	if (index < 0 || index >= ALL_AGENT_SIZE) {
-		printf("Error: Index out of range\n");
-		return -1; // Error: index out of range
-	}
-	AN_AGENT_DATA = ALL_AGENT_DATA[index]; // Set the active agent data
-	return 0; // Success
-}
+
 
 
 /*==============   TIMER  ================= */
@@ -114,21 +119,34 @@ int *initAnAgentDataPtr(){
 	return (int*)AN_AGENT_DATA; // Return pointer to the agent data
 }
 
-int *getAnAgentDataPtr(){
-	return (int*)AN_AGENT_DATA;
+int *getAnAgentDataPtr(int index){
+	return (int*)&allAgentData[index]; // Return pointer to the agent data at the given index
 }
 
+int setActiveAgent(int index)
+{
+	if (index < 0 || index >= ALL_AGENT_SIZE) {
+		printf("Error: Index out of range\n");
+		return -1; // Error: index out of range
+	}
+
+	AN_AGENT_DATA = ALL_AGENT_DATA[index]; // Set the active agent data
+	printf("CAgent %d - x: %d y: %d vx: %d vy: %d\n", index, AN_AGENT_DATA->x, AN_AGENT_DATA->y, AN_AGENT_DATA->vx, AN_AGENT_DATA->vy);
+	return 0; // Success
+}
 
 int **initALLAgentDataPtr(int size){
 	if(size <= 0 || size > 12) {
 		fprintf(stderr, "Error: Invalid size for ALL_AGENT_DATA\n");
 		return 0; // Error: invalid size
 	}
-    if (ALL_AGENT_DATA == NULL) {
-		ALL_AGENT_SIZE = size;
-		ALL_AGENT_DATA = (struct AgentData **)allAgentData; // Initialize the ALL_AGENT_DATA pointer
-    }
-    return (int**)ALL_AGENT_DATA; // Return pointer to the array of agent data pointers
+#ifdef DEBUG
+	for(int i = 0; i< size; i++){
+		printf("Agent %d: %p\n", i, &allAgentData[i]);
+	}
+#endif
+	ALL_AGENT_SIZE = size;    
+    return (int**)allAgentData; // Return pointer to the array of agent data pointers
 }
 
 int **getAllAgentDataPtr(){

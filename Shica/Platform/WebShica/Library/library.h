@@ -38,7 +38,7 @@ int *getWebClickSTTPtr();
 /*===============  AGENT ===================*/
 //Web内のroberのデータ共有で使用
 int *initAnAgentDataPtr(); //Initialize the agent data structure and return its address
-int *getAnAgentDataPtr();
+int *getAnAgentDataPtr(int index); // Get the agent data pointer at the given index
 
 /*===============  AGENTS ==========*/
 int **initALLAgentDataPtr(int size); // Initialize all agent data pointers
