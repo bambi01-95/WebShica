@@ -62,10 +62,10 @@ const ShicaPage = () => {
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");
-      addLog(LogLevel.ERROR, "Failed to add web code");
+      addLog(LogLevel.ERROR, "touch failed - maximum file count reached");
       return;
     } else {
-      addLog(LogLevel.INFO, `Added new code file: ${code.length}.shica`);
+      addLog(LogLevel.SUCCESS, `touch Agent${code.length}.shica`);
     }
   };
 
@@ -84,10 +84,10 @@ const ShicaPage = () => {
     const ret = Module?.ccall("deleteWebCode", "number", ["number"], [index]);
     if (ret !== 0) {
       console.error("Failed to delete web code");
-      addLog(LogLevel.ERROR, "Failed to delete web code");
+      addLog(LogLevel.ERROR, "rm failed - minimum file count reached");
       return;
     } else {
-      addLog(LogLevel.INFO, `Deleted code file: ${index}.shica`);
+      addLog(LogLevel.SUCCESS, `rm ${code[index].filename}`);
     }
     // 選択中のファイルが削除された場合の処理
     if (selectedIndex === index) {
@@ -106,6 +106,7 @@ const ShicaPage = () => {
   const clearLogs = () => {
     setLogs([]);
   };
+  // once when the page is loaded
   useEffect(() => {
     if (!Module || !isReady) return;
     if (process === "none") {
@@ -125,7 +126,7 @@ const ShicaPage = () => {
         return;
       } else {
         addLog(LogLevel.INFO, "Initialized web codes");
-        addLog(LogLevel.INFO, `Added initial code file: ${code[0].filename}`);
+        addLog(LogLevel.SUCCESS, `touch ${code[0].filename}`);
       }
     }
   }, [Module]);
@@ -140,15 +141,18 @@ const ShicaPage = () => {
       ["number", "number", "string"],
       [bool, selectedIndex, selectedCode]
     );
+    // change .shica to .stt, and meke output filename
+    const outputFilename = code[selectedIndex].filename.replace(/\.shica$/, ".stt");
+
     if (ret === 0) {
       addLog(
-        LogLevel.INFO,
-        `COMPILE: Compile success for ${code[selectedIndex].filename}`
+        LogLevel.SUCCESS,
+        `shica ${outputFilename} -o ${code[selectedIndex].filename}`
       );
     } else {
       addLog(
         LogLevel.ERROR,
-        `COMPILE: Compile failed for ${code[selectedIndex].filename}`
+        `shica ${outputFilename} -o ${code[selectedIndex].filename}`
       );
     }
     setProcess("compile");
@@ -207,9 +211,10 @@ const ShicaPage = () => {
         );
         setIsRunInit(true);
         setProcess("run");
-        addLog(LogLevel.INFO, "RUN: Start");
+        const allFFileNames = code.map((c) => c.filename).join(" ./");
+        addLog(LogLevel.SUCCESS, "run ./" + allFFileNames);
       } else {
-        addLog(LogLevel.INFO, "RUN: Continue");
+        addLog(LogLevel.SUCCESS, "run continued - running web codes");
       }
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
@@ -217,7 +222,7 @@ const ShicaPage = () => {
         const robot = robotsRef.current[0];
         const res = Module.ccall("executeWebCodes", "number", [], []);
         if (res !== 0) {
-          addLog(LogLevel.ERROR, "RUN: Failed to execute web codes");
+          addLog(LogLevel.ERROR, "run failed - error in web codes");
           clearInterval(intervalRef.current!);
           return;
         }
@@ -243,14 +248,14 @@ const ShicaPage = () => {
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        addLog(LogLevel.INFO, "RUN: Stopped");
+        addLog(LogLevel.SUCCESS, "run stopped - stopped by user");
       }
     }
   }, [isRunning, Module, isReady]);
 
   const run = () => {
     if (!isCompiled) {
-      addLog(LogLevel.ERROR, "RUN: Please compile the code first");
+      addLog(LogLevel.ERROR, "run failed - compile first");
       return;
     }
     setIsRunning(!isRunning);
