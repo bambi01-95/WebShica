@@ -1,16 +1,8 @@
 #ifndef ENTITY_C
 #define ENTITY_C
 
-#ifdef MSGC
-#include "../GC/msgc/msgc.h"
-#define malloc(size) gc_alloc(size)
-#define calloc(n, size) gc_alloc((n) * (size))
-#define realloc(ptr, size) gc_realloc(ptr, size)
-#define strdup(s) gc_strdup(s)
-#else
 #include <stdlib.h>
 #include <string.h>
-#endif // MSGC
 
 #include <stdarg.h>
 #include "entity.h"
@@ -20,7 +12,7 @@
 
 static ent _newEntity(size_t size, kind_t kind)
 {
-	ent e = (ent)malloc(size);
+	ent e = (ent)gc_alloc(size);
 	if (!e) {
 		fprintf(stderr, "Out of memory\n");
 		exit(1);
@@ -34,7 +26,7 @@ ent intArray_init(void)
 {
 	GC_PUSH(ent, a, newEntity(IntArray));
 	a->IntArray.elements = NULL;
-	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 4));
+	a->IntArray.elements = (int*)gc_beAtomic(gc_alloc(sizeof(int) * 4));
 	a->IntArray.size     = 0;
 	a->IntArray.capacity = 4;
 	GC_POP(a);
@@ -45,7 +37,7 @@ ent newStack(const int initVal)
 {
 	GC_PUSH(ent, a, newEntity(IntArray));
 	a->IntArray.elements = NULL;
-	a->IntArray.elements = (int*)gc_beAtomic(malloc(sizeof(int) * 10));
+	a->IntArray.elements = (int*)gc_beAtomic(gc_alloc(sizeof(int) * 10));
 	a->IntArray.elements[0] = initVal; // rbp
 	a->IntArray.size     = 1;// rbp is always 0 at the start
 	a->IntArray.capacity = 10;
@@ -103,7 +95,7 @@ ent newQue3(int nArgs)
 	q->IntQue3.nArgs = nArgs;
 	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
 	for (int i = 0;  i < IntQue3Size;  ++i) {
-		q->IntQue3.que[i] = (int*)gc_beAtomic(malloc(sizeof(int) * nArgs));
+		q->IntQue3.que[i] = (int*)gc_beAtomic(gc_alloc(sizeof(int) * nArgs));
 	}
 	GC_POP(q);
 	return q;
@@ -166,12 +158,24 @@ ent newThread(int aPos, int cPos,int ehIndex)
 ent newEventHandler(int ehIndex, int nThreads)
 {
 	GC_PUSH(ent, eh, newEntity(EventHandler));
+
 	eh->EventHandler.size = nThreads;
 	eh->EventHandler.EventH = ehIndex;
 	eh->EventHandler.data = NULL;
 	eh->EventHandler.threads = NULL;
-	eh->EventHandler.data = (int*)gc_beAtomic(malloc(sizeof(int) * EventTable[ehIndex].nData));
-	eh->EventHandler.threads = (ent*)gc_beAtomic(malloc(sizeof(ent) * nThreads));
+
+	int nData = EventTable[ehIndex].nData;
+	printf("%s %d: pass nData %d\n",__FILE__, __LINE__, nData);
+	if(nData > 0) {
+		eh->EventHandler.data = (int*)gc_beAtomic(gc_alloc(sizeof(int) * nData));
+		for(int i = 0; i < nData; ++i){
+			eh->EventHandler.data[i] = 0; // initialize data to 0
+		}
+	} else {
+		eh->EventHandler.data = NULL; // no data
+	}
+	eh->EventHandler.threads = (ent*)gc_beAtomic(gc_alloc(sizeof(ent) * nThreads));
+
 	GC_POP(eh);
 	return eh;
 };
@@ -194,7 +198,7 @@ ent newAgent(int id, int nEvents)
 {
 	ent agent = newEntity(Agent);
 	agent->Agent.id = id;
-	agent->Agent.isActive = 1; // active by default
+	agent->Agent.isActive = 0; // active by default
 	agent->Agent.nEvents = nEvents;
 	agent->Agent.pc = 0;
 	agent->Agent.rbp = 0;
@@ -203,7 +207,7 @@ ent newAgent(int id, int nEvents)
 		agent->Agent.eventHandlers = NULL; // no event handlers
 		agent->Agent.nEvents = 0; // no events
 	}else{
-		agent->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent) * nEvents));
+		agent->Agent.eventHandlers = (ent*)gc_beAtomic(gc_alloc(sizeof(ent) * nEvents));
 		for(int i=0; i<nEvents; i++){
 			agent->Agent.eventHandlers[i] = NULL;
 		}
@@ -224,12 +228,20 @@ void setStdFuncTable(struct StdFuncTable *table)
 	StdFuncTable = table;
 }
 
-
-#ifdef MSGC
-#undef malloc
-#undef calloc
-#undef realloc
-#undef strdup
-#endif // MSGC
+int printAgent(ent agent)
+{
+	if(agent->kind != Agent) {
+		printf("Error: Not an agent\n");
+		return -1; // Error: not an agent
+	}
+	if(agent == NULL) {
+		printf("Agent: NULL\n");
+		return 0;
+	}
+	printf("Agent: id=%d, isActive=%d, nEvents=%d, pc=%d, rbp=%d\n",
+		agent->Agent.id, agent->Agent.isActive, agent->Agent.nEvents,
+		agent->Agent.pc, agent->Agent.rbp);
+	return 1;
+}
 
 #endif // ENTITY_C

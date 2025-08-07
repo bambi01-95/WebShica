@@ -8,7 +8,22 @@
 #ifndef MSGCS_C
 #define MSGCS_C
 #include "msgcs.h"
-#include "fatal.h"
+// #include "fatal.h"
+#include <stdarg.h>
+void gcfatal(const char *fmt, ...)
+{
+    fflush(stdout);
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(stderr, "\n");
+    // if (input) fprintf(stderr, "%s:%d: ", input->name, input->line);
+    fprintf(stderr, "error: ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    exit(1);
+}
+
 void print_gc_header(const gc_header *ptr);
 /* MEMO
  * Initialize the garbage collector with a given size of memory.
@@ -30,9 +45,9 @@ struct gc_context gc_ctx = {
 gc_context *newGCContext(const int size)
 {
     gc_context *ctx = (gc_context *)malloc(sizeof(gc_context));
-    if (!ctx) fatal("out of memory");
+    if (!ctx) gcfatal("out of memory");
     ctx->memory = (void *)malloc(size);
-    if (!ctx->memory) fatal("out of memory");
+    if (!ctx->memory) gcfatal("out of memory");
     ctx->memend = (void *)ctx->memory + size;
     ctx->memnext = ctx->memory;
     ctx->nroots = 0;
@@ -68,7 +83,7 @@ gc_context *ctx = &gc_ctx; // current context
 
 void gc_pushRoot(const void *varp)	// push a new variable address onto the root stack
 {
-    if (ctx->nroots == MAXROOTS)fatal("gc root table full\n");
+    if (ctx->nroots == MAXROOTS)gcfatal("gc root table full\n");
     ctx->roots[ctx->nroots++] = (void **)varp;
 }
 
@@ -82,7 +97,7 @@ void gc_popRoot(void *varp,const char *name)    // pop a variable, checking it w
 {
     assert(ctx->nroots > 0);
     --ctx->nroots;
-    if (varp != ctx->roots[ctx->nroots])fatal("GC root '%s' popped out of order\n");
+    if (varp != ctx->roots[ctx->nroots])gcfatal("GC root '%s' popped out of order\n");
 }
 #endif //NDBUG
 
@@ -420,7 +435,7 @@ void markLink(Link *ptr)
 {
     gc_mark(ptr->next);
 }
-//gcc -DTESTGC -o msgcs msgcs.c fatal.c
+//gcc -DTESTGC -o msgcs msgcs.c gcfatal.c
 int main(){
     int context_size = sizeof(gc_context);
     int header_size = sizeof(gc_header);

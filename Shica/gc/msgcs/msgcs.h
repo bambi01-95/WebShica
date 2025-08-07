@@ -32,7 +32,7 @@
 
 extern unsigned long gc_total;
 
-#define MAXROOTS 1024
+#define MAXROOTS 64
 #define MAXCONTEXTS 16
 
 struct gc_header
@@ -43,6 +43,7 @@ struct gc_header
     unsigned 	 atom : 1;	// the data stored in this block contains no pointers
     // unsigned padding : 29; // アライメント調整
 };
+
 typedef struct gc_header gc_header;
 
 struct gc_context

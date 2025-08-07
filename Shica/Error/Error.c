@@ -13,15 +13,15 @@
 #include <stdlib.h>
 #endif
 
-void fatal(const char *msg, ...)
+void _fatal(const char *file, int line, const char *msg, ...)
 {
 	va_list ap;
 	va_start(ap, msg);
-	fprintf(stderr, "\nFatal error: ");
+	fprintf(stderr, "\nFatal error [%s:%d]: ", file, line);
 	vfprintf(stderr, msg, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
-	fprintf(stderr, "%s", "Please report this bug to the developers.\n");
+	fprintf(stderr, "%s", "[Please report this bug to the developers.\n]");
 	exit(1);
 }
 

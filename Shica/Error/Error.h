@@ -6,7 +6,8 @@
 #include "../GC/gc.h"
 #define MESSAGE_MAX_LENGTH 256
 
-void fatal(const char *msg, ...);
+void _fatal(const char *file, int line, const char *msg, ...);
+#define fatal(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
 typedef enum {
     WANNING,

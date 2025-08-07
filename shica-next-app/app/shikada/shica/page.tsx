@@ -32,9 +32,7 @@ const ShicaPage = () => {
     },
   ]);
 
-  const [isMap, setIsMap] = useState(false);
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
-  const isRunningRef = useRef(true);
   const mapRef = useRef<HTMLDivElement>(null);
   const [time, setTime] = useState(0);
 
@@ -42,6 +40,7 @@ const ShicaPage = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isCompiled, setIsCompiled] = useState(false);
+  const [process, setProcess] = useState("none");
   const [isRunning, setIsRunning] = useState(false);
   const [isRunInit, setIsRunInit] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
@@ -60,6 +59,14 @@ const ShicaPage = () => {
       { filename: `Agent${code.length}.shica`, code: newItem },
     ]);
     setSelectedIndex(code.length); // 新しく追加したファイルを選択
+    const ret = Module?.ccall("addWebCode", "number", [], []);
+    if (ret !== 0) {
+      console.error("Failed to add web code");
+      addLog(LogLevel.ERROR, "Failed to add web code");
+      return;
+    } else {
+      addLog(LogLevel.INFO, `Added new code file: ${code.length}.shica`);
+    }
   };
 
   // インデックスで要素を更新する例
@@ -74,7 +81,14 @@ const ShicaPage = () => {
     if (code.length <= 1) return; // 最低1つのファイルは残す
 
     setCode((prev) => prev.filter((_, i) => i !== index));
-
+    const ret = Module?.ccall("deleteWebCode", "number", ["number"], [index]);
+    if (ret !== 0) {
+      console.error("Failed to delete web code");
+      addLog(LogLevel.ERROR, "Failed to delete web code");
+      return;
+    } else {
+      addLog(LogLevel.INFO, `Deleted code file: ${index}.shica`);
+    }
     // 選択中のファイルが削除された場合の処理
     if (selectedIndex === index) {
       setSelectedIndex(Math.max(0, index - 1));
@@ -84,7 +98,10 @@ const ShicaPage = () => {
   };
 
   const addLog = (level: LogLevel, message: string) => {
-    setLogs([...logs, { level, message, timestamp: Date.now() }]);
+    setLogs((prevLogs) => [
+      ...prevLogs,
+      { level, message, timestamp: Date.now() },
+    ]);
   };
   const clearLogs = () => {
     setLogs([]);
@@ -93,17 +110,38 @@ const ShicaPage = () => {
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = code[selectedIndex].code;
-    const res = Module.ccall(
+    const bool = process === "compile" ? 1 : 0;
+    if (process === "none") {
+      // Initialize web codes if not already done
+      console.log("Initializing web codes...");
+      let ret = Module.ccall("initWebCodes", "number", ["number"], [12]);
+      if (ret !== 0) {
+        console.error("Failed to initialize web codes");
+        addLog(LogLevel.ERROR, "Failed to initialize web codes");
+        return;
+      }
+      ret = Module.ccall("addWebCode", "number", [], []);
+      if (ret) {
+        console.error("Failed to add initial web code");
+        addLog(LogLevel.ERROR, "Failed to add initial web code");
+        return;
+      } else {
+        addLog(LogLevel.INFO, "Initialized web codes");
+        addLog(LogLevel.INFO, `Added initial code file: ${code[0].filename}`);
+      }
+    }
+    const ret = Module.ccall(
       "compileWebCode",
       "number",
-      ["string"],
-      [selectedCode]
+      ["number", "number", "string"],
+      [bool, selectedIndex, selectedCode]
     );
-    if (res === 1) {
-      addLog(LogLevel.INFO, "COMPILE: Compile success");
+    if (ret === 0) {
+      addLog(LogLevel.INFO, `COMPILE: Compile success for ${code[selectedIndex].filename}`);
     } else {
-      addLog(LogLevel.ERROR, "COMPILE: Compile failed");
+      addLog(LogLevel.ERROR, `COMPILE: Compile failed for ${code[selectedIndex].filename}`);
     }
+    setProcess("compile");
     setIsCompiling(false);
   }, [isCompiling, Module, isReady]);
 
@@ -118,6 +156,7 @@ const ShicaPage = () => {
     }, 1000);
     setIsCompiled(true);
   };
+
   const drawRobots = () => {
     const robotElems = mapRef.current?.querySelectorAll(".robot-vacuum");
     if (!robotElems) return;
@@ -150,8 +189,14 @@ const ShicaPage = () => {
     if (!Module || !isReady) return;
     if (isRunning) {
       if (!isRunInit) {
-        Module.ccall("initRunWeb", "number", [], []);
+        const ret = Module.ccall(
+          "initWebAgents",
+          "number",
+          ["number"],
+          [code.length]
+        );
         setIsRunInit(true);
+        setProcess("run");
         addLog(LogLevel.INFO, "RUN: Start");
       } else {
         addLog(LogLevel.INFO, "RUN: Continue");
@@ -160,21 +205,31 @@ const ShicaPage = () => {
         if (!Module || !isReady) return;
         Module.setValue(Module.timerPtr, time, "i32");
         const robot = robotsRef.current[0];
-        const res = Module.ccall("runWeb", "number", [], []);
-        const x = Module.getValue(Module.agentPtr + 0, "i32");
-        const y = Module.getValue(Module.agentPtr + 4, "i32");
-        const vx = Module.getValue(Module.agentPtr + 8, "i32");
-        const vy = Module.getValue(Module.agentPtr + 12, "i32");
-        robot.x = x + vx;
-        robot.y = y + vy;
-        robot.vx = vx;
-        robot.vy = vy;
-        drawRobots();
-        Module.setValue(Module.agentPtr + 0, robot.x, "i32");
-        Module.setValue(Module.agentPtr + 4, robot.y, "i32");
-        setTime(time + 50);
+        const res = Module.ccall("executeWebCodes", "number", [], []);
+        if (res !== 0) {
+          addLog(LogLevel.ERROR, "RUN: Failed to execute web codes");
+          clearInterval(intervalRef.current!);
+          return;
+        }
+        for (let i = 0; i < code.length; i++) {
+          console.log(`Agent ${i} data:`);
+          const offset = i * 16; // 4 bytes each for x, y, vx, vy
+          const x = Module.getValue(Module.agentsPtr + offset + 0, "i32");
+          const y = Module.getValue(Module.agentsPtr + offset + 4, "i32");
+          const vx = Module.getValue(Module.agentsPtr + offset + 8, "i32");
+          const vy = Module.getValue(Module.agentsPtr + offset + 12, "i32");
+          robot.x = x + vx;
+          robot.y = y + vy;
+          robot.vx = vx;
+          robot.vy = vy;
+          drawRobots();
+          Module.setValue(Module.agentsPtr + offset + 0, robot.x, "i32");
+          Module.setValue(Module.agentsPtr + offset + 4, robot.y, "i32");
+          console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+        }
+        setTime(time + 500);
         Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
-      }, 50);
+      }, 500);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

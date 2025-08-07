@@ -5,6 +5,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-void fatal(const char *fmt, ...);
+void gcfatal(const char *fmt, ...);
 
 #endif // FATAL_H

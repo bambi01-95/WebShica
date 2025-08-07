@@ -35,11 +35,14 @@ export function useVM() {
             instance.onRuntimeInitialized = () => {
               console.log("✅ WASM initialized");
 
-              instance.ccall("memory_init", "number", [], []);
+              const ret = instance.ccall("memory_init", "number", [], []);
+              if (ret !== 0) {
+                console.error("Failed to initialize memory");
+                return;
+              }
               instance.timerPtr = instance.ccall("initWebTimerPtr", "number", [], []);
               instance.clickPtr = instance.ccall("initWebClickSTTPtr", "number", [], []);
-              instance.agentPtr = instance.ccall("initAnAgnetDataPtr", "number", [], []);
-
+              instance.agentsPtr = instance.ccall("initALLAgentDataPtr", "number", ["number"], [12]);
               if (isMounted) {
                 setModule(instance);
                 setIsReady(true);

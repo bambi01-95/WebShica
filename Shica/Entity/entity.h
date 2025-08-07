@@ -109,4 +109,6 @@ struct StdFuncTable{
 extern struct StdFuncTable *StdFuncTable;
 void setStdFuncTable(struct StdFuncTable *tables);
 
+int printAgent(ent agent);
+
 #endif // ENTITY_H

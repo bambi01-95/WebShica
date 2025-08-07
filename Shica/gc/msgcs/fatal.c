@@ -2,7 +2,7 @@
 #define __fatal_c
 #include "fatal.h"
 
-void fatal(const char *fmt, ...)
+void gcfatal(const char *fmt, ...)
 {
     fflush(stdout);
     va_list ap;

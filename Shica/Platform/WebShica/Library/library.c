@@ -48,22 +48,22 @@ int WEB_TIMER = 0;
 int WEB_CLICK_STT[3] = {0, 0, 0}; // x, y, click status
 
 
-struct AgentData AN_AGENT_DATA = {
-	.x = 0,
-	.y = 0,
-	.vx = 0,
-	.vy = 0,
-	.isClick = 0,
-	.distance = 0,
-	.status = 0,
-	.red = 0,
-	.green = 0,
-	.blue = 0,
-	.isLEDOn = 0,
-};
+struct AgentData *AN_AGENT_DATA = NULL;// Web内のゴーストのデータ共有で使用
+struct AgentData anAgentData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Initialize the agent data
 
+int ALL_AGENT_SIZE = 0; // Size of the agent data array
+struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ共有で使用
+struct AgentData allAgentData[12] = {0}; // Initialize the agent data array with 12 agents
 
-
+int setActiveAgent(int index)
+{
+	if (index < 0 || index >= ALL_AGENT_SIZE) {
+		printf("Error: Index out of range\n");
+		return -1; // Error: index out of range
+	}
+	AN_AGENT_DATA = ALL_AGENT_DATA[index]; // Set the active agent data
+	return 0; // Success
+}
 
 
 /*==============   TIMER  ================= */
@@ -98,64 +98,52 @@ int *getWebClickSTTPtr(){
 /*==============   AGENT_INFO  ================= */
 
 
-
-int *initAnAgnetDataPtr(){
-	AN_AGENT_DATA.x = 50; // x-coordinate
-	AN_AGENT_DATA.y = 50; // y-coordinate
-	AN_AGENT_DATA.vx = 0; // x velocity
-	AN_AGENT_DATA.vy = 0; // y velocity
-	AN_AGENT_DATA.isClick = 0; // is click
-	AN_AGENT_DATA.distance = 0; // distance
-	AN_AGENT_DATA.status = 0; // status
-	AN_AGENT_DATA.red = 0; // red
-	AN_AGENT_DATA.green = 0; // green
-	return (int*)&AN_AGENT_DATA; // Return pointer to the agent data
+int *initAnAgentDataPtr(){
+	AN_AGENT_DATA = &anAgentData; // Initialize the agent data pointer
+	AN_AGENT_DATA->x = 50; // x-coordinate
+	AN_AGENT_DATA->y = 50; // y-coordinate
+	AN_AGENT_DATA->vx = 0; // x velocity
+	AN_AGENT_DATA->vy = 0; // y velocity
+	AN_AGENT_DATA->isClick = 0; // is click
+	AN_AGENT_DATA->distance = 0; // distance
+	AN_AGENT_DATA->status = 0; // status
+	AN_AGENT_DATA->red = 0; // red
+	AN_AGENT_DATA->green = 0; // green
+	AN_AGENT_DATA->blue = 0; // blue
+	AN_AGENT_DATA->isLEDOn = 0; // is LED on
+	return (int*)AN_AGENT_DATA; // Return pointer to the agent data
 }
 
 int *getAnAgentDataPtr(){
-	return (int*)&AN_AGENT_DATA;
-	return (int*)&AN_AGENT_DATA;
+	return (int*)AN_AGENT_DATA;
 }
 
 
-// int *getAllAgentDataPtr(){
-//     if (ALL_AGENT_DATA == NULL) {
-//         fprintf(stderr, "ALL_AGENT_DATA is not initialized\n");
-//         return NULL;
-//     }
-//     return (int *)ALL_AGENT_DATA;
-// }
-
-// int *getAllAgentDataSizePtr(){
-//     return &ALL_AGENT_SIZE;
-// }
-
-AgentPtr initAgent(){
-    AgentPtr stt = malloc(sizeof(struct AgentData));
-    if (!stt) {
-        fprintf(stderr, "Memory allocation failed for AgentPtr\n");
-        exit(0);
+int **initALLAgentDataPtr(int size){
+	if(size <= 0 || size > 12) {
+		fprintf(stderr, "Error: Invalid size for ALL_AGENT_DATA\n");
+		return 0; // Error: invalid size
+	}
+    if (ALL_AGENT_DATA == NULL) {
+		ALL_AGENT_SIZE = size;
+		ALL_AGENT_DATA = (struct AgentData **)allAgentData; // Initialize the ALL_AGENT_DATA pointer
     }
-    stt->x = 0;
-    stt->y = 0;
-    stt->status = 0;
-    return stt;
+    return (int**)ALL_AGENT_DATA; // Return pointer to the array of agent data pointers
 }
 
-// AgentPtr *initALLAgentDataPtr(int size){
-//     if (ALL_AGENT_DATA == NULL) {
-//         ALL_AGENT_DATA = malloc(size * sizeof(AgentPtr));
-//         if (!ALL_AGENT_DATA) {
-//             fprintf(stderr, "Memory allocation failed for ALL_AGENT_DATA\n");
-//             exit(0);
-//         }
-//         ALL_AGENT_SIZE = size;
-//         for (int i = 0; i < size; i++) {
-//             ALL_AGENT_DATA[i] = initAgent();
-//         }
-//     }
-//     return ALL_AGENT_DATA;
-// }
+int **getAllAgentDataPtr(){
+    if (ALL_AGENT_DATA == NULL) {
+        fprintf(stderr, "ALL_AGENT_DATA is not initialized\n");
+        return NULL;
+    }
+    return (int**)ALL_AGENT_DATA; // Return pointer to the array of agent data pointers
+}
+
+int getAllAgentDataSizePtr(){
+    return ALL_AGENT_SIZE;
+}
+
+
 
 
 /*
@@ -172,6 +160,9 @@ int event_handler(ent eh){
 	return 0; // return 0 to indicate no event
 }
 int event_handler_init(ent eh){
+#ifdef DEBUG
+	printf("event_handler_init called\n");
+#endif
 	return 1;
 }
 
@@ -227,7 +218,9 @@ int self_state_handler(ent eh)
 
 int click_handler(ent eh)
 {
+	printf("triggered click event\n");
 	if (WEB_CLICK_STT[2]==1) {
+		printf("clicked!!!\n");
 		int click[2] = {WEB_CLICK_STT[0], WEB_CLICK_STT[1]};
 		enqueue3(eh, click); // dequeue the first element
 		return 1; // return 1 to indicate success
@@ -289,26 +282,24 @@ int lib_setxy(ent stack)
 {
 	int y = intArray_pop(stack); // get x coordinate from stack
 	int x = intArray_pop(stack); // get y coordinate from stack
-	AN_AGENT_DATA.x = x; // set x coordinate
-	AN_AGENT_DATA.y = y; // set y coordinate
-	AN_AGENT_DATA.x = x; // set x coordinate
-	AN_AGENT_DATA.y = y; // set y coordinate
+	AN_AGENT_DATA->x = x; // set x coordinate
+	AN_AGENT_DATA->y = y; // set y coordinate
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvx(ent stack)
 {
 	int vx = intArray_pop(stack); // get x velocity from stack
-	AN_AGENT_DATA.vx = vx; // set x velocity
-	AN_AGENT_DATA.vx = vx; // set x velocity
+	AN_AGENT_DATA->vx = vx; // set x velocity
+	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvy(ent stack)
 {
 	int vy = intArray_pop(stack); // get y velocity from stack
-	AN_AGENT_DATA.vy = vy; // set y velocity
-	AN_AGENT_DATA.vy = vy; // set y velocity
+	AN_AGENT_DATA->vy = vy; // set y velocity
+	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
 

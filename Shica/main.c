@@ -144,10 +144,11 @@ ent retFlags[7] = {
 	MAKE_FLAG(CONTINUE_F),
 	MAKE_FLAG(TRANSITION_F),
 };
-#undef TAGBITS
-#undef TAINT
 
 ent impleBody(ent code, ent eh, ent gm){
+	assert(code->kind == IntArray);
+	assert(eh->kind == EventHandler);
+	assert(gm->kind == IntArray);
 	ent *threads = eh->EventHandler.threads;
 	ent ret = retFlags[ERROR_F];
 	for(int i=0;i<eh->EventHandler.size; ++i){
@@ -194,6 +195,7 @@ int runNative(ent code){
 			//code, stack , global 
 ent execute(ent prog,ent entity, ent global)
 {
+
 	int opstep = 20; // number of operations to execute before returning
     int* code = prog->IntArray.elements;
 	int size = prog->IntArray.size;
@@ -223,6 +225,7 @@ ent execute(ent prog,ent entity, ent global)
 # define fetch()	code[(*pc)++]
 
     for (;;) {
+
 	if (opstep-- <= 0) {
 		return retFlags[CONTINUE_F]; // return CONTINUE_F to indicate that the execution is not finished
 	}
@@ -364,6 +367,7 @@ ent execute(ent prog,ent entity, ent global)
 			printOP(iSETSTATE);
 			assert(entity->kind == Agent);
 			int ehSize = fetch(); // get the number of event handlers
+			printf("ehSize: %d\n", ehSize);
 			assert(ehSize >= 0);
 			entity->Agent.nEvents = ehSize; // set the number of events
 			ent *ehs = entity->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent*) * ehSize)); //initialize the event handlers
@@ -373,7 +377,8 @@ ent execute(ent prog,ent entity, ent global)
 				printOP(iSETEVENT);
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
-				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler
+				printf("eventID: %d, nThreads: %d\n", eventID, nThreads);
+				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler <------ ERROR: FIX HERE
 				EventTable[eventID].init(ehs[i]);
 				for(int j=0; j<nThreads; ++j){
 					op = fetch();
@@ -381,6 +386,7 @@ ent execute(ent prog,ent entity, ent global)
 					printOP(iSETPROCESS);
 					l = fetch(); // get the aPos
 					r = fetch(); // get the cPos
+					printf("l: %d, r: %d\n", l, r);
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
@@ -413,6 +419,7 @@ ent execute(ent prog,ent entity, ent global)
 			int nVariables = fetch();
 			switch(entity->kind){
 				case Thread:{
+					printf("thread finished\n");
 					entity->Thread.inProgress = 0; // set the thread to not in progress
 					entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
 					entity->Thread.rbp = 0;
@@ -423,6 +430,7 @@ ent execute(ent prog,ent entity, ent global)
 					for(int i=0; i<nVariables; i++){
 						pop();
 					}
+					printf("agent %d is inactive\n", entity->Agent.isActive);
 					continue;
 				}
 				default:{
@@ -1087,7 +1095,8 @@ simple:
 			}
 			case iEOS:{
 				inst = "EOS";
-				printf("%03d: %-10s\n", i, inst);
+				int nVariables = code->IntArray.elements[++i];// FIXME: this is not correct instruction
+				printf("%03d: %-10s %03d\n", i-1, inst, nVariables);
 				break;
 			}
 			case iGETVAR:
@@ -1225,13 +1234,23 @@ ent compile()
 /*=============== DEFAULT MARKER ==============*/
 
 /* ==================================*/
+#ifdef WEBSHICA
+void collectWeb(void);
+#endif
 
 void markEmpty(void* ptr){ return;}
-void collectEmpty(void){ return;}
+void collectEmpty(void){ 
+#ifdef WEBSHICA
+	collectWeb();
+#endif
+	return;
+}
 
 /*===============COMPILE MARKER=============*/
 
 /* ==================================*/
+
+
 
 void markObject(oop obj){
 	switch(getType(obj)){
@@ -1491,6 +1510,9 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 			gc_markOnly(code->IntArray.elements); // mark the code elements
 		}
 	}
+	#ifdef WEBSHICA
+	collectWeb(); // collect web code
+	#endif
     collectYYContext(); // collect yycontext
 }
 
@@ -1620,6 +1642,22 @@ ent webagent = NULL;
 gc_context *comctx = NULL; // context for the garbage collector
 gc_context *exectx = NULL; // context for the garbage collector
 
+//once called, initialize the memory for the garbage collector
+int memory_init(void)
+{
+#ifdef MSGC
+	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
+#elif defined(MSGCS)
+	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
+	exectx = &gc_ctx;
+	comctx = ctx    = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
+#else
+	#error "MSGCS or MSGC must be defined"
+#endif
+
+	return 0; // return 0 to indicate success
+}
+
 unsigned int maxNumWebCodes = 1; // maximum number of web codes
 ent *webCodes = NULL; // web codes
 int nWebCodes = 0; // number of web codes
@@ -1628,8 +1666,11 @@ unsigned int maxNumWebAgents = 1; // maximum number of web agents
 ent *webAgents = NULL; // web agents
 int nWebAgents = 0; // number of web agents
 
+
+
 void collectWeb(void)
 {
+	assert(ctx == comctx); // check if the context is equal to the compilation context
 	gc_markOnly(webCodes); // mark the web codes
 	if(nWebCodes > 0) {
 		for(int i = 0; i < nWebCodes; ++i){
@@ -1651,15 +1692,17 @@ void collectWeb(void)
 }
 
 //WARNING: which ctx you use is important -> comctx
-void initWebCodes(int num)
+int initWebCodes(int num)
 {
+	ctx = comctx; // use the context for the garbage collector
 	webCodes = (ent *)gc_beAtomic(malloc(sizeof(ent) * num)); // initialize web codes
 	maxNumWebCodes = num; // set the maximum number of web codes
-	return;
+	return 0; // return 0 to indicate success
 }
 
 int addWebCode(void)
 {
+	assert(ctx == comctx); // check if the context is equal to the compilation context
 	if(nWebCodes >= maxNumWebCodes){
 		printf("contact the developer %s\n",DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -1669,8 +1712,50 @@ int addWebCode(void)
 	return 0; // return 0 to indicate success
 }
 
+int compile_init()
+{
+	printf("compile_init\n");
+	ctx->nroots = 0; // reset the number of roots
+	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	/* collectEmpty() collect webAgents webCodes*/
+	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
+
+	// reset global variables
+	initSymbols();
+	initSttTrans();
+
+	initLine();
+	gc_collect(); // collect garbage
+
+	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
+
+    nil   = newUndefine();	gc_pushRoot(nil);
+    false = newInteger(0);			gc_pushRoot(false);
+    true  = newInteger(1);			gc_pushRoot(true);
+
+	printf("compile_event_init\n");
+	compile_event_init(); // initialize the event system
+	printf("compile_func_init\n");
+	compile_func_init(); // initialize the standard functions
+	printf("compile_init done\n");
+	return 1;
+}
+
+int compile_finalize()
+{
+	// garbage collection
+	rprintf("Running garbage collector...\n");
+    gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
+	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function for the garbage collector
+	gc_collect(); // collect garbage
+	return 1; // return 1 to indicate success
+}
+
+
 int compileWebCode(const int doInit,const int index, const char *code)
 {
+	assert(ctx == comctx); // check if the context is equal to the compilation context
 	if(index < 0 || index >= maxNumWebCodes){
 		printf("contact the developer %s\n",DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -1686,6 +1771,7 @@ int compileWebCode(const int doInit,const int index, const char *code)
 	initYYContext();
 	webCodes[index] = compile();
 	// print bytecode 
+	printf("Printing bytecode for web code %d:\n", index);
 	printCode(webCodes[index]);
 	compile_finalize(); // finalize the compilation
 	return 0; // return 0 to indicate success
@@ -1710,6 +1796,7 @@ int deleteWebCode(const int index)
 //WARNING: which ctx you use is important -> comctx
 int initWebAgents(int num)
 {
+	printf("Initializing web agents...\n");
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
     gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
 	ctx = exectx; // use the context for execution
@@ -1724,146 +1811,52 @@ int initWebAgents(int num)
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	nWebAgents = num; // set the number of web agents
+	ctx = exectx; // reset the context to the execution context
 	return 0; // return 0 to indicate success
 }
 
+//WARNING: which ctx you use is important -> exectx (initWebAgents)
 int executeWebCodes(void)
 {
+	assert(ctx == exectx); // check if the context is equal to the execution context
 	for(int i = 0; i<nWebAgents ; i++){
-		ctx = *exectx->roots[i]; // get the context for the garbage collector
-		ent agent = (ent)ctx->memory + sizeof(gc_context) + 1/*header*/; // get the agent from the context memory
-		if(agent->Agent.isActive == 0) {
-			agent = execute(webcode ,agent , agent->Agent.stack);
+		ctx = (gc_context *)&exectx->roots[i]; // get the context for the garbage collector
+		ent agent = webAgents[i]; // get the agent from the context memory
+		printf("step 1 isActive: %d\n", agent->Agent.isActive);
+		if(agent->Agent.isActive == 0){
+			printf("step 2-0\n");
+			agent = execute(webCodes[i] ,agent , agent->Agent.stack);
 		}else{
-			for(int i = 0; i< agent->Agent.nEvents; ++i){
+			printf("step 2-1\n");
+			setActiveAgent(i); // set the agent as active
+			printf("nEvents: %d\n", agent->Agent.nEvents);
+			if(agent->Agent.nEvents == 0){
+				printAgent(agent); // print the agent if it has no events
+				continue; // skip to the next agent
+			}
+			for(int j = 0; j < agent->Agent.nEvents; ++j){
 				// get event data
-				ent eh = agent->Agent.eventHandlers[i];
+				printf("step 3\n");
+				ent eh = agent->Agent.eventHandlers[j];
+				printf("1isActive: %d\n", agent->Agent.isActive);
 				EventTable[eh->EventHandler.EventH].eh(eh);
-				if(impleBody(webcode, eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+				printf("2isActive: %d\n", agent->Agent.isActive);
+				if(impleBody(webCodes[i], eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+					printf("step 4\n");
 					agent->Agent.isActive = 0;
 					agent->Agent.pc = intArray_pop(agent->Agent.stack);
 					agent->Agent.eventHandlers = NULL;
 					break;
 				}
+				printf("3isActive: %d\n", agent->Agent.isActive);
 			}
 		}
+		// printCode(webCodes[i]); // print the bytecode of the web code
 	}
+	ctx = exectx; // reset the context to the execution context
 	return 0; // return 0 to indicate success
 }
 
-
-//once called, initialize the memory for the garbage collector
-int memory_init()
-{
-	#ifdef MSGC
-	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
-	#elif defined(MSGCS)
-	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
-	exectx = &gc_ctx;
-	comctx = ctx    = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
-	
-	#else
-		#error "MSGCS or MSGC must be defined"
-	#endif
-
-	return 1; // return 1 to indicate success
-}
-
-int compile_init()
-{
-	printf("compile_init\n");
-	ctx->nroots = 0; // reset the number of roots
-	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
-	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
-	// reset global variables
-	initSymbols();
-	initSttTrans();
-
-	// IrCodeList = NULL;
-	// nIrCode = 0;
-	// reset line number
-	initLine();
-	gc_collect(); // collect garbage
-
-	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
-	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
-
-
-	gc_pushRoot((void*)&webcode); // push webcode to the root
-	gc_pushRoot((void*)&webagent); // push webagent to the root
-
-    nil   = newUndefine();	gc_pushRoot(nil);
-    false = newInteger(0);			gc_pushRoot(false);
-    true  = newInteger(1);			gc_pushRoot(true);
-
-	printf("compile_event_init\n");
-	compile_event_init(); // initialize the event system
-	printf("compile_func_init\n");
-	compile_func_init(); // initialize the standard functions
-	printf("compile_init done\n");
-	return 1;
-}
-
-int compile_finalize()
-{
-	// garbage collection
-	rprintf("Running garbage collector...\n");
-    gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
-	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
-	gc_collect(); // collect garbage
-	return 1; // return 1 to indicate success
-}
-
-// int compileWebCode(const char *code) //<--------------------------------------WEB_CONNECTION
-// {
-// 	rprintf("compileWebCode\n");
-// 	compile_init(); // initialize the compiler
-// 	store(code); // store the code to the memory
-// 	rprintf("Compiling code:\n");
-// 	initYYContext();
-// 	webcode = compile();
-// 	// print bytecode 
-// 	printCode(webcode);
-// 	compile_finalize(); // finalize the compilation
-// 	return 1; // return 1 to indicate success
-// }
-
-int initRunWeb(){
-	rprintf("Initializing web code...\n");
-	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
-	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
-	webagent = newAgent(0, 0); // create a new agent
-	webagent = execute(webcode, webagent, webagent->Agent.stack);
-	return 1;// return 1 to indicate success
-}
-
-int finalizeRunWeb(){
-	gc_popRoots(2); // pop the webagent from the root
-	gc_collect(); // collect garbage
-	return 1; // return 1 to indicate success
-}
-
-int runWeb(){
-	// rprintf("Running web code...\n");
-	// printf("Shared data:\n click: [%d,%d](%s)\n",WEB_CLICK_STT[0],WEB_CLICK_STT[1],WEB_CLICK_STT[2] ? "true" : "false");
-	// printf("malloc AN_AGENT_DATA_PTR at %p\n", AN_AGENT_DATA);
-	if(webagent->Agent.isActive == 0) {
-		webagent = execute(webcode ,webagent , webagent->Agent.stack);
-	}else{
-		for(int i = 0; i< webagent->Agent.nEvents; ++i){
-			// get event data
-			ent eh = webagent->Agent.eventHandlers[i];
-			EventTable[eh->EventHandler.EventH].eh(eh);
-			if(impleBody(webcode, eh, webagent->Agent.stack)==retFlags[TRANSITION_F]){
-				webagent->Agent.isActive = 0;
-				webagent->Agent.pc = intArray_pop(webagent->Agent.stack);
-				webagent->Agent.eventHandlers = NULL;
-				break;
-			}
-		}
-	}
-	return 1; // return 1 to indicate success
-}
 #endif // WEBSHICA
 
 /*====================== MAIN =====================*/

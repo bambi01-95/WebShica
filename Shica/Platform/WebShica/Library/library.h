@@ -21,17 +21,11 @@ extern int WEB_CLICK_STT[3]; // x, y, click status
 
 //AGENT DATA
 struct AgentData {
-	int x;
-	int y;
-	int vx;
-	int vy;
-	int isClick;
-	int distance;
-	int status;
+	int x,y,vx,vy;
+	int isClick,distance,status;
 	char red, green, blue, isLEDOn;
 };
 typedef struct AgentData *AgentPtr;
-extern struct AgentData AN_AGENT_DATA; // Agent data for the web environment
 
 /*==============   TIMER  ================= */
 int *initWebTimerPtr();
@@ -42,11 +36,16 @@ int *initWebClickSTTPtr();
 int *getWebClickSTTPtr();
 
 /*===============  AGENT ===================*/
-//Web内のゴーストのデータ共有で使用
-int *initAnAgnetDataPtr(); //Initialize the agent data structure and return its address
+//Web内のroberのデータ共有で使用
+int *initAnAgentDataPtr(); //Initialize the agent data structure and return its address
 int *getAnAgentDataPtr();
-AgentPtr initAgent(); // Initialize an agent and return its pointer
 
+/*===============  AGENTS ==========*/
+int **initALLAgentDataPtr(int size); // Initialize all agent data pointers
+int **getAllAgentDataPtr(); // Get all agent data pointers
+int getAllAgentDataSizePtr(); // Get the size of all agent data pointers
+
+int setActiveAgent(int index); // Set the active agent data by index
 
 /*================Event Handler==============*/
 #define ENTRY_EH        0x00 // Entry Handler
