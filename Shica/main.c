@@ -170,7 +170,7 @@ ent impleBody(ent code, ent eh, ent gm){
 
 /* =========================================== */
 int runNative(ent code){
-	GC_PUSH(ent, agent, newAgent(0,0));
+	GC_PUSH(ent, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
 	agent = execute(code, agent, agent->Agent.stack);
 	dprintf("agent: %d\n", agent->Agent.isActive);
 	while(1){
@@ -1608,20 +1608,12 @@ void collectExecutors(void)
 {
 
 	dprintf("collectExecutors\n");
-	// collect ir code
-	if(nIrCode != 0){
-		gc_markOnly(IrCodeList); // mark the ir code array itself
-		for (int i = 0;  i < nIrCode;  ++i)
-		{
-			ent code = IrCodeList[i];
-			if (code == NULL) continue; // skip null codes
-			gc_markOnly(code); // mark the code itself
-			// mark the code elements
-			if (code->IntArray.elements == NULL) continue; // skip null elements
-			// mark the code elements
-			gc_markOnly(code->IntArray.elements); // mark the code elements
-		}
-	}
+	//FIXME:
+#ifdef WEBSHICA
+
+#else // Linux
+	
+#endif 
 	dprintf("collectExecutors done\n");
 }
 
@@ -1796,18 +1788,31 @@ int deleteWebCode(const int index)
 //WARNING: which ctx you use is important -> comctx
 int initWebAgents(int num)
 {
-	printf("Initializing web agents...\n");
+	ctx = comctx; // use the context for the garbage collector
+	if(num <= 0 || num > maxNumWebAgents){
+		printf("contact the developer %s\n",DEVELOPER_EMAIL);
+		reportError(DEVELOPER, 0, "out of range compiler.");
+		return 1; // return 1 to indicate failure
+	}
+	webAgents = (ent *)gc_beAtomic(malloc(sizeof(ent) * num)); // initialize web agents
+	
+	printf("Initializing web %d agents...\n", num);
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
     gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
 	ctx = exectx; // use the context for execution
 	memset(ctx->memory, 0, (char*)ctx->memend - (char*)ctx->memory); // clear the memory
-	gc_separateContext(num,num); // separate context for the garbage collector
+	gc_separateContext(num,0); // separate context for the garbage collector
 	assert(num == ctx->nroots); // check if the number of roots is equal to the number of web agents
-	webAgents = (ent *)ctx->roots; // initialize web agents
+	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	for(int i = 0; i<num; ++i)
 	{
-		ctx = (gc_context *)webAgents[i];
-		webAgents[i] = newAgent(0,0); // create a new agent
+		ctx = ctxs[i];
+		#ifdef DEBUG
+		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
+		#endif
+		GC_PUSH(ent,agent,newAgent(0,0)); // create a new agent
+		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
+		assert(((ent)*ctx->roots[0])->kind == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	nWebAgents = num; // set the number of web agents
@@ -1818,10 +1823,11 @@ int initWebAgents(int num)
 //WARNING: which ctx you use is important -> exectx (initWebAgents)
 int executeWebCodes(void)
 {
-	assert(ctx == exectx); // check if the context is equal to the execution context
+	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	for(int i = 0; i<nWebAgents ; i++){
-		ctx = (gc_context *)&exectx->roots[i]; // get the context for the garbage collector
-		ent agent = webAgents[i]; // get the agent from the context memory
+		ctx = ctxs[i]; // set the context to the current web agent
+		ent agent = (ent)*ctx->roots[0]; // get the agent from the context memory
+		assert(agent->kind == Agent); // check if the agent is of type Agent
 		printf("step 1 isActive: %d\n", agent->Agent.isActive);
 		if(agent->Agent.isActive == 0){
 			printf("step 2-0\n");
@@ -1921,6 +1927,16 @@ int main(int argc, char **argv)
 	rprintf("Executing code...\n");
 	executor_event_init(); // initialize the event system for the executor
 	executor_func_init(); // initialize the standard functions for the executor
+/*
+ * CHECK: if assertion is happening, please check the initialization of above functions
+*/
+#ifdef MSGC
+	assert(nroots == 0); // check if the number of roots is equal to 0
+#elif defined(MSGCS)
+	assert(gc_ctx.nroots == 0); // check if the number of roots is equal to 0
+#else
+	#error "MSGCS or MSGC must be defined"
+#endif
 	runNative(code);
 
 
