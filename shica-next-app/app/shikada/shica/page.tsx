@@ -106,30 +106,34 @@ const ShicaPage = () => {
   const clearLogs = () => {
     setLogs([]);
   };
-
   useEffect(() => {
-    if (!Module || !isReady || !isCompiling) return;
-    const selectedCode = code[selectedIndex].code;
-    const bool = process === "compile" ? 1 : 0;
+    if (!Module || !isReady) return;
     if (process === "none") {
+      addLog(LogLevel.SHICA, "Welcome to Shica Code Simulator d-.-b");
       // Initialize web codes if not already done
       console.log("Initializing web codes...");
       let ret = Module.ccall("initWebCodes", "number", ["number"], [12]);
       if (ret !== 0) {
         console.error("Failed to initialize web codes");
-        addLog(LogLevel.ERROR, "Failed to initialize web codes");
+        addLog(LogLevel.FATAL, "Failed to initialize web codes");
         return;
       }
       ret = Module.ccall("addWebCode", "number", [], []);
       if (ret) {
         console.error("Failed to add initial web code");
-        addLog(LogLevel.ERROR, "Failed to add initial web code");
+        addLog(LogLevel.FATAL, "Failed to add initial web code");
         return;
       } else {
         addLog(LogLevel.INFO, "Initialized web codes");
         addLog(LogLevel.INFO, `Added initial code file: ${code[0].filename}`);
       }
     }
+  }, [Module]);
+
+  useEffect(() => {
+    if (!Module || !isReady || !isCompiling) return;
+    const selectedCode = code[selectedIndex].code;
+    const bool = process === "compile" ? 1 : 0;
     const ret = Module.ccall(
       "compileWebCode",
       "number",
@@ -137,9 +141,15 @@ const ShicaPage = () => {
       [bool, selectedIndex, selectedCode]
     );
     if (ret === 0) {
-      addLog(LogLevel.INFO, `COMPILE: Compile success for ${code[selectedIndex].filename}`);
+      addLog(
+        LogLevel.INFO,
+        `COMPILE: Compile success for ${code[selectedIndex].filename}`
+      );
     } else {
-      addLog(LogLevel.ERROR, `COMPILE: Compile failed for ${code[selectedIndex].filename}`);
+      addLog(
+        LogLevel.ERROR,
+        `COMPILE: Compile failed for ${code[selectedIndex].filename}`
+      );
     }
     setProcess("compile");
     setIsCompiling(false);

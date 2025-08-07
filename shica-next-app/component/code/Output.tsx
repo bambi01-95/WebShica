@@ -11,10 +11,12 @@ export interface OutputProps {
 }
 
 export enum LogLevel {
-  INFO = "info",
-  ERROR = "error",
-  WARNING = "warning",
-  DEBUG = "debug",
+  SHICA = "shica: ",
+  INFO = "info: ",
+  WARN = "warn: ",
+  ERROR = "error: ",
+  FATAL = "fatal: ",
+  DEBUG = "debug: ",
 }
 
 export interface Log {
@@ -53,10 +55,14 @@ const Output = ({
         return "text-blue-500";
       case LogLevel.ERROR:
         return "text-red-500";
-      case LogLevel.WARNING:
+      case LogLevel.WARN:
         return "text-yellow-500";
       case LogLevel.DEBUG:
         return "text-gray-500";
+      case LogLevel.FATAL:
+        return "text-red-700 font-bold";
+      case LogLevel.SHICA:
+        return "text-orange-500";
       default:
         return "text-gray-500";
     }
