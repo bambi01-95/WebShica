@@ -27,10 +27,34 @@ const hexToRgb = (hex: string) => {
 const ShicaPage = () => {
   const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
     {
-      filename: "Agent0.shica",
+      filename: "Agent0",
       code: "stt s1(){\n    clickEH(x,y){\n        setXY(50,50);\n        setVX(5);\n        setVY(0);\n    }\n}",
     },
   ]);
+
+  const downloadFile = (ext: string) => {
+    if (!codes[selectedIndex].code.trim()) {
+      alert("テキストを入力してください");
+      return;
+    }
+
+    // Blobオブジェクトを作成（ファイルの内容）
+    const blob = new Blob([codes[selectedIndex].code], { type: "text/plain" });
+
+    // ダウンロードリンクを作成
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = codes[selectedIndex].filename + ext;
+
+    // リンクをクリックしてダウンロード開始
+    document.body.appendChild(link);
+    link.click();
+
+    // クリーンアップ
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
 
   const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -65,7 +89,7 @@ const ShicaPage = () => {
     setCodes((prev) => [
       ...prev,
       {
-        filename: `Agent${codes.length}.shica`,
+        filename: `Agent${codes.length}`,
         code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
       },
     ]);
@@ -468,6 +492,29 @@ const ShicaPage = () => {
                 }}
               >
                 {isCompiling ? "Compiling..." : "Compile"}
+              </button>
+              <button
+                onClick={() => downloadFile(".shica")}
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  backgroundColor: "var(--color-background-secondary)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <span className="text-sm text-gray-500">
+                  {codes[selectedIndex].filename}.shica
+                </span>
+              </button>
+              <button
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  backgroundColor: "var(--color-background-secondary)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <span className="text-sm text-gray-500">
+                  {codes[selectedIndex].filename}.stt
+                </span>
               </button>
             </div>
             {/* BOTTOM */}
