@@ -49,7 +49,7 @@ CFLAGS = -O3 \
          -s INITIAL_MEMORY=64MB \
          -s ENVIRONMENT=web \
          -s EXPORTED_FUNCTIONS='["_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr"]' \
-         -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32"]' \
+         -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8"]' \
          --no-entry \
          -o $(WASMOUT)
 

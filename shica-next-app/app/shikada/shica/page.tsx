@@ -3,12 +3,12 @@ import FileLists from "@/component/code/FileLists";
 import { CodeEditor } from "@/component/code/CodeEditor";
 import { useState, useEffect, useRef } from "react";
 import Output, { Log, LogLevel } from "@/component/code/Output";
-import { Robot } from "@/component/code/Map";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useShica";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 import { Roboto } from "next/font/google";
+
 
 const roboto = Roboto({
   subsets: ["latin", "latin-ext"],
@@ -24,39 +24,74 @@ const hexToRgb = (hex: string) => {
   return { r, g, b };
 };
 
+interface agentObject{
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  isClick: number;
+  distance: number;
+  status: number;
+  red: number;
+  green: number;
+  blue: number;
+  isLEDOn: number;
+}
+const agentObjectOffset = {
+  x: 0,
+  y: 4,
+  vx: 8,
+  vy: 12,
+  isClick: 16,
+  distance: 20,
+  status: 24,
+  red: 28,
+  green: 29,
+  blue: 30,
+  isLEDOn: 31,
+}
+
+export interface Robot{
+  x: number;
+  y: number;
+  r: number;
+  g: number;
+  b: number;
+}
+
+// Example codes for initial state
+const examplecodes: string[] = [
+  `stt state(){
+    clickEH(x,y){
+    setColor(199, 31, 104);
+        setXY(x,y);
+    }
+}`,
+  `stt state(){
+    clickEH(x,y){
+        setXY(50,50);
+        setVX(5);
+        setVY(0);
+    }
+}`,
+];
+
 const ShicaPage = () => {
+  // <CodeEditor>のコード管理
   const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
     {
       filename: "Agent0",
-      code: "stt s1(){\n    clickEH(x,y){\n        setXY(50,50);\n        setVX(5);\n        setVY(0);\n    }\n}",
+      code: examplecodes[0] || "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
     },
   ]);
-
-  const downloadFile = (ext: string) => {
-    if (!codes[selectedIndex].code.trim()) {
-      alert("テキストを入力してください");
-      return;
-    }
-
-    // Blobオブジェクトを作成（ファイルの内容）
-    const blob = new Blob([codes[selectedIndex].code], { type: "text/plain" });
-
-    // ダウンロードリンクを作成
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = codes[selectedIndex].filename + ext;
-
-    // リンクをクリックしてダウンロード開始
-    document.body.appendChild(link);
-    link.click();
-
-    // クリーンアップ
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+  const updateItem = (index: number, newValue: string) => {
+    setCodes((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
+    );
   };
 
-  const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, vx: 1, vy: 1 }]);
+  const robotsRef = useRef<Robot[]>([{ x: 0, y: 0, r: 0, g: 0, b: 0 }]);
+
   const mapRef = useRef<HTMLDivElement>(null);
   const [time, setTime] = useState(0);
   const [forceUpdate, setForceUpdate] = useState(0); // 強制再レンダリング用
@@ -75,16 +110,20 @@ const ShicaPage = () => {
     x: 0,
     y: 0,
   });
+  const [fps, setFps] = useState(500);
+  
+
+
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
 
   const addRobot = () => {
     const numRobots = robotsRef.current.length;
-    const newRobot: Robot = { x: 50 * numRobots, y: 0, vx: 1, vy: 1 };
+    const newRobot: Robot = { x: 50 * numRobots, y: 50, r: 100, g: 100, b: 100 };
     robotsRef.current = [...robotsRef.current, newRobot];
     setForceUpdate((prev) => prev + 1); // 強制再レンダリング
   };
 
-  // 配列に要素を追加する例
+  // <FileLists>コンポーネントのファイル管理
   const addItem = (newItem: string = "") => {
     setCodes((prev) => [
       ...prev,
@@ -104,15 +143,6 @@ const ShicaPage = () => {
       addLog(LogLevel.SUCCESS, `touch Agent${codes.length}.shica`);
     }
   };
-
-  // インデックスで要素を更新する例
-  const updateItem = (index: number, newValue: string) => {
-    setCodes((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
-    );
-  };
-
-  // 条件で要素を削除する例
   const removeItem = (index: number) => {
     if (codes.length <= 1) return; // 最低1つのファイルは残す
 
@@ -133,6 +163,7 @@ const ShicaPage = () => {
     }
   };
 
+  // <Output>コンポーネントのログ管理
   const addLog = (level: LogLevel, message: string) => {
     setLogs((prevLogs) => [
       ...prevLogs,
@@ -142,6 +173,7 @@ const ShicaPage = () => {
   const clearLogs = () => {
     setLogs([]);
   };
+
   // once when the page is loaded
   useEffect(() => {
     if (!Module || !isReady) return;
@@ -151,13 +183,15 @@ const ShicaPage = () => {
       ["number"],
       [0]
     );
+    // TEST
     for (let i = 0; i < 12; i++) {
-      const x = Module.getValue(agentDataPtr + i * 32 + 0, "i32");
-      const y = Module.getValue(agentDataPtr + i * 32 + 4, "i32");
-      const vx = Module.getValue(agentDataPtr + i * 32 + 8, "i32");
-      const vy = Module.getValue(agentDataPtr + i * 32 + 12, "i32");
+      const x = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.x, "i32");
+      const y = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.y, "i32");
+      const vx = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.vx, "i32");
+      const vy = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.vy, "i32");
       console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
     }
+    // END TEST
 
     if (process === "none") {
       addLog(LogLevel.SHICA, "Welcome to Shica Code Simulator d-.-b");
@@ -181,6 +215,7 @@ const ShicaPage = () => {
     }
   }, [Module]);
 
+  // Compile web codes
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = codes[selectedIndex].code;
@@ -224,22 +259,8 @@ const ShicaPage = () => {
     setIsCompiled(true);
   };
 
-  const clickEH = (x: number, y: number) => {
-    if (!Module || !isReady) return;
-    const rect = mapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const xc = x - rect.left - 20 < 0 ? 0 : Math.round(x - rect.left - 20);
-    const yc = y - rect.top - 20 < 0 ? 0 : Math.round(y - rect.top - 20);
-    if (isRunning) {
-      Module.setValue(Module.clickPtr + 0, xc, "i32");
-      Module.setValue(Module.clickPtr + 4, yc, "i32");
-      Module.setValue(Module.clickPtr + 8, 1, "i32"); // active
-    }
-    setClickXY({ x: xc, y: yc });
-  };
-
+  // Run web codes
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     if (!Module || !isReady) return;
     if (isRunning) {
@@ -286,22 +307,23 @@ const ShicaPage = () => {
         for (let i = 0; i < codes.length; i++) {
           const robot = robotsRef.current[i];
           const offset = i * 32; // 4 bytes each for x, y, vx, vy
-          const x = Module.getValue(agentptr + offset + 0, "i32");
-          const y = Module.getValue(agentptr + offset + 4, "i32");
-          const vx = Module.getValue(agentptr + offset + 8, "i32");
-          const vy = Module.getValue(agentptr + offset + 12, "i32");
+          const x = Module.getValue(agentptr + offset + agentObjectOffset.x, "i32");
+          const y = Module.getValue(agentptr + offset + agentObjectOffset.y, "i32");
+          const vx = Module.getValue(agentptr + offset + agentObjectOffset.vx, "i32");
+          const vy = Module.getValue(agentptr + offset + agentObjectOffset.vy, "i32");
+          robot.r = Module.HEAPU8[agentptr + offset + agentObjectOffset.red];// unsigned char shuld use HEAPU8
+          robot.g = Module.HEAPU8[agentptr + offset + agentObjectOffset.green];
+          robot.b = Module.HEAPU8[agentptr + offset + agentObjectOffset.blue];
           robot.x = x + vx;
           robot.y = y + vy;
-          robot.vx = vx;
-          robot.vy = vy;
-          Module.setValue(agentptr + offset + 0, robot.x, "i32");
-          Module.setValue(agentptr + offset + 4, robot.y, "i32");
-          console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+          Module.setValue(agentptr + offset + agentObjectOffset.x, robot.x, "i32");
+          Module.setValue(agentptr + offset + agentObjectOffset.y, robot.y, "i32");
+          console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy} r: ${robot.r}, g: ${robot.g}, b: ${robot.b}`);
         }
         setForceUpdate((prev) => prev + 1); // 位置更新を画面に反映
-        setTime(time + 500);
+        setTime(time + fps);
         Module.setValue(Module.clickPtr + 8, 0, "i32"); // inactive
-      }, 500);
+      }, fps);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -323,6 +345,46 @@ const ShicaPage = () => {
     setIsRunning(!isRunning);
   };
 
+  //Event handler for click on the map
+  const clickEH = (x: number, y: number) => {
+    if (!Module || !isReady) return;
+    const rect = mapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const xc = x - rect.left - 20 < 0 ? 0 : Math.round(x - rect.left - 20);
+    const yc = y - rect.top - 20 < 0 ? 0 : Math.round(y - rect.top - 20);
+    if (isRunning) {
+      Module.setValue(Module.clickPtr + 0, xc, "i32");
+      Module.setValue(Module.clickPtr + 4, yc, "i32");
+      Module.setValue(Module.clickPtr + 8, 1, "i32"); // active
+    }
+    setClickXY({ x: xc, y: yc });
+  };
+  // Download button
+  const downloadFile = (ext: string) => {
+    if (!codes[selectedIndex].code.trim()) {
+      alert("Please write code before downloading.");
+      return;
+    }
+
+    // Blobオブジェクトを作成（ファイルの内容）
+    const blob = new Blob([codes[selectedIndex].code], { type: "text/plain" });
+
+    // ダウンロードリンクを作成
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = codes[selectedIndex].filename + ext;
+
+    // リンクをクリックしてダウンロード開始
+    document.body.appendChild(link);
+    link.click();
+
+    // クリーンアップ
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Colorset for user sample code
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const hex = e.target.value;
     const rgbValue = hexToRgb(hex);
@@ -395,7 +457,7 @@ const ShicaPage = () => {
                       style={{
                         width: `40px`,
                         height: `40px`,
-                        backgroundColor: "red",
+                        background: `rgb(${robot.r}, ${robot.g}, ${robot.b})`,
                         borderRadius: "50%",
                         position: "absolute",
                         transition: "all 0.1s linear",
@@ -447,6 +509,7 @@ const ShicaPage = () => {
                 <CodeEditor
                   key={codes[selectedIndex].filename}
                   filename={codes[selectedIndex].filename}
+                  language=".shica"
                   initialCode={codes[selectedIndex].code}
                   onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
                   isRounded={false}
@@ -516,6 +579,12 @@ const ShicaPage = () => {
                   {codes[selectedIndex].filename}.stt
                 </span>
               </button>
+              <select disabled={isRunning}  onChange={(e) => setFps(Number(e.target.value))} className="px-2 py-1 rounded bg-gray-100 text-gray-700">
+                <option value={500}>500</option>
+                <option value={250}>250</option>
+                <option value={100}>100</option>
+                <option value={50}>50</option>
+              </select>
             </div>
             {/* BOTTOM */}
             <div className="h-full overflow-hidden">

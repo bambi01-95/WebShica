@@ -288,6 +288,19 @@ int compile_eh_init(){
  * These functions are used in the web code to interact with the web environment.
 */
 
+// Function initialization
+ enum {
+	LOG_FUNC,   // log function
+	SETXY_FUNC, // setXY function
+	SETX_FUNC,  // setX function
+	SETY_FUNC,  // setY function
+	SETVXY_FUNC, // setVXY function
+	SETVX_FUNC, // setVX function
+	SETVY_FUNC, // setVY function
+	SETCOLOR_FUNC, // setColor function
+	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
+};
+
 int lib_log(ent stack)
 {
 	int value = intArray_pop(stack); // get value from stack
@@ -305,6 +318,28 @@ int lib_setxy(ent stack)
 	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
 	return 0; // return 0 to indicate success
 }
+int lib_setx(ent stack)
+{
+	int x = intArray_pop(stack); // get x coordinate from stack
+	AN_AGENT_DATA->x = x; // set x coordinate
+	return 0; // return 0 to indicate success
+}
+int lib_sety(ent stack)
+{
+	int y = intArray_pop(stack); // get y coordinate from stack
+	AN_AGENT_DATA->y = y; // set y coordinate
+	return 0; // return 0 to indicate success
+}
+
+int lib_setvxy(ent stack)
+{
+	int vy = intArray_pop(stack); // get y velocity from stack
+	int vx = intArray_pop(stack); // get x velocity from stack
+	AN_AGENT_DATA->vx = vx; // set x velocity
+	AN_AGENT_DATA->vy = vy; // set y velocity
+	printf("setVXY: vx = %d, vy = %d\n", vx, vy); // print velocities to console
+	return 0; // return 0 to indicate success
+}
 
 int lib_setvx(ent stack)
 {
@@ -320,14 +355,17 @@ int lib_setvy(ent stack)
 	return 0; // return 0 to indicate success
 }
 
-// Function initialization
- enum {
-	LOG_FUNC,   // log function
-	SETXY_FUNC, // setXY function
-	SETVX_FUNC, // setVX function
-	SETVY_FUNC, // setVY function
-	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
-};
+int lib_setcolor(ent stack)
+{
+	int  red = intArray_pop(stack); // get red value from stack
+	int green = intArray_pop(stack); // get green value from stack
+	int blue = intArray_pop(stack); // get blue value from stack
+	AN_AGENT_DATA->red = (char)red; // set red value
+	AN_AGENT_DATA->green = (char)green; // set green value
+	AN_AGENT_DATA->blue = (char)blue; // set blue value
+	printf("setColor: r = %d, g = %d, b = %d\n", red, green, blue); // print color values to console
+	return 0; // return 0 to indicate success
+}
 
 
 
@@ -335,8 +373,12 @@ struct StdFuncTable __StdFuncTable__[] =
 {
 	{lib_log, 1}, // log function takes 1 argument
 	{lib_setxy, 2}, // setXY function takes 2 arguments
+	{lib_setx, 1}, // setX function takes 1 argument
+	{lib_sety, 1}, // setY function takes 1 argument
+	{lib_setvxy, 2}, // setVXY function takes 2 arguments
 	{lib_setvx, 1}, // setVX function takes 1 argument
 	{lib_setvy, 1}, // setVY function takes 1 argument
+	{lib_setcolor, 3}, // setColor function takes 3 arguments
 };
 
 int compile_func_init()
@@ -348,11 +390,23 @@ int compile_func_init()
 	FUNC = intern("setXY");
 	FUNC->Symbol.value = newStdFunc(SETXY_FUNC);
 
+	FUNC = intern("setX");
+	FUNC->Symbol.value = newStdFunc(SETX_FUNC); // setX function
+
+	FUNC = intern("setY");
+	FUNC->Symbol.value = newStdFunc(SETY_FUNC); // setY function
+
+	FUNC = intern("setVXY");
+	FUNC->Symbol.value = newStdFunc(SETVXY_FUNC); // setVXY function
+
 	FUNC = intern("setVX");
 	FUNC->Symbol.value = newStdFunc(SETVX_FUNC); 
 
 	FUNC = intern("setVY");
 	FUNC->Symbol.value = newStdFunc(SETVY_FUNC);
+
+	FUNC = intern("setColor");
+	FUNC->Symbol.value = newStdFunc(SETCOLOR_FUNC); // setColor function
 	return 1; // return 1 to indicate success
 }
 

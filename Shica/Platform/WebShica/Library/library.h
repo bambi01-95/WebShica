@@ -22,8 +22,11 @@ extern int WEB_CLICK_STT[3]; // x, y, click status
 //AGENT DATA
 struct AgentData {
 	int x,y,vx,vy;
-	int isClick,distance,status;
-	char red, green, blue, isLEDOn;
+	int isClick;
+	int distance;
+	int status;
+	char red, green, blue;
+	char isLEDOn;
 };
 typedef struct AgentData *AgentPtr;
 
