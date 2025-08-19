@@ -429,11 +429,33 @@ const ShicaPage = () => {
     const rgbValue = hexToRgb(hex);
     setRgb(rgbValue);
   };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCodes((prev) =>
+        prev.map((item, i) =>
+          i === selectedIndex
+            ? { ...item, code: e.target?.result as string }
+            : item
+        )
+      );
+    };
+    reader.readAsText(file); // テキストとして読み込む
+  };
   // Download code.stt button
   const downloadSTTFile = async () => {
-    const ret = Module.ccall("getCompiledWebCode", "number", ["number"], [selectedIndex]);
-    if(ret){
-      addLog(LogLevel.ERROR, "Failed to get compiled web code");//TODO: reportError();
+    const ret = Module.ccall(
+      "getCompiledWebCode",
+      "number",
+      ["number"],
+      [selectedIndex]
+    );
+    if (ret) {
+      addLog(LogLevel.ERROR, "Failed to get compiled web code"); //TODO: reportError();
       return;
     }
     const u8 = Module.FS.readFile("/ints.bin"); // Uint8Array
@@ -611,6 +633,26 @@ const ShicaPage = () => {
               >
                 {isCompiling ? "Compiling..." : "Compile"}
               </button>
+              <label
+                htmlFor="fileInput"
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  backgroundColor: "var(--color-background-secondary)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <span className="text-sm text-gray-500">Upload File</span>
+              </label>
+              <input
+                className="px-2 py-1 rounded bg-gray-100 text-gray-700"
+                style={{ width: "200px" }}
+                id="fileInput"
+                type="file"
+                hidden
+                disabled={isRunning}
+                accept=".c,.h,.txt"
+                onChange={handleFileChange}
+              />
               <button
                 onClick={() => downloadFile(".shica")}
                 className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
@@ -623,8 +665,9 @@ const ShicaPage = () => {
                   {codes[selectedIndex].filename}.shica
                 </span>
               </button>
+
               <button
-                onClick={()=>downloadSTTFile()}
+                onClick={() => downloadSTTFile()}
                 className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
                 style={{
                   backgroundColor: "var(--color-background-secondary)",
