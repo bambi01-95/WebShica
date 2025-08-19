@@ -40,7 +40,7 @@ NATIVEOUT = shica
 FLAGS = -DMSGCS -DDEBUG
 
 # コンパイルフラグ
-CFLAGS = -O3 \
+WEB_SHICA_FLAGS = -O3 \
          $(INCLUDE_DIRS) \
 		-I ./Platform/WebShica/ \
 		 $(FLAGS) \
@@ -48,8 +48,8 @@ CFLAGS = -O3 \
          -s WASM=1 \
          -s INITIAL_MEMORY=64MB \
          -s ENVIRONMENT=web \
-         -s EXPORTED_FUNCTIONS='["_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr"]' \
-         -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8"]' \
+         -s EXPORTED_FUNCTIONS='["_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode"]' \
+         -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS"]' \
          --no-entry \
          -o $(WASMOUT)
 
@@ -63,7 +63,7 @@ web: $(WASMOUT)
 
 $(WASMOUT): $(SRC)
 	gcc $(SRC) ./Platform/WebShica/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/WebShica/Library/
-	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(CFLAGS) 
+	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(WEB_SHICA_FLAGS) 
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
 

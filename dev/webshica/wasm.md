@@ -8,7 +8,6 @@
 - `_initWebClickSTTPtr`
 - `_initAnAgnetDataPtr`
 
-
 int memory_init(void);
 int initWebCodes(int num);
 
@@ -20,3 +19,11 @@ int deleteWebCode(const int index)
 
 int initWebAgents(int num);
 int executeWebCodes(void);
+
+
+## wasm function
+
+### for file
+
+Simulation 
+- `int getWebCompiledCode(int index)`: get compiled web code at index

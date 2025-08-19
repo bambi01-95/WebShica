@@ -1860,6 +1860,34 @@ int stopWebCodes(void)
 	return 0; // return 0 to indicate success
 }
 
+int getCompiledWebCode(int index)
+{
+	if(index < 0 || index >= maxNumWebCodes){
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+		reportError(DEVELOPER, 0, "out of range compiler.");
+		return 1; // return 1 to indicate failure
+	}
+	FILE *f = fopen("/ints.bin", "wb");
+  	if (!f){
+		reportError(DEVELOPER, 0, "cannot open file for writing");
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+		return 1; // return 1 to indicate failure
+  	}
+	int *code = webCodes[index]->IntArray.elements; // get the int array elements of the web code
+	int size = webCodes[index]->IntArray.size; // get the size of the int array
+
+  	size_t n = sizeof(int) * size; // calculate the size of the int array in bytes
+  	int n2 = fwrite(code, sizeof(int), size, f); // write the int array to the file
+  	if(n2 != size){
+		reportError(DEVELOPER, 0, "cannot write all data to file");
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+		fclose(f);
+		return 1; // return 1 to indicate failure
+  	}
+  	fclose(f); // close the file
+  	return 0; // return 0 to indicate success
+}
+
 #endif // WEBSHICA
 
 /*====================== MAIN =====================*/

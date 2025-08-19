@@ -9,7 +9,6 @@ import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 import { Roboto } from "next/font/google";
 
-
 const roboto = Roboto({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "600", "500", "700"],
@@ -24,7 +23,7 @@ const hexToRgb = (hex: string) => {
   return { r, g, b };
 };
 
-interface agentObject{
+interface agentObject {
   x: number;
   y: number;
   vx: number;
@@ -49,9 +48,9 @@ const agentObjectOffset = {
   green: 29,
   blue: 30,
   isLEDOn: 31,
-}
+};
 
-export interface Robot{
+export interface Robot {
   x: number;
   y: number;
   r: number;
@@ -81,7 +80,9 @@ const ShicaPage = () => {
   const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
     {
       filename: "Agent0",
-      code: examplecodes[0] || "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+      code:
+        examplecodes[0] ||
+        "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
     },
   ]);
   const updateItem = (index: number, newValue: string) => {
@@ -111,14 +112,18 @@ const ShicaPage = () => {
     y: 0,
   });
   const [fps, setFps] = useState(500);
-  
-
 
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
 
   const addRobot = () => {
     const numRobots = robotsRef.current.length;
-    const newRobot: Robot = { x: 50 * numRobots, y: 50, r: 100, g: 100, b: 100 };
+    const newRobot: Robot = {
+      x: 50 * numRobots,
+      y: 50,
+      r: 100,
+      g: 100,
+      b: 100,
+    };
     robotsRef.current = [...robotsRef.current, newRobot];
     setForceUpdate((prev) => prev + 1); // 強制再レンダリング
   };
@@ -185,10 +190,22 @@ const ShicaPage = () => {
     );
     // TEST
     for (let i = 0; i < 12; i++) {
-      const x = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.x, "i32");
-      const y = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.y, "i32");
-      const vx = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.vx, "i32");
-      const vy = Module.getValue(agentDataPtr + i * 32 + agentObjectOffset.vy, "i32");
+      const x = Module.getValue(
+        agentDataPtr + i * 32 + agentObjectOffset.x,
+        "i32"
+      );
+      const y = Module.getValue(
+        agentDataPtr + i * 32 + agentObjectOffset.y,
+        "i32"
+      );
+      const vx = Module.getValue(
+        agentDataPtr + i * 32 + agentObjectOffset.vx,
+        "i32"
+      );
+      const vy = Module.getValue(
+        agentDataPtr + i * 32 + agentObjectOffset.vy,
+        "i32"
+      );
       console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
     }
     // END TEST
@@ -307,18 +324,40 @@ const ShicaPage = () => {
         for (let i = 0; i < codes.length; i++) {
           const robot = robotsRef.current[i];
           const offset = i * 32; // 4 bytes each for x, y, vx, vy
-          const x = Module.getValue(agentptr + offset + agentObjectOffset.x, "i32");
-          const y = Module.getValue(agentptr + offset + agentObjectOffset.y, "i32");
-          const vx = Module.getValue(agentptr + offset + agentObjectOffset.vx, "i32");
-          const vy = Module.getValue(agentptr + offset + agentObjectOffset.vy, "i32");
-          robot.r = Module.HEAPU8[agentptr + offset + agentObjectOffset.red];// unsigned char shuld use HEAPU8
+          const x = Module.getValue(
+            agentptr + offset + agentObjectOffset.x,
+            "i32"
+          );
+          const y = Module.getValue(
+            agentptr + offset + agentObjectOffset.y,
+            "i32"
+          );
+          const vx = Module.getValue(
+            agentptr + offset + agentObjectOffset.vx,
+            "i32"
+          );
+          const vy = Module.getValue(
+            agentptr + offset + agentObjectOffset.vy,
+            "i32"
+          );
+          robot.r = Module.HEAPU8[agentptr + offset + agentObjectOffset.red]; // unsigned char shuld use HEAPU8
           robot.g = Module.HEAPU8[agentptr + offset + agentObjectOffset.green];
           robot.b = Module.HEAPU8[agentptr + offset + agentObjectOffset.blue];
           robot.x = x + vx;
           robot.y = y + vy;
-          Module.setValue(agentptr + offset + agentObjectOffset.x, robot.x, "i32");
-          Module.setValue(agentptr + offset + agentObjectOffset.y, robot.y, "i32");
-          console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy} r: ${robot.r}, g: ${robot.g}, b: ${robot.b}`);
+          Module.setValue(
+            agentptr + offset + agentObjectOffset.x,
+            robot.x,
+            "i32"
+          );
+          Module.setValue(
+            agentptr + offset + agentObjectOffset.y,
+            robot.y,
+            "i32"
+          );
+          console.log(
+            `Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy} r: ${robot.r}, g: ${robot.g}, b: ${robot.b}`
+          );
         }
         setForceUpdate((prev) => prev + 1); // 位置更新を画面に反映
         setTime(time + fps);
@@ -359,7 +398,7 @@ const ShicaPage = () => {
     }
     setClickXY({ x: xc, y: yc });
   };
-  // Download button
+  // Download code.shica button
   const downloadFile = (ext: string) => {
     if (!codes[selectedIndex].code.trim()) {
       alert("Please write code before downloading.");
@@ -389,6 +428,22 @@ const ShicaPage = () => {
     const hex = e.target.value;
     const rgbValue = hexToRgb(hex);
     setRgb(rgbValue);
+  };
+  // Download code.stt button
+  const downloadSTTFile = async () => {
+    const ret = Module.ccall("getCompiledWebCode", "number", ["number"], [selectedIndex]);
+    if(ret){
+      addLog(LogLevel.ERROR, "Failed to get compiled web code");//TODO: reportError();
+      return;
+    }
+    const u8 = Module.FS.readFile("/ints.bin"); // Uint8Array
+    const blob = new Blob([u8], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${codes[selectedIndex].filename}.stt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
@@ -569,6 +624,7 @@ const ShicaPage = () => {
                 </span>
               </button>
               <button
+                onClick={()=>downloadSTTFile()}
                 className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
                 style={{
                   backgroundColor: "var(--color-background-secondary)",
@@ -579,7 +635,11 @@ const ShicaPage = () => {
                   {codes[selectedIndex].filename}.stt
                 </span>
               </button>
-              <select disabled={isRunning}  onChange={(e) => setFps(Number(e.target.value))} className="px-2 py-1 rounded bg-gray-100 text-gray-700">
+              <select
+                disabled={isRunning}
+                onChange={(e) => setFps(Number(e.target.value))}
+                className="px-2 py-1 rounded bg-gray-100 text-gray-700"
+              >
                 <option value={500}>500</option>
                 <option value={250}>250</option>
                 <option value={100}>100</option>
