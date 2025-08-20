@@ -14,6 +14,7 @@ typedef enum {
     ERROR,
     FATAL,
     DEVELOPER,
+
     /* UNSUPPORTED */
     ERROR_UNSUPPORTED
 } ErrorType;

@@ -16,7 +16,11 @@ enum opcode_t {
     iDIV, 
     iMOD,
     iGETVAR, 
+    iGETGLOBALVAR,
+    iGETSTATEVAR,
     iSETVAR,
+    iSETGLOBALVAR,
+	iSETSTATEVAR,
 	iMKSPACE,
 	iPRINT,
 	iJUMP, // jump to a position
@@ -53,6 +57,8 @@ static const char *_opcode_names[] = {
     "iMOD",
     "iGETVAR", 
     "iSETVAR",
+    "iSETGLOBALVAR",
+    "iSETSTATEVAR",
     "iMKSPACE",
     "iPRINT",
     "iJUMP", // jump to a position

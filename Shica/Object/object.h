@@ -186,7 +186,7 @@ oop newEventH(int id, int nArgs);
 oop newVariables();
 oop insertVariable(oop list, oop sym);
 oop searchVariable(oop list, oop sym);
-#define discardVarialbes(V,X) V->Variables.size = X
+#define discardVariables(V,X) V->Variables.size = X
 
 oop newEmitContext();
 

@@ -267,6 +267,24 @@ ent execute(ent prog,ent entity, ent global)
 			stack->IntArray.elements[symIndex+*rbp+1] = pop();
 			continue;
 		}
+		case iSETGLOBALVAR:{
+			printOP(iSETGLOBALVAR);
+			int symIndex = fetch(); // need to change
+			global->IntArray.elements[symIndex] = pop(); // set the global variable value
+			continue;
+		}
+		case iSETSTATEVAR:{
+			printOP(iSETSTATEVAR);
+			int symIndex = fetch(); // need to change
+			if (entity->kind != Agent) {
+				fatal("iSETSTATEVAR: entity is not an Agent");
+			}
+			/*TODO: where to set the state variable?
+			* For now, we set it in the global IntArray.
+			*/
+			global->IntArray.elements[symIndex] = pop(); // set the state variable value
+			continue;
+		}
 		case iJUMP:{
 			printOP(iJUMP);
 			l = fetch();
@@ -508,7 +526,7 @@ int initSttTrans()
 	nstates = 0;
 	transitions = NULL;
 	ntransitions = 0;
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 int collectSttTrans()
@@ -531,7 +549,7 @@ int collectSttTrans()
 			gc_mark(trans);//PAIR
 		}
 	}
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 
@@ -608,14 +626,15 @@ void emitIII(ent array, int i, int j, int k)
 
 void printCode(ent code);
 
-void emitOn(ent prog,oop vars, oop ast)
+int emitOn(ent prog,oop vars, oop ast)
 {
+	int ret = 0; /* ret 0 indicates success */
     switch (getType(ast)) {
 		case Undefined:
 		case Integer:{
 			printTYPE(_Integer_);
 			emitIL(prog, iPUSH, ast);
-			return;
+			return 0;
 		}
 		case Array:{
 			printTYPE(_Array_);
@@ -623,71 +642,82 @@ void emitOn(ent prog,oop vars, oop ast)
 			int size = get(ast, Array,size);
 			emitII(prog, iPUSH, size); // push the size of the array
 			for (int i = 0;  i < size;  ++i) {
-				emitOn(prog, vars, elements[i]); // compile each element
+				if(emitOn(prog, vars, elements[i]))return 1; // compile each element
 			}
-			return;
+			return 0; 
 		}
 		case Binop:{
 			printTYPE(_Binop_);
-			emitOn(prog, vars, get(ast, Binop,lhs));
-			emitOn(prog, vars, get(ast, Binop,rhs));
+			if(emitOn(prog, vars, get(ast, Binop,lhs))) return 1;
+			if(emitOn(prog, vars, get(ast, Binop,rhs))) return 1;
 			switch (get(ast, Binop,op)) {
-			case NE: emitI(prog, iNE);  return;
-			case EQ: emitI(prog, iEQ);  return;
-			case LT: emitI(prog, iLT);  return;
-			case LE: emitI(prog, iLE);  return;
-			case GE: emitI(prog, iGE);  return;
-			case GT: emitI(prog, iGT);  return;
-			case ADD: emitI(prog, iADD);  return;
-			case SUB: emitI(prog, iSUB);  return;
-			case MUL: emitI(prog, iMUL);  return;
-			case DIV: emitI(prog, iDIV);  return;
-			case MOD: emitI(prog, iMOD);  return;
-			default:break;
+				case NE: emitI(prog, iNE);  return 0; // emit not equal
+				case EQ: emitI(prog, iEQ);  return 0;
+				case LT: emitI(prog, iLT);  return 0;
+				case LE: emitI(prog, iLE);  return 0;
+				case GE: emitI(prog, iGE);  return 0;
+				case GT: emitI(prog, iGT);  return 0;
+				case ADD: emitI(prog, iADD);  return 0;
+				case SUB: emitI(prog, iSUB);  return 0;
+				case MUL: emitI(prog, iMUL);  return 0;
+				case DIV: emitI(prog, iDIV);  return 0;
+				case MOD: emitI(prog, iMOD);  return 0;
+				default:break;
 			}
 			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			break;
+			reportError(DEVELOPER, 0, "emitOn: unknown Binop operator %d", get(ast, Binop,op));
+			return 1;
 		}
 		case Unyop:{
 			printTYPE(_Unyop_);
 			oop rhs = get(ast, Unyop,rhs);
 			switch (get(ast, Unyop,op)) {
-				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iSUB); return;
-				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iEQ);  return;
-				default: break;;
+				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iSUB); return 0;
+				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iEQ);  return 0;
+				default: break;
 			}
 			oop variable = searchVariable(vars, get(rhs, GetVar,id));
 
 			switch(get(ast, Unyop,op)) {
-					case BINC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));emitOn(prog, vars, rhs); return;
-					case BDEC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); emitOn(prog, vars, rhs);return;
-					case AINC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
-					case ADEC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return;
+					case BINC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));emitOn(prog, vars, rhs); return 0;
+					case BDEC: emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); emitOn(prog, vars, rhs);return 0;
+					case AINC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return 0;
+					case ADEC: emitOn(prog, vars, rhs);emitOn(prog, vars, rhs);emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return 0;
 				default: break;
 			}
 			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			return ;
+			reportError(DEVELOPER, 0, "emitOn: unknown Unyop operator %d", get(ast, Unyop,op));
+			return 1;
 		}
 		case GetVar: {
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
 			oop variable = searchVariable(vars->EmitContext.local_vars,sym);
-			variable  = searchVariable(vars->EmitContext.state_vars,sym);
-			variable = searchVariable(vars->EmitContext.global_vars,sym);
-			if (variable == NULL) {
-				error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
-				exit(1);
+			if(variable){
+				emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
+				return 0; 
 			}
-			emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
-			return;
+			variable  = searchVariable(vars->EmitContext.state_vars,sym);
+			if(variable){
+				emitII(prog, iGETSTATEVAR, Integer_value(get(variable,Pair,b)));
+				return 0; 
+			}
+			variable = searchVariable(vars->EmitContext.global_vars,sym);
+			if (variable) {
+				emitII(prog, iGETGLOBALVAR, Integer_value(get(variable,Pair,b)));
+				return 0; 
+			}
+			error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
+			reportError(ERROR, get(ast,GetVar,line), "variable %s not found", get(sym, Symbol,name));
+			return 1;
 		}
 		case Call:{
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
 			oop id   = get(ast, Call, function);
+			oop args = get(ast, Call,arguments);
 			oop func = get(get(id,GetVar,id), Symbol, value); // get the function from the variable;
 			
-			oop args = get(ast, Call,arguments);
 			switch(getType(func)){
 				case EventH:{
 					printTYPE(_EventH_);
@@ -697,16 +727,17 @@ void emitOn(ent prog,oop vars, oop ast)
 					int argsCount = 0;
 					while(args != nil){
 						oop arg = get(args, Pair,a);
-						emitOn(prog, vars, arg); // compile argument
+						if(emitOn(prog, vars, arg))return 1; // compile argument
 						args = get(args, Pair,b);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
 						error("line %d ERROR: event %s expects %d arguments, but got %d\n", get(ast,Call,line),get(func, Symbol,name), nArgs, argsCount);
-						exit(1);
+						reportError(ERROR, get(ast,Call,line), "event %s expects %d arguments, but got %d", get(func, Symbol,name), nArgs, argsCount);
+						return 1;
 					}
 					emitIII(prog, iPCALL,  index, nArgs); // call the event handler
-					return;
+					return 0; 
 				}
 				case StdFunc:{
 					printTYPE(_StdFunc_);
@@ -714,21 +745,22 @@ void emitOn(ent prog,oop vars, oop ast)
 					int argsCount = 0;
 					while(args != nil){
 						oop arg = get(args, Pair,a);
-						emitOn(prog, vars, arg); // compile argument
+						if(emitOn(prog, vars, arg))return 1; // compile argument
 						args = get(args, Pair,b);
 						argsCount++;
 					}
 					if(StdFuncTable[funcIndex].nArgs != argsCount){
 						error("line %d ERROR: standard function %s expects %d arguments, but got %d\n",
-							 get(ast,Call,line),get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
-						exit(1);
+						get(ast,Call,line),get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+						return 1;
 					}
 
 					emitII(prog, iSCALL, funcIndex); // call the standard function
 					//NOTE: we don't need to clean the stack after the call, because the standard function will do it
 					//      BUT we need to check the return value (not implemented yet)
 					//emitII(prog, iCLEAN, nReturns); // clean the stack after the call
-					return;
+					return 0; 
 				}
 				case Closure:{
 					printTYPE(_Closure_);
@@ -737,28 +769,30 @@ void emitOn(ent prog,oop vars, oop ast)
 					int argsCount = 0;
 					while(args != nil){
 						oop arg = get(args, Pair,a);
-						emitOn(prog, vars, arg); // compile argument
+						if(emitOn(prog, vars, arg))return 1; // compile argument
 						args = get(args, Pair,b);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						error("line %d ERROR: function %s expects %d arguments, but got %d\n", get(func, Symbol,name), nArgs, argsCount);
-						exit(1);
+						error("line %d ERROR: function %s expects %d arguments, but got %d\n", get(ast, Call, line), get(func, Symbol,name), nArgs, argsCount);
+						reportError(ERROR, get(ast, Call, line), "function %s expects %d arguments, but got %d", get(func, Symbol,name), nArgs, argsCount);
+						return 1; 
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
 					int iCallPos = prog->IntArray.size - 2; // remember the position of the call
 					prog->IntArray.elements[iCallPos] = pos - (prog->IntArray.size) ; // set the jump position to the function code
 					emitII(prog, iCLEAN, nArgs); // clean the stack after the call
-					return;
+					return 0; 
 				}
 				default:{
 					fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
 					fatal("error: call function with type %d\n", getType(func));
-					printlnObject(func,0);
-					exit(1);
+					reportError(DEVELOPER, 0, "%s line %d call function with type %d",__FILE__,__LINE__,getType(func));
+					return 1;
 				}
 			}
-			return;
+			reportError(DEVELOPER, get(ast,Call,line), "emitOn: unknown Call type %d", getType(func));
+			return 1;
 		}
 		case SetVar: {
 			printTYPE(_SetVar_);
@@ -769,7 +803,8 @@ void emitOn(ent prog,oop vars, oop ast)
 					printTYPE(_Function_);
 					if(sym->Symbol.value !=false) {
 						error("line %d ERROR: variable %s is already defined as a function\n",get(ast,SetVar,line), get(sym, Symbol,name));
-						exit(1);
+						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
+						return 1;
 					}
 					oop params = get(rhs, UserFunc,parameters);
 					oop body = get(rhs, UserFunc,body);
@@ -779,7 +814,10 @@ void emitOn(ent prog,oop vars, oop ast)
 						oop param = get(params, Pair,a);
 						if (searchVariable(localVars, param) != NULL) {
 							error("line %d ERROR: parameter %s is already defined\n",get(ast,SetVar,line), get(param, Symbol,name));
-							exit(1);
+							reportError(ERROR, get(ast,SetVar,line), "parameter %s is already defined", get(param, Symbol,name));
+							GC_POP(closure);
+							GC_POP(localVars);
+							return 1;
 						}
 						insertVariable(localVars, param); // insert parameter into local variables
 						closure->Closure.nArgs++;
@@ -791,56 +829,57 @@ void emitOn(ent prog,oop vars, oop ast)
 					sym->Symbol.value = closure; // set the closure as the value of the variable
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
 					int codePos = prog->IntArray.size - 1; // remember the position of the function code
-					emitOn(prog, localVars, body); // compile function body
+					if(emitOn(prog, localVars, body)) return 1; // compile function body
 					prog->IntArray.elements[codePos] = localVars->Variables.size; // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
 					GC_POP(localVars);
-					return;
+					return 0;
 				}
 				case Integer:
 				case GetVar:
 				case Unyop:
 				case Binop:{
-					    int scope = get(ast, SetVar,scope);
+					int scope = get(ast, SetVar,scope);
 					switch(scope) {
 						case SCOPE_LOCAL:{
-								emitOn(prog,vars, rhs);
-								oop variable = insertVariable(vars->EmitContext.local_vars,sym);
-								emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
-								return;
+							emitOn(prog,vars, rhs);
+							oop variable = insertVariable(vars->EmitContext.local_vars,sym);
+							emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
+							return 0;
 						}
 						case SCOPE_STATE_LOCAL:{
-								emitOn(prog,vars, rhs);
-								oop variable = insertVariable(vars->EmitContext.state_vars,sym);
-								emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
-							return;
+							emitOn(prog,vars, rhs);
+							oop variable = insertVariable(vars->EmitContext.state_vars,sym);
+							emitII(prog, iSETSTATEVAR, Integer_value(get(variable,Pair,b)));
+							return 0;
 						}
 						case SCOPE_GLOBAL:{
 							emitOn(prog,vars, rhs);
 							oop variable = insertVariable(vars->EmitContext.global_vars,sym);
-							emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
-							return;
+							emitII(prog, iSETGLOBALVAR, Integer_value(get(variable,Pair,b)));
+							return 0;
 						}
 					}
-
 					reportError(DEVELOPER,get(ast, SetVar,line), "Unsupported variable: %s", get(sym, Symbol,name));
-					return;
+					return 1;
 				}
 				default:{
 					error("line %d ERROR: set variable with type %d\n",get(ast,GetVar,line), getType(rhs));
-					exit(1);
+					reportError(ERROR, get(ast,SetVar,line), "set variable with type %d", getType(rhs));
+					return 1;
 				}
 			}
-
-			return;
+			reportError(DEVELOPER, get(ast,SetVar,line), "emitOn: unknown SetVar type %d", getType(rhs));
+			return 0;
 		}
 		case Pair:{
 			printTYPE(_Pair_);
 			oop a = get(ast, Pair,a);
 			oop b = get(ast, Pair,b);
 			error("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			return;
+			reportError(DEVELOPER, 0, "emitOn: Pair is not supported yet");
+			return 1;
 		}
 		case Print:{
 			printTYPE(_Print_);
@@ -848,37 +887,39 @@ void emitOn(ent prog,oop vars, oop ast)
 			int nArgs = 0;
 			while (args != nil) {
 				oop arg = get(args, Pair,a);
-				emitOn(prog, vars, arg); // compile argument
+				if(emitOn(prog, vars, arg)) return 1; // compile argument
 				args = get(args, Pair,b);
 				nArgs++;
 			}
 			emitII(prog, iPRINT, nArgs); // print the result
-			return;
+			return 0;
 		}
 		case If:{
 			printTYPE(_If_);
+			//NEXT-TODO
 			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables	
 			oop condition = get(ast, If,condition);
 			oop statement1 = get(ast, If,statement1);
 			oop statement2 = get(ast, If,statement2);
 
-			emitOn(prog, vars, condition); // compile condition
+			if(emitOn(prog, vars, condition)) return 1; // compile condition
 
 			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
 			int jumpPos = prog->IntArray.size-1; // remember position for jump
 
-			emitOn(prog, vars, statement1); // compile first statement
+			if(emitOn(prog, vars, statement1)) return 1; // compile first statement
 			if (statement2 != false) {
 				emitII(prog, iJUMP, 0);
 				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
-				emitOn(prog, vars, statement2); // compile second statement
+				if(emitOn(prog, vars, statement2)) return 1; // compile second statement
 				prog->IntArray.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
 				prog->IntArray.elements[jumpPos2] = (prog->IntArray.size - 1) - jumpPos2; // set jump position
 			} else {
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
 			}
-			discardVarialbes(vars, variablesSize); // discard variables
-			return;
+			//NEXT-TODO
+			discardVariables(vars, variablesSize); // discard variables
+			return 0;
 		}
 		case Loop:{
 			printTYPE(_Looop_);
@@ -886,51 +927,53 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop condition      = get(ast, Loop,condition);
 			oop iteration      = get(ast, Loop,iteration);
 			oop statement      = get(ast, Loop,statement);
+			//NEXT-TODO
 			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
 
 			if (initialization != false) {
-				emitOn(prog, vars, initialization); // compile initialization
+				if(emitOn(prog, vars, initialization)) return 1; // compile initialization
 			}
 			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
 			int jumpPos = 0; // position for the jump if condition is true
 			if(condition != false) {
-				emitOn(prog, vars, condition); // compile condition
+				if(emitOn(prog, vars, condition)) return 1; // compile condition
 				emitII(prog, iJUMPIF, 0); // emit jump if condition is true
 				jumpPos = prog->IntArray.size - 1; // remember position for jump
 			}
 
-			emitOn(prog, vars, statement); // compile statement
+			if(emitOn(prog, vars, statement)) return 1; // compile statement
 
 			if (iteration != false) {
-				emitOn(prog, vars, iteration); // compile iteration
+				if(emitOn(prog, vars, iteration)) return 1; // compile iteration
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
 			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
 			if(condition != false) {
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
 			}
-			discardVarialbes(vars, variablesSize); // discard variables
-			return;
+			//NEXT-TODO
+			discardVariables(vars, variablesSize); // discard variables
+			return 0;
 		}
 		case Return:{
 			printTYPE(_Return_);
 			oop value = get(ast, Return,value);
 			if (value != false) {
-				emitOn(prog, vars, value); // compile return value
+				if(emitOn(prog, vars, value)) return 1; // compile return value
 			} else {
 				emitII(prog, iPUSH, 0); // return 0 if no value is specified
 			}
 			emitI(prog, iRETURN); // emit return instruction
-			return;
+			return 0;
 		}
 		case Block:{
 			printTYPE(_Block_);
 			oop *statements = ast->Block.statements;
 			int nStatements = ast->Block.size;
 			for (int i = 0;  i < nStatements;  ++i) {
-				emitOn(prog, vars, statements[i]); // compile each statement
+				if(emitOn(prog, vars, statements[i])) return 1; // compile each statement
 			}
-			return;
+			return 0;
 		}
 		case Transition:{
 			printTYPE(_Transition_);
@@ -938,16 +981,15 @@ void emitOn(ent prog,oop vars, oop ast)
 			emitII(prog, iTRANSITION, 0);
 			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
 			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
-			return;
+			return 0;
 		}
 		case State:{
 			printTYPE(_State_);
 			oop id = get(ast, State,id);
-			dprintf("State: %s\n", get(id, Symbol,name));
 			oop params = get(ast, State,parameters);
 			oop events = get(ast, State,events);
-			
-	
+			dprintf("State: %s\n", get(id, Symbol,name));
+
 			// compile events
 			oop *eventList = events->Block.statements;
 			int nElements = 0;
@@ -956,6 +998,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			oop preid = false;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
+			//NEXT-TODO
 			int variablesSize = vars ? vars->Variables.size : 0; // remember the size of variables
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
@@ -968,6 +1011,8 @@ void emitOn(ent prog,oop vars, oop ast)
 				}
 				if(getType(eventList[i])!=Event){
 					fatal("%s %d ERROR: %s\n", __FILE__, __LINE__, "Contact 2024mm11@kuas.ac.jp\n");
+					reportError(DEVELOPER, get(eventList[i], Event,line), "emitOn: eventList[%d] is not an Event", i);
+					return 1;
 					elements[nElements++] = 0; // collect empty events
 				}
 				else if(get(eventList[i], Event,id) != preid) {
@@ -980,7 +1025,7 @@ void emitOn(ent prog,oop vars, oop ast)
 					elements[nElements]++;
 				}
 				dprintf("eventList[%d]: %s\n", i, get(eventList[i], Event,id)->Symbol.name);
-				emitOn(prog, vars, eventList[i]); // compile each event
+				if(emitOn(prog, vars, eventList[i])) return 1; // compile each event
 			}
 			dprintf("Finished collecting events\n");
 
@@ -989,7 +1034,7 @@ void emitOn(ent prog,oop vars, oop ast)
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			//entryEH
 			if(get(eventList[0], Event,id) == entryEH){
-				emitOn(prog, vars, eventList[0]); // compile entryEH
+				if(emitOn(prog, vars, eventList[0])) return 1; // compile entryEH
 			}
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
@@ -1012,38 +1057,38 @@ void emitOn(ent prog,oop vars, oop ast)
 			// exitEH
 			for(int i = 0; i < get(events, Block, size); i++){
 				if(get(eventList[i], Event,id) == exitEH){ 
-					emitOn(prog, vars, eventList[i]); // compile exitEH
+					if(emitOn(prog, vars, eventList[i])) return 1; // compile exitEH
 				}
 				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
-			discardVarialbes(vars, variablesSize); // discard variables
+			//NEXT-TODO
+			discardVariables(vars, variablesSize); // discard variables
 			emitII(prog, iEOS, variablesSize); // emit EOS instruction to mark the end of the state
-			return;
+			return 0;
 		}
 		case Event:{
 			printTYPE(_Event_);
-
 			oop id = get(ast, Event,id);
-			oop eh = get(id,Symbol,value);
-			if(getType(eh) != EventH) {
-				printf("line %d ERROR: event %s() is not an event ID\n",get(ast, Event, line), get(id, Symbol,name));
-				printlnObject(eh,1);
-				exit(1);
-			}
 			oop params = get(ast, Event,parameters);
 			oop block = get(ast, Event,block);
 
-			GC_PUSH(oop, eventLocalVariables, newVariables()); // create local variables for the event
-			
+			oop eh = get(id,Symbol,value);
+			if(getType(eh) != EventH) {
+				printf("line %d ERROR: event %s() is not an event ID\n",get(ast, Event, line), get(id, Symbol,name));
+				reportError(ERROR, get(ast, Event,line), "event %s() is not an event ID", get(id, Symbol,name));
+				return 1;
+			}
+
+			vars->EmitContext.local_vars = newVariables(); // set local variables for the event
 			int nArgs = eh->EventH.nArgs;
 			int paramSize =0;
 			int cPos      = 0;
 			while(params != nil) {//a:id-b:cond
 				oop param = get(params, Pair,a);
-				insertVariable(eventLocalVariables, get(param,Pair,a)); // add parameter to local variables
+				insertVariable(vars->EmitContext.local_vars, get(param,Pair,a)); // add parameter to local variables
 				if(get(param, Pair, b)!= false){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
-					emitOn(prog, eventLocalVariables, get(param, Pair,b)); // compile condition if exists
+					if(emitOn(prog, vars->EmitContext.local_vars, get(param, Pair,b))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
 				params = get(params, Pair,b);
@@ -1054,28 +1099,32 @@ void emitOn(ent prog,oop vars, oop ast)
 			}
 			if(paramSize != nArgs) {
 				error("line %d ERROR: event %s has %d parameters, but expected %d\n",get(ast,Event,line), get(id, Symbol,name), paramSize, nArgs);
-				exit(1);
+				reportError(ERROR, get(ast,Event,line), "event %s has %d parameters, but expected %d", get(id, Symbol,name), paramSize, nArgs);
+				vars->EmitContext.local_vars = NULL; // clear local variables
+				return 1;
 			}
 			int aPos = prog->IntArray.size; // remember the position of the event handler
 			emitII(prog, iMKSPACE, 0); // reserve space for local variables
 			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
 
 
-			emitOn(prog, eventLocalVariables, block); // compile block
-			emitII(prog, iEOE, eventLocalVariables->Variables.size); // emit EOE instruction to mark the end of the event handler
+			if(emitOn(prog, vars, block))return 1; // compile block
+			emitII(prog, iEOE, vars->EmitContext.local_vars->Variables.size); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = eventLocalVariables->Variables.size; // store number of local variables
-			GC_POP(eventLocalVariables); // pop local variables from GC roots
+			prog->IntArray.elements[mkspacepos] = vars->EmitContext.local_vars->Variables.size; // store number of local variables
+			vars->EmitContext.local_vars = NULL; // clear local variables
 			GC_PUSH(oop,apos, newInteger(aPos));
 			GC_PUSH(oop,cpos,newInteger(cPos));
 			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
 			GC_POP(cpos);
 			GC_POP(apos);
-			return;
+			return 0;
 		}
 		default:break;
-    }
+	}
     fatal("emitOn: unimplemented emitter for type %d", getType(ast));
+	reportError(DEVELOPER, 0, "emitOn: unimplemented emitter for type %d", getType(ast));
+	return 1;
 }
 
 void printCode(ent code){
@@ -1231,7 +1280,7 @@ ent compile()
 			break;
 		}
 		printf("compiling statement %d\n", line);
-		emitOn(prog, vars, result);
+		if(emitOn(prog, vars, result))return NULL;
 		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
     emitI (prog, iHALT); // end of program
@@ -1681,7 +1730,7 @@ int memory_init(void)
 	#error "MSGCS or MSGC must be defined"
 #endif
 
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 unsigned int maxNumWebCodes = 1; // maximum number of web codes
@@ -1723,7 +1772,7 @@ int initWebCodes(int num)
 	ctx = comctx; // use the context for the garbage collector
 	webCodes = (ent *)gc_beAtomic(malloc(sizeof(ent) * num)); // initialize web codes
 	maxNumWebCodes = num; // set the maximum number of web codes
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 int addWebCode(void)
@@ -1735,7 +1784,7 @@ int addWebCode(void)
 		return 1; // return 1 to indicate failure
 	}
 	webCodes[nWebCodes++] = NULL; // add a new web code
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 int compile_init()
@@ -1796,11 +1845,17 @@ int compileWebCode(const int doInit,const int index, const char *code)
 	store(code); // store the code to the memory
 	initYYContext();
 	webCodes[index] = compile();
+	if(webCodes[index] == NULL){
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+		reportError(DEVELOPER, 0, "compile error.");
+		compile_finalize(); // finalize the compilation
+		return 1; // return 1 to indicate failure
+	}
 	// print bytecode 
 	printf("Printing bytecode for web code %d:\n", index);
 	printCode(webCodes[index]);
 	compile_finalize(); // finalize the compilation
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 int deleteWebCode(const int index)
@@ -1815,7 +1870,7 @@ int deleteWebCode(const int index)
 		webCodes[i] = webCodes[i + 1]; // shift the web codes
 	}
 	nWebCodes--; // decrease the number of web codes
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 
@@ -1852,7 +1907,7 @@ int initWebAgents(int num)
 	printf("Initialized %d web agents.\n", num);
 	nWebAgents = num; // set the number of web agents
 	ctx = exectx; // reset the context to the execution context
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 //WARNING: which ctx you use is important -> exectx (initWebAgents)
@@ -1888,12 +1943,12 @@ int executeWebCodes(void)
 		// printCode(webCodes[i]); // print the bytecode of the web code
 	}
 	ctx = exectx; // reset the context to the execution context
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 int stopWebCodes(void)
 {
 	ctx = comctx; // use the context for the garbage collector
-	return 0; // return 0 to indicate success
+	return 0; 
 }
 
 int getCompiledWebCode(int index)
@@ -1921,7 +1976,7 @@ int getCompiledWebCode(int index)
 		return 1; // return 1 to indicate failure
   	}
   	fclose(f); // close the file
-  	return 0; // return 0 to indicate success
+  	return 0; 
 }
 
 #endif // WEBSHICA
@@ -1956,6 +2011,10 @@ int main(int argc, char **argv)
 	compile_func_init(); // initialize the standard functions
 	// compile code
 	ent code = compile();
+	if(code == NULL){
+		rprintf("Compilation failed.\n");
+		return 1; // return 1 to indicate failure
+	}
 
 	// print bytecode 
 	rprintf("Print IR code:\n");
