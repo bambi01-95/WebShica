@@ -17,7 +17,6 @@ static int nlines = 0;
 
 start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
-		|  - a:assignment {result = a; }
 		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
 		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); }
@@ -27,10 +26,9 @@ state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 events = LBRACE b:mkBlock
 	  (
 	    !RBRACE
-	    (e:event|e:assignment)              { Event_Block_append(b, e) }
+	    (e:event|e:stt_local_assignment)              { Event_Block_append(b, e) }
 	  )+
 	  RBRACE			{ $$ = b }
-
 
 event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
 
@@ -61,6 +59,8 @@ block   = LBRACE b:mkBlock
 mkBlock =                               { $$ = newBlock() }
 
 define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nlines); }
+       | i:id ASSIGN x:assignment { $$ = newSetVar(i, x, SCOPE_GLOBAL, nlines) }
+       | v:value i:index ASSIGN x:assignment { $$ = newSetArray(v, i, x, SCOPE_GLOBAL); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -86,8 +86,11 @@ args	= LPAR a:mkNil
 
 expr	= assignment
 
-assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x,  0,nlines) }
-			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x) }
+stt_local_assignment = i:id ASSIGN x:assignment { $$ = newSetVar(i, x, SCOPE_STATE_LOCAL, nlines) }
+	  			 | v:value i:index ASSIGN x:assignment { $$ = newSetArray(v, i, x, SCOPE_STATE_LOCAL); }
+
+assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x, SCOPE_LOCAL, nlines) }
+			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x, SCOPE_LOCAL); }
 			| eqop
 
 eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }

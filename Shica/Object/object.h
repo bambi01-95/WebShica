@@ -24,7 +24,7 @@ typedef enum Type {
     /* 18 */ Print, If, Loop, Block,
 	/* 21 */ Transition, State, Event,EventH,
 	/* AF LEG */
-	/* 25 */ Variables,
+	/* 25 */ Variables,EmitContext,
 	/* LEG OBJ */
 }type_t;
 
@@ -46,7 +46,7 @@ struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
 struct GetVar  	 { type_t _type; int line; oop id; };
 struct SetVar  	 { type_t _type; int line; oop id; oop rhs;int scope;  };
 struct GetArray	 { type_t _type;           oop array, index; };
-struct SetArray	 { type_t _type;           oop array, index, value; };
+struct SetArray	 { type_t _type;           oop array, index, value;int scope; };
 struct Call 	 { type_t _type; int line; oop function, arguments; };
 struct Return 	 { type_t _type;           oop value; };
 struct Break 	 { type_t _type;           };
@@ -61,6 +61,11 @@ struct Event   	 { type_t _type; int line; oop id, parameters, block; };
 struct EventH    { type_t _type;           int id; int nArgs; };
 
 /* after leg */
+struct EmitContext{
+	oop global_vars; // global variables
+	oop state_vars; // state variables to emit code for
+	oop local_vars; // local variables to emit code for
+};
 struct Variables{
 	type_t _type;
 	int size;
@@ -99,6 +104,7 @@ union Object {
 
 	/* AF LEG */
 	struct Variables Variables;
+    struct EmitContext EmitContext; // for emit code
 };
 
 int getType(oop o);
@@ -142,11 +148,18 @@ oop newUserFunc(oop parameters, oop body);
 oop newBinop(enum binop op, oop lhs, oop rhs);
 oop newUnyop(enum unyop op, oop rhs);
 
+typedef enum {
+  SCOPE_GLOBAL,
+  SCOPE_LOCAL,
+  SCOPE_STATE_LOCAL,
+  SCOPE_UPVALUE,
+  SCOPE_CONST
+} ScopeClass;
 oop newGetVar(oop id,int line);
-oop newSetVar(oop id, oop rhs,int scope, int line);
+oop newSetVar(oop id, oop rhs,ScopeClass scope, int line);
 
 oop newGetArray(oop array, oop index);
-oop newSetArray(oop array, oop index, oop value);
+oop newSetArray(oop array, oop index, oop value, ScopeClass scope);
 
 oop newCall(oop arguments, oop function, int line);
 
@@ -174,6 +187,8 @@ oop newVariables();
 oop insertVariable(oop list, oop sym);
 oop searchVariable(oop list, oop sym);
 #define discardVarialbes(V,X) V->Variables.size = X
+
+oop newEmitContext();
 
 void printlnObject(oop node, int indent);
 void println(oop obj);

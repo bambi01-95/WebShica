@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../GC/gc.h"
-#define MESSAGE_MAX_LENGTH 256
+#define MESSAGE_MAX_LENGTH 100
 
 void _fatal(const char *file, int line, const char *msg, ...);
 #define fatal(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
@@ -27,7 +27,7 @@ typedef struct ErrorList {
 
 void initErrorList();
 
-void reportError(const int type, const int line, const char *message);
+void reportError(const int type, const int line, const char * fmt, ...);
 
 void freeErrorList();
 

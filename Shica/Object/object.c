@@ -298,7 +298,8 @@ oop newGetVar(oop id,int line)
     return node;
 }
 
-oop newSetVar(oop id, oop rhs,int scope, int line)
+
+oop newSetVar(oop id, oop rhs, ScopeClass scope, int line)
 {
 	gc_pushRoot((void*)&id);
     oop node = newObject(SetVar);
@@ -321,7 +322,7 @@ oop newGetArray(oop array, oop index)
     return node;
 }
 
-oop newSetArray(oop array, oop index, oop value)
+oop newSetArray(oop array, oop index, oop value, ScopeClass scope)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
@@ -330,6 +331,7 @@ oop newSetArray(oop array, oop index, oop value)
     node->SetArray.array = array;
     node->SetArray.index = index;
     node->SetArray.value = value;
+	node->SetArray.scope = scope; // use _type to store scope
 	gc_popRoots(3);
     return node;
 }
@@ -584,6 +586,16 @@ oop searchVariable(oop list, oop sym)
 	for (int i = 0;  i < nvariables;  ++i)
 	if ((variables[i]->Pair.a) == sym) return variables[i];
 	return NULL;
+}
+
+oop newEmitContext()
+{
+	GC_PUSH(oop, context, newObject(EmitContext));
+	context->EmitContext.global_vars = newVariables();
+	context->EmitContext.state_vars  = NULL;
+	context->EmitContext.local_vars  = NULL;
+	GC_POP(context);
+	return context;
 }
 
 

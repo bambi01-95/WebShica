@@ -31,13 +31,19 @@ void initErrorList() {
     errorListHeader = NULL; // Initialize the error list to NULL
 }
 
-void reportError(const int type, const int line, const char *message) {
+void reportError(const int type, const int line, const char * fmt, ...) {
     ErrorList* e = malloc(sizeof(ErrorList));
     e->line = line;
     assert(type < ERROR_UNSUPPORTED); // Ensure type is valid
     e->type = type;
-    assert(strlen(message) < MESSAGE_MAX_LENGTH); // Ensure message length is within bounds
-    e->message = strdup(message); // Duplicate the message string
+
+    char buffer[MESSAGE_MAX_LENGTH];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);  // フォーマット展開
+    va_end(args);
+
+    e->message = gc_strdup(buffer); // フォーマット済み文字列をコピー
     e->next = errorListHeader;
     errorListHeader = e;
     return; 

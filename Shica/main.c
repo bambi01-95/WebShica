@@ -593,6 +593,8 @@ void setTransPos(ent prog){
 #define printTYPE(OP) ;
 #endif
 
+
+
 void emitL (ent array, oop object) 	  { intArray_append(array, Integer_value(object)); }
 void emitI (ent array, int i     ) 	  { intArray_append(array, i); }
 void emitII(ent array, int i, int j)      { emitI(array, i); emitI(array, j); }
@@ -669,7 +671,9 @@ void emitOn(ent prog,oop vars, oop ast)
 		case GetVar: {
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
-			oop variable = searchVariable(vars,sym);
+			oop variable = searchVariable(vars->EmitContext.local_vars,sym);
+			variable  = searchVariable(vars->EmitContext.state_vars,sym);
+			variable = searchVariable(vars->EmitContext.global_vars,sym);
 			if (variable == NULL) {
 				error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
 				exit(1);
@@ -798,10 +802,30 @@ void emitOn(ent prog,oop vars, oop ast)
 				case GetVar:
 				case Unyop:
 				case Binop:{
-						emitOn(prog,vars, rhs);
-						oop variable = insertVariable(vars,sym);
-						emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
-					return;	
+					    int scope = get(ast, SetVar,scope);
+					switch(scope) {
+						case SCOPE_LOCAL:{
+								emitOn(prog,vars, rhs);
+								oop variable = insertVariable(vars->EmitContext.local_vars,sym);
+								emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
+								return;
+						}
+						case SCOPE_STATE_LOCAL:{
+								emitOn(prog,vars, rhs);
+								oop variable = insertVariable(vars->EmitContext.state_vars,sym);
+								emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
+							return;
+						}
+						case SCOPE_GLOBAL:{
+							emitOn(prog,vars, rhs);
+							oop variable = insertVariable(vars->EmitContext.global_vars,sym);
+							emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
+							return;
+						}
+					}
+
+					reportError(DEVELOPER,get(ast, SetVar,line), "Unsupported variable: %s", get(sym, Symbol,name));
+					return;
 				}
 				default:{
 					error("line %d ERROR: set variable with type %d\n",get(ast,GetVar,line), getType(rhs));
@@ -1199,8 +1223,7 @@ ent compile()
 	printf("compiling...\n");
     ent prog = intArray_init(); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
-
-	GC_PUSH(oop, globalVars,newVariables()); // create global variables
+	GC_PUSH(oop, vars, newEmitContext()); // push context variables to GC roots
 	// compile the AST into the program code
 	int line = 1;
 	while(yyparse()){
@@ -1208,13 +1231,13 @@ ent compile()
 			break;
 		}
 		printf("compiling statement %d\n", line);
-		emitOn(prog, globalVars, result);
+		emitOn(prog, vars, result);
 		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
     emitI (prog, iHALT); // end of program
-	prog->IntArray.elements[1] = globalVars->Variables.size; // store number of variables
+	prog->IntArray.elements[1] = vars->Variables.size; // store number of variables
 	setTransPos(prog); // set transition positions
-	GC_POP(globalVars); // pop global variables from GC roots
+	GC_POP(vars); // pop context variables from GC roots
 	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
     return prog;
 }
@@ -1481,6 +1504,19 @@ case Variables:
 	}
 	if (obj->Variables.elements) {
 		gc_markOnly(obj->Variables.elements);
+	}
+	return;
+}
+case EmitContext:
+{
+	if (obj->EmitContext.local_vars) {
+		gc_mark(obj->EmitContext.local_vars);
+	}
+	if (obj->EmitContext.state_vars) {
+		gc_mark(obj->EmitContext.state_vars);
+	}
+	if (obj->EmitContext.global_vars) {
+		gc_mark(obj->EmitContext.global_vars);
 	}
 	return;
 }
