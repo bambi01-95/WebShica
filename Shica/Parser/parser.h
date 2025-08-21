@@ -3,6 +3,7 @@
 
 #include "../Object/object.h"
 #include "../GC/gc.h"
+#include "../Error/error.h"
 
 #ifdef WEBSHICA
 #include "../Platform/WebShica/Library/library.h" // for WebText, WebTextPos

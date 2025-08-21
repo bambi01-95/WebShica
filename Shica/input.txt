@@ -1,0 +1,5 @@
+stt state(){
+    timerEH(s){
+        exit();
+    }
+}

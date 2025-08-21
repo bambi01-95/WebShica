@@ -17,11 +17,18 @@ void _fatal(const char *file, int line, const char *msg, ...)
 {
 	va_list ap;
 	va_start(ap, msg);
+#ifdef WEBSHICA
+    fprintf(stdin, "\nFatal error [%s:%d]:\n ", file, line);
+    vfprintf(stdin, msg, ap);
+    fprintf(stdin, "\n");
+    fflush(stdin);
+#else
 	fprintf(stderr, "\nFatal error [%s:%d]: ", file, line);
 	vfprintf(stderr, msg, ap);
 	fprintf(stderr, "\n");
+    fflush(stderr);
+#endif
 	va_end(ap);
-	fprintf(stderr, "%s", "[Please report this bug to the developers.\n]");
 }
 
 static ErrorList *errorListHeader = NULL; // Global error list header
@@ -46,6 +53,14 @@ void reportError(const int type, const int line, const char * fmt, ...) {
     e->next = errorListHeader;
     errorListHeader = e;
     return; 
+}
+void printErrorList() {
+    ErrorList *current = errorListHeader;
+    char *typeNames[] = {"DEVELOPER", "INFO", "WARNING", "ERROR", "FATAL", "DEBUG_", "UNSUPPORTED"};
+    while (current != NULL) {
+        printf("[%s] Line %d: %s\n", typeNames[current->type], current->line, current->message);
+        current = current->next; // Move to the next error
+    }
 }
 
 void freeErrorList() {
@@ -115,6 +130,7 @@ char* getErrorMsg(void)
     }
     webErrorMsg[index] = '\0'; // Null-terminate the string
     errorListHeader = current->next; // Remove the first error from the list
+    printf("getErrorMsg: %s\n", webErrorMsg);
     return webErrorMsg; // Return the message of the first error
 #undef MAX_CODE_LINE
 }

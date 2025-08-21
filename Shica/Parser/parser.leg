@@ -16,7 +16,7 @@ oop parserRetFlags[2] = {
 	MAKE_OOP_FLAG(PARSER_ERROR),
 };
 
-static int nlines = 0;
+static int nlines = 1;
 //LEG AREA
 %}
 
@@ -24,7 +24,7 @@ start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
 		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = parserRetFlags[PARSER_FINISH]; }
-		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); result = parserRetFlags[PARSER_ERROR]; }
+		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); result = parserRetFlags[PARSER_ERROR]; reportError(ERROR, nlines, "syntax error: %s", yytext); }
 
 state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 
@@ -67,7 +67,7 @@ define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nli
        | i:id ASSIGN x:assignment { $$ = newSetVar(i, x, SCOPE_GLOBAL, nlines) }
        | v:value i:index ASSIGN x:assignment { $$ = newSetArray(v, i, x, SCOPE_GLOBAL); }
 
-stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }	
+stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
 	  		ELSE (t:expr | t:block)          	  { $$ = newIf(c, s, t) }
 		| IF LPAR c:expr RPAR (s:block|s:expr)	  { $$ = newIf(c, s, false) }
@@ -79,8 +79,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
 		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
-		| - SEMI				  		  { result = false; }
-		| x:expr 						  { fatal("line %d ERROR: syntax error ';'\n",nlines);}
+		| - SEMI				  		
 
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newPair(i, a) }

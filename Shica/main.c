@@ -4,7 +4,7 @@
 #define DEBUG 0
 #endif
 
-#define DEVELOPER_EMAIL "hiroto.shikada@gmail.com"
+
 
 /*
 GLOBAL VARIABLES: should start with a capital letter
@@ -50,11 +50,20 @@ UserFunc Name: should start with a lowwer letter
 
 void error(char *msg, ...){
     va_list ap;
-    va_start(ap, msg);
-    fprintf(stderr, "\n");
-    vfprintf(stderr, msg, ap);
-    fprintf(stderr, "\n");
+	va_start(ap, msg);
+#ifdef WEBSHICA
+	fprintf(stdin, "\nError: ");
+	vfprintf(stdin, msg, ap);
+	fprintf(stdin, "\n");
+	fflush(stdin);
+#else
+	fprintf(stderr, "\nError: ");
+	vfprintf(stderr, msg, ap);
+	fprintf(stderr, "\n");
+	fflush(stderr);
+#endif
     va_end(ap);
+	return;
 }
 
 
@@ -668,8 +677,8 @@ int emitOn(ent prog,oop vars, oop ast)
 				case MOD: emitI(prog, iMOD);  return 0;
 				default:break;
 			}
-			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			reportError(DEVELOPER, 0, "emitOn: unknown Binop operator %d", get(ast, Binop,op));
+			fatal("file %s line %d unknown Binop operator %d", __FILE__, __LINE__, get(ast, Binop,op));
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case Unyop:{
@@ -681,7 +690,10 @@ int emitOn(ent prog,oop vars, oop ast)
 				default: break;
 			}
 			oop variable = searchVariable(vars, get(rhs, GetVar,id));
-
+			if(variable == NULL){
+				reportError(ERROR, 0, "variable %s not found", get(get(rhs, GetVar,id), Symbol,name));
+				return 1;
+			}
 			switch(get(ast, Unyop,op)) {
 					case BINC: if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));if(emitOn(prog, vars, rhs))return 1; return 0;
 					case BDEC: if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); if(emitOn(prog, vars, rhs))return 1;return 0;
@@ -689,29 +701,28 @@ int emitOn(ent prog,oop vars, oop ast)
 					case ADEC: if(emitOn(prog, vars, rhs))return 1;if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return 0;
 				default: break;
 			}
-			fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			reportError(DEVELOPER, 0, "emitOn: unknown Unyop operator %d", get(ast, Unyop,op));
+			fatal("file %s line %d unknown Unyop operator %d", __FILE__, __LINE__, get(ast, Unyop,op));
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case GetVar: {
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
-			oop variable = searchVariable(vars->EmitContext.local_vars,sym);
+			oop variable = searchVariable(vars->EmitContext.local_vars,sym);// search in local variables first
 			if(variable){
 				emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
-			variable  = searchVariable(vars->EmitContext.state_vars,sym);
+			variable  = searchVariable(vars->EmitContext.state_vars,sym); // search in state variables
 			if(variable){
 				emitII(prog, iGETSTATEVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
-			variable = searchVariable(vars->EmitContext.global_vars,sym);
+			variable = searchVariable(vars->EmitContext.global_vars,sym); // search in global variables
 			if (variable) {
 				emitII(prog, iGETGLOBALVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
-			error("line %d ERROR: variable %s not found\n",get(ast,GetVar,line), get(sym, Symbol,name));
 			reportError(ERROR, get(ast,GetVar,line), "variable %s not found", get(sym, Symbol,name));
 			return 1;
 		}
@@ -719,9 +730,11 @@ int emitOn(ent prog,oop vars, oop ast)
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
 			oop id   = get(ast, Call, function);
+			id = get(id, GetVar, id); // get the variable from the GetVar
 			oop args = get(ast, Call,arguments);
-			oop func = get(get(id,GetVar,id), Symbol, value); // get the function from the variable;
-			
+
+			oop func = get(id, Symbol, value); // get the function from the variable;
+
 			switch(getType(func)){
 				case EventH:{
 					printTYPE(_EventH_);
@@ -736,7 +749,6 @@ int emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						error("line %d ERROR: event %s expects %d arguments, but got %d\n", get(ast,Call,line),get(func, Symbol,name), nArgs, argsCount);
 						reportError(ERROR, get(ast,Call,line), "event %s expects %d arguments, but got %d", get(func, Symbol,name), nArgs, argsCount);
 						return 1;
 					}
@@ -754,9 +766,7 @@ int emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(StdFuncTable[funcIndex].nArgs != argsCount){
-						error("line %d ERROR: standard function %s expects %d arguments, but got %d\n",
-						get(ast,Call,line),get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
-						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(func, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(id, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
 						return 1;
 					}
 
@@ -778,8 +788,7 @@ int emitOn(ent prog,oop vars, oop ast)
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						error("line %d ERROR: function %s expects %d arguments, but got %d\n", get(ast, Call, line), get(func, Symbol,name), nArgs, argsCount);
-						reportError(ERROR, get(ast, Call, line), "function %s expects %d arguments, but got %d", get(func, Symbol,name), nArgs, argsCount);
+						reportError(ERROR, get(ast, Call, line), "function %s expects %d arguments, but got %d", get(id, Symbol,name), nArgs, argsCount);
 						return 1; 
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
@@ -789,13 +798,13 @@ int emitOn(ent prog,oop vars, oop ast)
 					return 0; 
 				}
 				default:{
-					fatal("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-					fatal("error: call function with type %d\n", getType(func));
-					reportError(DEVELOPER, 0, "%s line %d call function with type %d",__FILE__,__LINE__,getType(func));
+					fatal("file %s line %d call function with type %d",__FILE__,__LINE__,getType(func));
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 			}
-			reportError(DEVELOPER, get(ast,Call,line), "emitOn: unknown Call type %d", getType(func));
+			fatal("file %s line %d unknown Call type %d", __FILE__, __LINE__, getType(id));
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case SetVar: {
@@ -806,7 +815,6 @@ int emitOn(ent prog,oop vars, oop ast)
 				case UserFunc:{
 					printTYPE(_Function_);
 					if(sym->Symbol.value !=false) {
-						error("line %d ERROR: variable %s is already defined as a function\n",get(ast,SetVar,line), get(sym, Symbol,name));
 						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
 						return 1;
 					}
@@ -817,7 +825,6 @@ int emitOn(ent prog,oop vars, oop ast)
 					while(params != nil){
 						oop param = get(params, Pair,a);
 						if (searchVariable(vars->EmitContext.local_vars, param) != NULL) {
-							error("line %d ERROR: parameter %s is already defined\n",get(ast,SetVar,line), get(param, Symbol,name));
 							reportError(ERROR, get(ast,SetVar,line), "parameter %s is already defined", get(param, Symbol,name));
 							GC_POP(closure);
 							vars->EmitContext.local_vars = NULL;
@@ -865,24 +872,26 @@ int emitOn(ent prog,oop vars, oop ast)
 							return 0;
 						}
 					}
-					reportError(DEVELOPER,get(ast, SetVar,line), "Unsupported variable: %s", get(sym, Symbol,name));
+					fatal("file %s line %d emitOn: unknown SetVar scope %d", __FILE__, __LINE__, scope);
+					reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 				default:{
-					error("line %d ERROR: set variable with type %d\n",get(ast,GetVar,line), getType(rhs));
-					reportError(ERROR, get(ast,SetVar,line), "set variable with type %d", getType(rhs));
+					fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
+					reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 			}
-			reportError(DEVELOPER, get(ast,SetVar,line), "emitOn: unknown SetVar type %d", getType(rhs));
+			fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
+			reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 			return 0;
 		}
 		case Pair:{
 			printTYPE(_Pair_);
 			oop a = get(ast, Pair,a);
 			oop b = get(ast, Pair,b);
-			error("%s %d: %s",__FILE__,__LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-			reportError(DEVELOPER, 0, "emitOn: Pair is not supported yet");
+			fatal("file %s line %d emitOn: Pair is not supported yet", __FILE__, __LINE__);
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case Print:{
@@ -894,6 +903,10 @@ int emitOn(ent prog,oop vars, oop ast)
 				if(emitOn(prog, vars, arg)) return 1; // compile argument
 				args = get(args, Pair,b);
 				nArgs++;
+			}
+			if(nArgs == 0) {
+				reportError(ERROR, get(ast, Print, line), "print statement requires at least one argument");
+				return 1;
 			}
 			emitII(prog, iPRINT, nArgs); // print the result
 			return 0;
@@ -1005,16 +1018,19 @@ int emitOn(ent prog,oop vars, oop ast)
 			vars->EmitContext.state_vars = newVariables(); // set state variables for the state
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
-				dprintf("DEBUG: %s\n", "Contact 2024mm11@kuas.ac.jp\n");
-				if(eventList[i] == NULL)fatal("line %d ERROR: %s\n", __LINE__, "Contact 2024mm11@kuas.ac.jp\n");
+				if(eventList[i] == NULL){
+					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
+					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
+					return 1;
+				}
 				if((get(eventList[i], Event,id) == entryEH) || (get(eventList[i], Event,id) == exitEH)){
 					dprintf("entryEH or exitEH\n");
 					elements[nElements++] = 0; // collect empty events
 					continue;
 				}
 				if(getType(eventList[i])!=Event){
-					fatal("%s %d ERROR: %s\n", __FILE__, __LINE__, "Contact 2024mm11@kuas.ac.jp\n");
-					reportError(DEVELOPER, get(eventList[i], Event,line), "emitOn: eventList[%d] is not an Event", i);
+					fatal("file %s line %d emitOn: eventList[%d] is not an Event", __FILE__, __LINE__, i);
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 					elements[nElements++] = 0; // collect empty events
 				}
@@ -1078,8 +1094,8 @@ int emitOn(ent prog,oop vars, oop ast)
 
 			oop eh = get(id,Symbol,value);
 			if(getType(eh) != EventH) {
-				printf("line %d ERROR: event %s() is not an event ID\n",get(ast, Event, line), get(id, Symbol,name));
-				reportError(ERROR, get(ast, Event,line), "event %s() is not an event ID", get(id, Symbol,name));
+				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, get(id, Symbol,name));
+				reportError(DEVELOPER, get(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
 				return 1;
 			}
 
@@ -1102,7 +1118,6 @@ int emitOn(ent prog,oop vars, oop ast)
 				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
-				error("line %d ERROR: event %s has %d parameters, but expected %d\n",get(ast,Event,line), get(id, Symbol,name), paramSize, nArgs);
 				reportError(ERROR, get(ast,Event,line), "event %s has %d parameters, but expected %d", get(id, Symbol,name), paramSize, nArgs);
 				vars->EmitContext.local_vars = NULL; // clear local variables
 				return 1;
@@ -1126,8 +1141,8 @@ int emitOn(ent prog,oop vars, oop ast)
 		}
 		default:break;
 	}
-    fatal("emitOn: unimplemented emitter for type %d", getType(ast));
-	reportError(DEVELOPER, 0, "emitOn: unimplemented emitter for type %d", getType(ast));
+    fatal("file %s line %d: emitOn: unimplemented emitter for type %d", __FILE__, __LINE__, getType(ast));
+	reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 	return 1;
 }
 
@@ -1860,7 +1875,6 @@ int compileWebCode(const int doInit,const int index, const char *code)
 
 	if(webCodes[index] == NULL){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
-		reportError(DEVELOPER, 0, "compile error.");
 		compile_finalize(); // finalize the compilation
 		return 1; // return 1 to indicate failure
 	}
@@ -2026,6 +2040,7 @@ int main(int argc, char **argv)
 	ent code = compile();
 	if(code == NULL){
 		rprintf("Compilation failed.\n");
+		printErrorList(); // print the error list
 		return 1; // return 1 to indicate failure
 	}
 

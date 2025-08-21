@@ -52,7 +52,7 @@ struct Return 	 { type_t _type;           oop value; };
 struct Break 	 { type_t _type;           };
 struct Continue	 { type_t _type;           };
 struct Transition{ type_t _type;           oop id; };
-struct Print   	 { type_t _type;           oop arguments; };
+struct Print   	 { type_t _type;  int line; oop arguments; };
 struct If      	 { type_t _type;           oop condition, statement1, statement2; };
 struct Loop   	 { type_t _type;           oop initialization,condition,iteration, statement; };
 struct Block   	 { type_t _type;           oop *statements;  int size; };
@@ -169,7 +169,7 @@ oop newContinue(void);
 
 oop newTransition(oop id);
 
-oop newPrint(oop arguments);
+oop newPrint(oop arguments,int line);
 oop newIf(oop condition, oop s1, oop s2);
 oop newLoop(oop init,oop cond,oop iterate, oop s);
 

@@ -347,11 +347,12 @@ oop newTransition(oop id)
 	return node;
 }
 
-oop newPrint(oop arguments)
+oop newPrint(oop arguments, int line)
 {
 	gc_pushRoot((void*)&arguments);
     oop node = newObject(Print);
     node->Print.arguments = arguments;
+	node->Print.line      = line;
 	gc_popRoots(1);
     return node;
 }
