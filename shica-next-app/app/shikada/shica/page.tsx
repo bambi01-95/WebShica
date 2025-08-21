@@ -62,27 +62,49 @@ export interface Robot {
 const examplecodes: string[] = [
   `stt state(){
     clickEH(x,y){
-    setColor(199, 31, 104);
-        setXY(x,y);
+      setColor(199, 31, 104);
+      setXY(x,y);
     }
 }`,
   `stt state(){
     clickEH(x,y){
-        setXY(50,50);
-        setVX(5);
-        setVY(0);
+      setXY(50,50);
+      setVX(5);
+      setVY(0);
+    }
+}`,
+  `stt state(){
+    clickEH(x,y){
+      setXY(450,50);
+      setVX(0);
+      setVY(5);
+    }
+}`,
+  `stt state(){
+    clickEH(x,y){
+      setXY(450,450);
+      setVX(-5);
+      setVY(0);
+    }
+}`,
+  `stt state(){
+    clickEH(x,y){
+      setXY(50,450);
+      setVX(0);
+      setVY(-5);
     }
 }`,
 ];
 
 const ShicaPage = () => {
   // <CodeEditor>のコード管理
-  const [codes, setCodes] = useState<{ filename: string; code: string }[]>([
+  const [codes, setCodes] = useState<{ filename: string; code: string; compiled: boolean }[]>([
     {
       filename: "Agent0",
       code:
         examplecodes[0] ||
         "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+      compiled: false, 
     },
   ]);
   const updateItem = (index: number, newValue: string) => {
@@ -134,7 +156,8 @@ const ShicaPage = () => {
       ...prev,
       {
         filename: `Agent${codes.length}`,
-        code: "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+        code: examplecodes[0],
+        compiled: false,
       },
     ]);
     setSelectedIndex(codes.length); // 新しく追加したファイルを選択

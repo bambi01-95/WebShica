@@ -8,7 +8,6 @@
 #  - DEBUG:
 
 
-PORT=8000
 
 # copy
 DEST = ../shica-next-app/public/shikada/js
@@ -53,7 +52,7 @@ WEB_SHICA_FLAGS = -O3 \
          -s INITIAL_MEMORY=64MB \
          -s ENVIRONMENT=web \
          -s EXPORTED_FUNCTIONS='[$(WEB_SHICA_FUNC), $(WEB_SHICA_ERROR_FUNC)]' \
-		 -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS","UTF8ToString"]' \
+		 -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS"]' \
          --no-entry \
          -o $(WASMOUT)
 
