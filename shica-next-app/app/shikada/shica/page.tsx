@@ -179,6 +179,53 @@ const ShicaPage = () => {
     setLogs([]);
   };
 
+  const processError = () => {
+    if (!Module || !isReady) return;
+    const numErrors = Module.ccall("getNumOfErrorMsg", "number", [], []);
+    if (numErrors > 0) {
+      const errorType = [
+        "WARNING",
+        "ERROR",
+        "FATAL",
+        "DEVELOPER",
+        "UNSUPPORTED",
+      ];
+      for (let i = 0; i < numErrors; i++) {
+        const errorMsg = Module.ccall("getErrorMsg", "string", [], []);
+        const errorLevel = errorMsg.charAt(0);
+        const errorLine = errorMsg.slice(1, 5);
+
+        const errorMessage = errorMsg.slice(5);
+        let logLevel: LogLevel;
+        switch (errorLevel) {
+          case "0":
+            logLevel = LogLevel.SHICA;
+            break;
+          case "1":
+            logLevel = LogLevel.INFO;
+            break;
+          case "2":
+            logLevel = LogLevel.WARN;
+            break;
+          case "3":
+            logLevel = LogLevel.ERROR;
+            break;
+          case "4":
+            logLevel = LogLevel.FATAL;
+            break;
+          default:
+            logLevel = LogLevel.DEBUG;
+        }
+        if (errorLine === "0000") {
+          addLog(logLevel, errorMessage);
+        } else {
+          const logMessage = `[Line: ${errorLine}] ${errorMessage}`;
+          addLog(logLevel, logMessage);
+        }
+      }
+    }
+  };
+
   // once when the page is loaded
   useEffect(() => {
     if (!Module || !isReady) return;
@@ -249,17 +296,14 @@ const ShicaPage = () => {
       ".stt"
     );
 
-    if (ret === 0) {
-      addLog(
-        LogLevel.SUCCESS,
-        `shica ${outputFilename} -o ${codes[selectedIndex].filename}`
-      );
-    } else {
-      addLog(
-        LogLevel.ERROR,
-        `shica ${outputFilename} -o ${codes[selectedIndex].filename}`
-      );
+    if (ret) {
+      processError();
+      return;
     }
+    addLog(
+      LogLevel.SUCCESS,
+      `shica ${outputFilename} -o ${codes[selectedIndex].filename}`
+    );
     setProcess("compile");
     setIsCompiling(false);
   }, [isCompiling, Module, isReady]);

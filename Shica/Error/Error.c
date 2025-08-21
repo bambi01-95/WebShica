@@ -88,7 +88,12 @@ int getNumOfErrorMsg()
     }
     return count;
 }
-
+/* ERROR FORMAT: 
+    [type][line][message]
+    type: 0=WARNING, 1=ERROR, 2=FATAL, 3=DEVELOPER, 4=UNSUPPORTED
+    line: 4 digits (padded with zeros if necessary)
+    message: up to MESSAGE_MAX_LENGTH - 6 characters (to fit in the buffer)
+*/
 char* getErrorMsg(void)
 {
 #define MAX_CODE_LINE 4
@@ -96,15 +101,16 @@ char* getErrorMsg(void)
     ErrorList *current = errorListHeader;
     webErrorMsg[0] = '\0'; // Initialize the error message buffer
     int index = 0;
-    webErrorMsg[index++] = current->type; // Store the error type
+    webErrorMsg[index++] = current->type + '0'; // Store the error type
     int line = current->line;
     for(int i = MAX_CODE_LINE; i > 0; i--) {
         webErrorMsg[i] = line % 10 + '0'; // Store the line number as a character
         line /= 10; // Move to the next digit
     }
+    index += MAX_CODE_LINE; // Move the index past the line number
     char *msg = current->message;
     int msgLen = strlen(msg);
-    for(int i = 0; i < msgLen && index < MESSAGE_MAX_LENGTH - 1; i++) {
+    for(int i = 0; i < msgLen; i++) {
         webErrorMsg[index++] = msg[i]; // Copy the message into the buffer
     }
     webErrorMsg[index] = '\0'; // Null-terminate the string

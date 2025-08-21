@@ -9,12 +9,16 @@
 void _fatal(const char *file, int line, const char *msg, ...);
 #define fatal(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
+/*
+ * it is related we Error Component.
+*/
 typedef enum {
-    WANNING,
+    DEVELOPER,
+    INFO,
+    WARNING,
     ERROR,
     FATAL,
-    DEVELOPER,
-
+    DEBUG_,/*not. use*/
     /* UNSUPPORTED */
     ERROR_UNSUPPORTED
 } ErrorType;
