@@ -14,11 +14,7 @@
 #endif
 
 
-#define TAGINT	1			// tag bits value for Integer  ........1
-#define TAGFLT	2			// tag bits value for Float    .......10
 
-#define TAGBITS 2			// how many bits to use for tag bits
-#define TAGMASK ((1 << TAGBITS) - 1)	// mask to extract just the tag bits
 
 
 oop nil   = 0;
@@ -30,12 +26,8 @@ oop exitEH  = NULL;
 
 int getType(oop o)
 {
-#if TAGINT
-    if ((((intptr_t)o) & TAGMASK) == TAGINT) return Integer;
-#endif
-#if TAGFLT
-    if ((((intptr_t)o) & TAGMASK) == TAGFLT) return Float;
-#endif
+    if ((((intptr_t)o) & TAGMASK) == TAG_INT_OOP) return Integer;
+    if ((((intptr_t)o) & TAGMASK) == TAG_FLT_OOP) return Float;
     return o->_type;
 }
 
@@ -71,46 +63,26 @@ oop newUndefine()
 
 oop newInteger(int value)
 {
-#if TAGINT
-    return (oop)(((intptr_t)value << TAGBITS) | TAGINT);
-#else
-    oop node = newObject(Integer);
-    node->Integer._value = value;
-    return node;
-#endif
+    return (oop)(((intptr_t)value << TAGBITS) | TAG_INT_OOP);
 }
 
 int Integer_value(oop obj)
 {
-#if TAGINT
     assert(Integer == getType(obj));
     return (intptr_t)obj >> TAGBITS;
-#else
-    return get(obj, Integer,_value);
-#endif
 }
 
 oop newFloat(double value)
 {
-#if TAGFLT
     union { double d;  intptr_t i; } u = { .d = value };
-    return (oop)(((intptr_t)u.i & ~TAGMASK) | TAGFLT);
-#else
-    oop node = newObject(Float);
-    node->Float._value = value;
-    return node;
-#endif
+    return (oop)(((intptr_t)u.i & ~TAGMASK) | TAG_FLT_OOP);
 }
 
 double Float_value(oop obj)
 {
-#if TAGFLT
     assert(Float == getType(obj));
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
-#else
-    return get(obj, Float,_value);
-#endif
 }
 
 oop newSymbol(char *name)

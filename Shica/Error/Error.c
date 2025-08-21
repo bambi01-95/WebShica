@@ -22,7 +22,6 @@ void _fatal(const char *file, int line, const char *msg, ...)
 	fprintf(stderr, "\n");
 	va_end(ap);
 	fprintf(stderr, "%s", "[Please report this bug to the developers.\n]");
-	exit(1);
 }
 
 static ErrorList *errorListHeader = NULL; // Global error list header

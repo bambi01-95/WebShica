@@ -27,3 +27,8 @@ int executeWebCodes(void);
 
 Simulation 
 - `int getWebCompiledCode(int index)`: get compiled web code at index
+
+Error: `./Shica/Error/*.*`
+combination two function, you can out put error msg.
+- `int getNumOfErrorMsg(void)`: return number of error.
+- `char* getErrorMsg(void)`: return a error msg. 

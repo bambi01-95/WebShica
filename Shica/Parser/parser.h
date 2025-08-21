@@ -17,6 +17,13 @@ int yyparse();
 void initLine(void);
 void initYYContext(); //yyrelease(ctx);
 
+enum {
+	PARSER_FINISH = 0,
+	PARSER_ERROR = 1,
+};
+
+extern oop parserRetFlags[2];
+
 #ifdef MSGC
 void collectYYContext();//
 #elif defined(MSGCS)

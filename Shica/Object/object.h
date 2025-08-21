@@ -194,6 +194,19 @@ void printlnObject(oop node, int indent);
 void println(oop obj);
 void print(oop node);
 
+enum {
+  TAG_PTR_OOP  = 0b00,   // 普通のポインタ（下位2bit=00）
+  TAG_INT_OOP  = 0b01,   // 小さい整数（fixnum）
+  TAG_FLT_OOP  = 0b10,   // 浮動小数点数（fixnum）
+  TAG_FLAG_OOP = 0b11,   // 列挙フラグ等
+};
+#define MAKE_OOP_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG_OOP))
+#define TAGBITS 2			// how many bits to use for tag bits
+#define TAGMASK ((1 << TAGBITS) - 1)	// mask to extract just the tag bits
+#define ISTAG_FLAG(o) ((((intptr_t)(o)) & TAGMASK) == TAG_FLAG_OOP) 
+#define ISTAG_INT(o)  ((((intptr_t)(o)) & TAGMASK) == TAG_INT_OOP)
+#define ISTAG_PTR(o)  ((((intptr_t)(o)) & TAGMASK) == TAG_PTR_OOP)
+
 #endif // OBJECT_H
 
 /*

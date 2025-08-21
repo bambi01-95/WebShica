@@ -130,9 +130,14 @@ int executor_func_init()
 
 ent execute(ent prog, ent entity, ent global);
 #define TAGBITS 2
-#define TAGINT 1
+enum {
+	TAG_PTR = 0b00, // ordinary pointer (lower 2 bits = 00)
+	TAG_INT=0b01,
+	TAG_FLT=0b10,
+	TAG_FLAG=0b11,
+};
 typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
-#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAGINT))
+#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
 
 ent retFlags[7] = {
 	MAKE_FLAG(ERROR_F),
@@ -1276,16 +1281,22 @@ ent compile()
 	// compile the AST into the program code
 	int line = 1;
 	while(yyparse()){
-		if (result == 0) {
+		if (ISTAG_FLAG(result)) {
 			break;
 		}
 		printf("compiling statement %d\n", line);
 		if(emitOn(prog, vars, result))return NULL;
 		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
+	if(result == parserRetFlags[PARSER_FINISH]){
     emitI (prog, iHALT); // end of program
 	prog->IntArray.elements[1] = vars->Variables.size; // store number of variables
 	setTransPos(prog); // set transition positions
+	}else if(result == parserRetFlags[PARSER_ERROR]){
+		printf("compilation failed\n");
+		GC_POP(vars); // pop context variables from GC roots
+		return NULL;
+	}
 	GC_POP(vars); // pop context variables from GC roots
 	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
     return prog;

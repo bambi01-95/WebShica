@@ -11,6 +11,11 @@ YYSTYPE result;
 
 #define YY_FREE(C, P) P = NULL
 
+oop parserRetFlags[2] = {
+	MAKE_OOP_FLAG(PARSER_FINISH),
+	MAKE_OOP_FLAG(PARSER_ERROR),
+};
+
 static int nlines = 0;
 //LEG AREA
 %}
@@ -18,8 +23,8 @@ static int nlines = 0;
 start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
 		|  - s:stmt { result = s; }
-        | !.                              { printf("\n%d objects allocated\n", nobj); result = 0; }
-		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); }
+        | !.                              { printf("\n%d objects allocated\n", nobj); result = parserRetFlags[PARSER_FINISH]; }
+		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); result = parserRetFlags[PARSER_ERROR]; }
 
 state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 
