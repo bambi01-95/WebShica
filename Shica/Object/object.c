@@ -279,7 +279,7 @@ oop newSetVar(oop id, oop rhs, ScopeClass scope, int line)
     node->SetVar.rhs = rhs;
 	node->SetVar.scope = scope;
 	node->SetVar.line = line;
-	gc_pushRoot((void*)&rhs);
+	gc_popRoots(1);
     return node;
 }
 
@@ -290,7 +290,7 @@ oop newGetArray(oop array, oop index)
     oop node = newObject(GetArray);
     node->GetArray.array = array;
     node->GetArray.index = index;
-	gc_pushRoot((void*)&index);
+	gc_popRoots(2);
     return node;
 }
 
