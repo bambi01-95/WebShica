@@ -11,9 +11,10 @@ YYSTYPE result;
 
 #define YY_FREE(C, P) P = NULL
 
-oop parserRetFlags[2] = {
+oop parserRetFlags[3] = {
 	MAKE_OOP_FLAG(PARSER_FINISH),
 	MAKE_OOP_FLAG(PARSER_ERROR),
+	MAKE_OOP_FLAG(PARSER_READY),
 };
 
 static int nlines = 1;
@@ -22,7 +23,6 @@ static int nlines = 1;
 
 start	=  - s:state {result = s;}
 		|  - s:define { result = s; }
-		|  - s:stmt { result = s; }
         | !.                              { printf("\n%d objects allocated\n", nobj); result = parserRetFlags[PARSER_FINISH]; }
 		| < (!eol &. .)* >                { fatal("line %d: syntax error: %s", nlines, yytext); result = parserRetFlags[PARSER_ERROR]; reportError(ERROR, nlines, "syntax error: %s", yytext); }
 
@@ -64,8 +64,8 @@ block   = LBRACE b:mkBlock
 mkBlock =                               { $$ = newBlock() }
 
 define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nlines); }
-       | i:id ASSIGN x:assignment { $$ = newSetVar(i, x, SCOPE_GLOBAL, nlines) }
-       | v:value i:index ASSIGN x:assignment { $$ = newSetArray(v, i, x, SCOPE_GLOBAL); }
+       | i:id ASSIGN x:assignment SEMI { $$ = newSetVar(i, x, SCOPE_GLOBAL, nlines) }
+       | v:value i:index ASSIGN x:assignment SEMI { $$ = newSetArray(v, i, x, SCOPE_GLOBAL); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )

@@ -273,7 +273,20 @@ ent execute(ent prog,ent entity, ent global)
 			push(stack->IntArray.elements[symIndex + *rbp+1]); // get the variable value
 			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + *rbp+1]);
 			continue;
-		}	    
+		}
+		case iGETGLOBALVAR:{
+			printOP(iGETGLOBALVAR);
+			int symIndex = fetch(); // need to change
+			// 2025/09/18: get global variable
+			push(global->IntArray.elements[symIndex]);
+			dprintf("%d => %d\n", symIndex, global->IntArray.elements[symIndex]);
+			continue;
+		}
+		case iGETSTATEVAR:{
+			printOP(iGETSTATEVAR);
+			int symIndex = fetch(); // need to change
+			continue;
+		}
 	    case iSETVAR:{
 			printOP(iSETVAR);
 			int symIndex = fetch();//need to change
@@ -641,6 +654,7 @@ void printCode(ent code);
 
 int emitOn(ent prog,oop vars, oop ast)
 {
+	assert(getType(vars) == EmitContext);
 	int ret = 0; /* ret 0 indicates success */
     switch (getType(ast)) {
 		case Undefined:
@@ -708,18 +722,21 @@ int emitOn(ent prog,oop vars, oop ast)
 		case GetVar: {
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
-			oop variable = searchVariable(vars->EmitContext.local_vars,sym);// search in local variables first
+			oop variable = searchVariable(get(vars, EmitContext, local_vars),sym);// search in local variables first
 			if(variable){
+				printf("found local variable %s\n", get(sym, Symbol,name));
 				emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
-			variable  = searchVariable(vars->EmitContext.state_vars,sym); // search in state variables
+			variable  = searchVariable(get(vars, EmitContext, state_vars),sym); // search in state variables
 			if(variable){
+				printf("found state variable %s\n", get(sym, Symbol,name));
 				emitII(prog, iGETSTATEVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
-			variable = searchVariable(vars->EmitContext.global_vars,sym); // search in global variables
+			variable = searchVariable(get(vars, EmitContext, global_vars),sym); // search in global variables
 			if (variable) {
+				printf("found global variable %s\n", get(sym, Symbol,name));
 				emitII(prog, iGETGLOBALVAR, Integer_value(get(variable,Pair,b)));
 				return 0; 
 			}
@@ -820,17 +837,17 @@ int emitOn(ent prog,oop vars, oop ast)
 					}
 					oop params = get(rhs, UserFunc,parameters);
 					oop body = get(rhs, UserFunc,body);
-					vars->EmitContext.local_vars = newVariables();
+					get(vars, EmitContext, local_vars) = newVariables();
 					GC_PUSH(oop, closure, newClosure());
 					while(params != nil){
 						oop param = get(params, Pair,a);
-						if (searchVariable(vars->EmitContext.local_vars, param) != NULL) {
+						if (searchVariable(get(vars, EmitContext, local_vars), param) != NULL) {
 							reportError(ERROR, get(ast,SetVar,line), "parameter %s is already defined", get(param, Symbol,name));
 							GC_POP(closure);
-							vars->EmitContext.local_vars = NULL;
+							get(vars, EmitContext, local_vars) = NULL;
 							return 1;
 						}
-						insertVariable(vars->EmitContext.local_vars, param); // insert parameter into local variables
+						insertVariable(get(vars, EmitContext, local_vars), param); // insert parameter into local variables
 						closure->Closure.nArgs++;
 						params = get(params, Pair,b);
 					}
@@ -840,11 +857,14 @@ int emitOn(ent prog,oop vars, oop ast)
 					sym->Symbol.value = closure; // set the closure as the value of the variable
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
 					int codePos = prog->IntArray.size - 1; // remember the position of the function code
-					if(emitOn(prog, vars, body)) return 1; // compile function body
-					prog->IntArray.elements[codePos] = vars->EmitContext.local_vars->Variables.size; // set the size of local variables
+					if(emitOn(prog, vars, body)) {
+						GC_POP(closure);
+						return 1; // compile function body
+					}
+					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Variables, size); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
-					vars->EmitContext.local_vars = NULL; // clear local variables
+					get(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
 				}
 				case Integer:
@@ -854,20 +874,23 @@ int emitOn(ent prog,oop vars, oop ast)
 					int scope = get(ast, SetVar,scope);
 					switch(scope) {
 						case SCOPE_LOCAL:{
+							printf("defining local variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(vars->EmitContext.local_vars,sym);
+							oop variable = insertVariable(get(vars, EmitContext, local_vars),sym);
 							emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
 							return 0;
 						}
 						case SCOPE_STATE_LOCAL:{
+							printf("defining state variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(vars->EmitContext.state_vars,sym);
+							oop variable = insertVariable(get(vars, EmitContext, state_vars),sym);
 							emitII(prog, iSETSTATEVAR, Integer_value(get(variable,Pair,b)));
 							return 0;
 						}
 						case SCOPE_GLOBAL:{
+							printf("defining global variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(vars->EmitContext.global_vars,sym);
+							oop variable = insertVariable(get(vars, EmitContext, global_vars),sym);
 							emitII(prog, iSETGLOBALVAR, Integer_value(get(variable,Pair,b)));
 							return 0;
 						}
@@ -914,7 +937,7 @@ int emitOn(ent prog,oop vars, oop ast)
 		case If:{
 			printTYPE(_If_);
 			//NEXT-TODO
-			int variablesSize = vars->EmitContext.local_vars ? vars->EmitContext.local_vars->Variables.size : 0; // remember the size of variables
+			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Variables, size) : 0; // remember the size of variables
 			oop condition = get(ast, If,condition);
 			oop statement1 = get(ast, If,statement1);
 			oop statement2 = get(ast, If,statement2);
@@ -935,7 +958,7 @@ int emitOn(ent prog,oop vars, oop ast)
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
 			}
 			//NEXT-TODO
-			discardVariables(vars->EmitContext.local_vars, variablesSize); // discard variables
+			discardVariables(get(vars, EmitContext, local_vars), variablesSize); // discard variables
 			return 0;
 		}
 		case Loop:{
@@ -945,7 +968,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop iteration      = get(ast, Loop,iteration);
 			oop statement      = get(ast, Loop,statement);
 			//NEXT-TODO
-			int variablesSize = vars->EmitContext.local_vars ? vars->EmitContext.local_vars->Variables.size : 0; // remember the size of variables
+			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Variables, size) : 0; // remember the size of variables
 
 			if (initialization != false) {
 				if(emitOn(prog, vars, initialization)) return 1; // compile initialization
@@ -969,7 +992,7 @@ int emitOn(ent prog,oop vars, oop ast)
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
 			}
 			//NEXT-TODO
-			discardVariables(vars->EmitContext.local_vars, variablesSize); // discard variables
+			discardVariables(get(vars, EmitContext, local_vars), variablesSize); // discard variables
 			return 0;
 		}
 		case Return:{
@@ -1015,7 +1038,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop preid = false;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
-			vars->EmitContext.state_vars = newVariables(); // set state variables for the state
+			get(vars, EmitContext, state_vars) = newVariables(); // set state variables for the state
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
 				if(eventList[i] == NULL){
@@ -1082,7 +1105,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			}
 			//NEXT-TODO
 			// discardVariables(vars->EmitContext.state_vars, 0); // discard variables
-			vars->EmitContext.state_vars = NULL; // clear state variables
+			get(vars, EmitContext, state_vars) = NULL; // clear state variables
 			emitII(prog, iEOS, 0); // emit EOS instruction to mark the end of the state
 			return 0;
 		}
@@ -1099,13 +1122,13 @@ int emitOn(ent prog,oop vars, oop ast)
 				return 1;
 			}
 
-			vars->EmitContext.local_vars = newVariables(); // set local variables for the event
+			get(vars, EmitContext, local_vars) = newVariables(); // set local variables for the event
 			int nArgs = eh->EventH.nArgs;
 			int paramSize =0;
 			int cPos      = 0;
 			while(params != nil) {//a:id-b:cond
 				oop param = get(params, Pair,a);
-				insertVariable(vars->EmitContext.local_vars, get(param,Pair,a)); // add parameter to local variables
+				insertVariable(get(vars, EmitContext, local_vars), get(param,Pair,a)); // add parameter to local variables
 				if(get(param, Pair, b)!= false){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, get(param, Pair,b))) return 1; // compile condition if exists
@@ -1119,7 +1142,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			}
 			if(paramSize != nArgs) {
 				reportError(ERROR, get(ast,Event,line), "event %s has %d parameters, but expected %d", get(id, Symbol,name), paramSize, nArgs);
-				vars->EmitContext.local_vars = NULL; // clear local variables
+				get(vars, EmitContext, local_vars) = NULL; // clear local variables
 				return 1;
 			}
 			int aPos = prog->IntArray.size; // remember the position of the event handler
@@ -1128,10 +1151,10 @@ int emitOn(ent prog,oop vars, oop ast)
 
 
 			if(emitOn(prog, vars, block))return 1; // compile block
-			emitII(prog, iEOE, vars->EmitContext.local_vars->Variables.size); // emit EOE instruction to mark the end of the event handler
+			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Variables, size)); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = vars->EmitContext.local_vars->Variables.size; // store number of local variables
-			vars->EmitContext.local_vars = NULL; // clear local variables
+			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Variables, size); // store number of local variables
+			get(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(oop,apos, newInteger(aPos));
 			GC_PUSH(oop,cpos,newInteger(cPos));
 			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
@@ -1198,6 +1221,26 @@ simple:
 				inst = "SETVAR";
 				int varIndexSet = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, varIndexSet);
+				break;
+			case iGETSTATEVAR:
+				inst = "GETSTATEVAR";
+				int sVarIndex = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, sVarIndex);
+				break;
+			case iSETSTATEVAR:
+				inst = "SETSTATEVAR";
+				int sVarIndexSet = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, sVarIndexSet);
+				break;
+			case iGETGLOBALVAR:
+				inst = "GETGLOBALVAR";
+				int gVarIndex = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, gVarIndex);
+				break;
+			case iSETGLOBALVAR:
+				inst = "SETGLOBALVAR";
+				int gVarIndexSet = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, gVarIndexSet);
 				break;
 			case iMKSPACE:
 				inst = "MKSPACE";
@@ -1292,26 +1335,40 @@ ent compile()
     ent prog = intArray_init(); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
 	GC_PUSH(oop, vars, newEmitContext()); // push context variables to GC roots
+#if DEBUG
+int roots = gc_ctx.nroots;
+#endif 
 	// compile the AST into the program code
 	int line = 1;
+	assert(getType(vars) == EmitContext);
 	while(yyparse()){
 		if (ISTAG_FLAG(result)) {
 			break;
 		}
+		printf("test line %d: result flag %d\n", __LINE__, ISTAG_FLAG(result));
 		printf("compiling statement %d\n", line);
 		if(emitOn(prog, vars, result))return NULL;
+		result = parserRetFlags[PARSER_READY];
 		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
 	if(result == parserRetFlags[PARSER_FINISH]){
 		printf("compilation finished\n");
 		emitI (prog, iHALT); // end of program
-		prog->IntArray.elements[1] = vars->Variables.size; // store number of variables
+		printf("total variable size %d\n", get(vars, EmitContext, global_vars)->Variables.size);
+		prog->IntArray.elements[1] = get(vars, EmitContext, global_vars)->Variables.size; // store number of variables
 		setTransPos(prog); // set transition positions
 	}else if(result == parserRetFlags[PARSER_ERROR]){
 		printf("compilation error\n");
 		GC_POP(vars); // pop context variables from GC roots
 		return NULL;
 	}
+#if DEBUG
+	if(roots != gc_ctx.nroots){
+		fatal("file %s line %d: memory leak: roots before compile %d, after compile %d", __FILE__, __LINE__, roots, gc_ctx.nroots);
+		reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+		return NULL;
+	}
+#endif
 	GC_POP(vars); // pop context variables from GC roots
 	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
     return prog;
@@ -2028,8 +2085,8 @@ int main(int argc, char **argv)
 	gc_init(1024 * 1024);// initialize the garbage collector with 1MB of memory 
 
     nil   = newUndefine();	gc_pushRoot(nil);
-    false = newInteger(0);			gc_pushRoot(false);
-    true  = newInteger(1);			gc_pushRoot(true);
+    false = newInteger(0);	gc_pushRoot(false);
+    true  = newInteger(1);	gc_pushRoot(true);
 
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
@@ -2038,6 +2095,7 @@ int main(int argc, char **argv)
 	compile_func_init(); // initialize the standard functions
 	// compile code
 	ent code = compile();
+
 	if(code == NULL){
 		rprintf("Compilation failed.\n");
 		printErrorList(); // print the error list

@@ -2,7 +2,9 @@
 
 ## WEB Shica TO DO LIST
 
-
+* execute()内のglobalとローカルの実装
+    * global-varialbe: 全体スタックのstack[0]が基準
+    * local-varialbe: 全体スタックのglobalのMAXから0、つまり、stack[gMax]
 
 ### vm.leg (C code)
 
@@ -34,8 +36,8 @@
 |. |- (o) select and adapt font.  
 |. |- (-) coloring code                   
 |. |- (-) download .shica code and .stt compiled code.            <- IN PROGRESS
-|.      | (-) change the text to file, and then to be donwloadble
-|.      | (-) make `binary()` function that is used in ccall().
+|.      | (o) change the text to file, and then to be donwloadble
+|.      | (o) make `binary()` function that is used in ccall().
 |.      | (-) filename changable
 |
 +- [3] Add original shica feature
@@ -47,7 +49,7 @@
 |   |  |- (o) mark
 |   |
 |   |(*) global variable               <- IN PROGRESS
-|.  |(*) error message                 <- IN PROGRESS FIXME d>.<b
+|.  |(o) error message
 |   |(-) local variable
 |   |(-) type checking
 |   |  |> push function into function list.

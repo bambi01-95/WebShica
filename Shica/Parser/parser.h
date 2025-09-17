@@ -21,9 +21,10 @@ void initYYContext(); //yyrelease(ctx);
 enum {
 	PARSER_FINISH = 0,
 	PARSER_ERROR = 1,
+	PARSER_READY = 2,
 };
 
-extern oop parserRetFlags[2];
+extern oop parserRetFlags[3];
 
 #ifdef MSGC
 void collectYYContext();//

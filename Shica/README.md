@@ -1,5 +1,10 @@
 # Shica 
 
+## IMPL
+
+* local: 
+    - make crun
+    - ./shica < input.txt
 
 ## RULE 
 

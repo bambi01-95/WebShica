@@ -62,6 +62,7 @@ struct EventH    { type_t _type;           int id; int nArgs; };
 
 /* after leg */
 struct EmitContext{
+    type_t _type;
 	oop global_vars; // global variables
 	oop state_vars; // state variables to emit code for
 	oop local_vars; // local variables to emit code for

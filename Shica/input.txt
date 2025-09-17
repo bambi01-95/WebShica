@@ -1,5 +1,6 @@
+a = 10;
 stt state(){
     timerEH(s){
-        exit();
+        print(a);
     }
 }

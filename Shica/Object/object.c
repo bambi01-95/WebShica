@@ -552,8 +552,8 @@ oop insertVariable(oop list, oop sym)
 oop searchVariable(oop list, oop sym)
 {
 	if (list == 0) return NULL; // no variables
-	int nvariables = list->Variables.size;
-	oop *variables = list->Variables.elements;
+	int nvariables = get(list, Variables, size);
+	oop *variables = get(list, Variables, elements);
 	if (nvariables == 0) return NULL; // no variables
 	// linear search for existing variable
 	for (int i = 0;  i < nvariables;  ++i)
