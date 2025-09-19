@@ -165,7 +165,6 @@ ent newEventHandler(int ehIndex, int nThreads)
 	eh->EventHandler.threads = NULL;
 
 	int nData = EventTable[ehIndex].nData;
-	printf("%s %d: pass nData %d\n",__FILE__, __LINE__, nData);
 	if(nData > 0) {
 		eh->EventHandler.data = (int*)gc_beAtomic(gc_alloc(sizeof(int) * nData));
 		for(int i = 0; i < nData; ++i){

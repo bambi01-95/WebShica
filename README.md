@@ -6,6 +6,12 @@
     * global-varialbe: 全体スタックのstack[0]が基準
     * local-varialbe: 全体スタックのglobalのMAXから0、つまり、stack[gMax]
 
+## pub/sub communication
+
+* libp2p + GossipSub: P2P pub/sub model.
+    - web: Init webRTC module
+    - rpi: UDP (wifi)
+
 ### vm.leg (C code)
 
 ```text
@@ -15,19 +21,19 @@
 |.  |.  |> current problem: 
 |.  |.  |> Syntax error or something Shica compile error apper,
 |.  |.  |> Web Shica site will be close...
-|   |- (**-) learn sepa. heap memory.        <- IN PROGRESS
-|   |          |> copy GC. it is good for generation gc
+|   |- (**-) learn sepa. heap memory.       
+|   |          |> copy GC. it is good for generation gc  <- IN PROGRESS
 |   |          |> how to sepa. and impl. msgc...
 |.  |- (**-) Shared data (timer, click ) is out of gc_memory range!?
 |   |- (*--) sepa. code
 |
 +- [1] Add more web event handler and function
 |   |(o) change the speed
-|   |(-) change the color                 <- IN PROGRESS
+|   |(o) change the color      
+|   |(*) change the rober color         
 |   |(-) detect touch
-|   |(-) detect collision
+|   |(-) detect collision            <- IN PROGRESS
 |   |(-) trigger web timer
-|   |(-) change the rober color
 |
 +- [2] Web UI/UX
 |  |- (o) add cimpile and run logging

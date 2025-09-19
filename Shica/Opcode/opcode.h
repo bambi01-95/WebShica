@@ -56,6 +56,8 @@ static const char *_opcode_names[] = {
     "iDIV", 
     "iMOD",
     "iGETVAR", 
+    "iGETGLOBALVAR",
+    "iGETSTATEVAR",
     "iSETVAR",
     "iSETGLOBALVAR",
     "iSETSTATEVAR",

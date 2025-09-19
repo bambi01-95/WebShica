@@ -136,7 +136,7 @@ int executor_func_init()
 #define pick(I)  stack->IntArray.elements[I]
 
 
-ent execute(ent prog, ent entity, ent global);
+ent execute(ent prog, ent entity, ent agent);
 #define TAGBITS 2
 enum {
 	TAG_PTR = 0b00, // ordinary pointer (lower 2 bits = 00)
@@ -157,20 +157,20 @@ ent retFlags[7] = {
 	MAKE_FLAG(TRANSITION_F),
 };
 
-ent impleBody(ent code, ent eh, ent gm){
+ent impleBody(ent code, ent eh, ent agent){
 	assert(code->kind == IntArray);
 	assert(eh->kind == EventHandler);
-	assert(gm->kind == IntArray);
+	assert(agent->kind == Agent);
 	ent *threads = eh->EventHandler.threads;
 	ent ret = retFlags[ERROR_F];
 	for(int i=0;i<eh->EventHandler.size; ++i){
 		ent thread = threads[i];
 		if(thread->Thread.inProgress == 1){
-			ret = execute(code,thread, gm);//should be change
+			ret = execute(code,thread, agent);
 		}else if(thread->Thread.queue->IntQue3.size > 0){
 			thread->Thread.stack = dequeue3(thread);
 			assert(thread->Thread.stack != NULL);
-			ret = execute(code, thread, gm);//should be change
+			ret = execute(code, thread, agent);
 		}
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;
@@ -183,17 +183,17 @@ ent impleBody(ent code, ent eh, ent gm){
 /* =========================================== */
 int runNative(ent code){
 	GC_PUSH(ent, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
-	agent = execute(code, agent, agent->Agent.stack);
+	agent = execute(code, agent, agent);
 	dprintf("agent: %d\n", agent->Agent.isActive);
 	while(1){
 		if(agent->Agent.isActive == 0) {
-			agent = execute(code ,agent , agent->Agent.stack);
+			agent = execute(code ,agent , agent);
 		}else{
 			for(int i = 0; i< agent->Agent.nEvents; ++i){
 				// get event data
 				ent eh = agent->Agent.eventHandlers[i];
 				EventTable[eh->EventHandler.EventH].eh(eh);
-				if(impleBody(code, eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+				if(impleBody(code, eh, agent)==retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
 					break;
 				}
@@ -204,8 +204,7 @@ int runNative(ent code){
 	return 1; // return 1 to indicate success
 }
 
-			//code, stack , global 
-ent execute(ent prog,ent entity, ent global)
+ent execute(ent prog,ent entity, ent agent)
 {
 
 	int opstep = 20; // number of operations to execute before returning
@@ -244,7 +243,6 @@ ent execute(ent prog,ent entity, ent global)
 
 	int op = fetch();
 	int l = 0, r = 0;
-
 	switch (op) {
 		case iMKSPACE:{
 			printOP(iMKSPACE);
@@ -252,10 +250,11 @@ ent execute(ent prog,ent entity, ent global)
 			for (int i = 0;  i < nvars;  ++i) {
 				push(0); // reserve space for local variables
 			}
-
+			if(entity->kind == Agent){
+				entity->Agent.rbp = nvars;
+			}
 			continue;
 		}
-
 	    case iGT:printOP(iGT);  r = pop();  l = pop();  push(l > r);  continue;
 		case iGE:printOP(iGE);  r = pop();  l = pop();  push(l >= r); continue;
 		case iEQ:printOP(iEQ);  r = pop();  l = pop();  push(l == r); continue;
@@ -274,41 +273,38 @@ ent execute(ent prog,ent entity, ent global)
 			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + *rbp+1]);
 			continue;
 		}
-		case iGETGLOBALVAR:{
+		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
 			printOP(iGETGLOBALVAR);
-			int symIndex = fetch(); // need to change
-			// 2025/09/18: get global variable
-			push(global->IntArray.elements[symIndex]);
-			dprintf("%d => %d\n", symIndex, global->IntArray.elements[symIndex]);
+			int symIndex = fetch(); 
+			push(agent->Agent.stack->IntArray.elements[symIndex]);
+			dprintf("%d => %d\n", symIndex, agent->Agent.stack->IntArray.elements[symIndex]);
 			continue;
 		}
-		case iGETSTATEVAR:{
+		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
 			printOP(iGETSTATEVAR);
-			int symIndex = fetch(); // need to change
+			int symIndex = fetch(); 
 			continue;
 		}
-	    case iSETVAR:{
+	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
 			printOP(iSETVAR);
-			int symIndex = fetch();//need to change
+			int symIndex = fetch();
 			stack->IntArray.elements[symIndex+*rbp+1] = pop();
 			continue;
 		}
 		case iSETGLOBALVAR:{
 			printOP(iSETGLOBALVAR);
-			int symIndex = fetch(); // need to change
-			global->IntArray.elements[symIndex] = pop(); // set the global variable value
+			int symIndex = fetch();
+			agent->Agent.stack->IntArray.elements[symIndex] = pop(); // set the global variable value
 			continue;
 		}
 		case iSETSTATEVAR:{
 			printOP(iSETSTATEVAR);
-			int symIndex = fetch(); // need to change
-			if (entity->kind != Agent) {
-				fatal("iSETSTATEVAR: entity is not an Agent");
-			}
-			/*TODO: where to set the state variable?
-			* For now, we set it in the global IntArray.
-			*/
-			global->IntArray.elements[symIndex] = pop(); // set the state variable value
+			int index = fetch();
+			int symIndex = index + agent->Agent.rbp;
+			if(symIndex > agent->Agent.stack->IntArray.size -1)//FIXME: every time check the size is not efficient, it should be done at init state.
+				for(int i = agent->Agent.stack->IntArray.size; i <= symIndex; ++i)
+					intArray_push(agent->Agent.stack, 0); // extend the state variable array
+			agent->Agent.stack->IntArray.elements[symIndex] = pop(); // set the state variable value
 			continue;
 		}
 		case iJUMP:{
@@ -403,7 +399,7 @@ ent execute(ent prog,ent entity, ent global)
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			intArray_push(global,  nextStatePos+(*pc));//relative position:
+			intArray_push(agent->Agent.stack,  nextStatePos+(*pc));//relative position:
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
@@ -1332,12 +1328,12 @@ simple:
 ent compile()
 {
 	printf("compiling...\n");
-    ent prog = intArray_init(); // create a new program code
+    GC_PUSH(ent, prog, intArray_init()); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
-	GC_PUSH(oop, vars, newEmitContext()); // push context variables to GC roots
 #if DEBUG
 int roots = gc_ctx.nroots;
 #endif 
+	GC_PUSH(oop, vars, newEmitContext()); // If something goes wrong in the web parser, move to before changing GC roots
 	// compile the AST into the program code
 	int line = 1;
 	assert(getType(vars) == EmitContext);
@@ -1362,6 +1358,7 @@ int roots = gc_ctx.nroots;
 		GC_POP(vars); // pop context variables from GC roots
 		return NULL;
 	}
+	GC_POP(vars); // pop context variables from GC roots
 #if DEBUG
 	if(roots != gc_ctx.nroots){
 		fatal("file %s line %d: memory leak: roots before compile %d, after compile %d", __FILE__, __LINE__, roots, gc_ctx.nroots);
@@ -1369,7 +1366,8 @@ int roots = gc_ctx.nroots;
 		return NULL;
 	}
 #endif
-	GC_POP(vars); // pop context variables from GC roots
+	GC_POP(prog); // pop program code from GC roots
+
 	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
     return prog;
 }
@@ -2005,7 +2003,7 @@ int executeWebCodes(void)
 		ent agent = (ent)*ctx->roots[0]; // get the agent from the context memory
 		assert(agent->kind == Agent); // check if the agent is of type Agent
 		if(agent->Agent.isActive == 0){
-			agent = execute(webCodes[i] ,agent , agent->Agent.stack);
+			agent = execute(webCodes[i] ,agent , agent);
 		}else{
 			printf("nEvents: %d\n", agent->Agent.nEvents);
 			if(agent->Agent.nEvents == 0){
@@ -2016,7 +2014,7 @@ int executeWebCodes(void)
 				// get event data
 				ent eh = agent->Agent.eventHandlers[j];
 				EventTable[eh->EventHandler.EventH].eh(eh);
-				if(impleBody(webCodes[i], eh, agent->Agent.stack)==retFlags[TRANSITION_F]){
+				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
 					agent->Agent.pc = intArray_pop(agent->Agent.stack);
 					agent->Agent.eventHandlers = NULL;
@@ -2118,12 +2116,15 @@ int main(int argc, char **argv)
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
+	gc_markOnly(code); // mark the code itself
+	gc_markOnly(code->IntArray.elements); // mark the code elements
 	gc_collect();
 
 	if(opt_c == 1){
 		rprintf("end of compilation\n");
 		return 0;
 	}
+	printCode(code); // print the bytecode
 
 
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
