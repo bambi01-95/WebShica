@@ -53,6 +53,8 @@ struct AgentData anAgentData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Initialize the
 
 int ALL_AGENT_SIZE = 0; // Size of the agent data array
 struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ共有で使用
+
+// Initial agent data: FIXME: set all {0,i*50,0,0,0,0,0,0,0,0}
 struct AgentData allAgentData[12] = {
 	[0] = { 50, 50, 5,0,0,0,0,0,0,0},
 	[1] = {450, 50, 0,5,0,0,0,0,0,0},

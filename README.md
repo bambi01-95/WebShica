@@ -6,6 +6,12 @@
     * global-varialbe: 全体スタックのstack[0]が基準
     * local-varialbe: 全体スタックのglobalのMAXから0、つまり、stack[gMax]
 
+* lcoal comm
+    * radio group
+
+- 19 week...!!!!...!!!
+    - start outline!!!
+
 ## pub/sub communication
 
 * libp2p + GossipSub: P2P pub/sub model.
@@ -31,7 +37,7 @@
 |   |(o) change the speed
 |   |(o) change the color      
 |   |(*) change the rober color         
-|   |(-) detect touch
+|   |(-) detect touch                <- IN PROGRESS
 |   |(-) detect collision            <- IN PROGRESS
 |   |(-) trigger web timer
 |
@@ -41,10 +47,11 @@
 |  |- (o) light/dark mode            
 |. |- (o) select and adapt font.  
 |. |- (-) coloring code                   
-|. |- (-) download .shica code and .stt compiled code.            <- IN PROGRESS
+|. |- (-) download .shica code and .stt compiled code.           
 |.      | (o) change the text to file, and then to be donwloadble
 |.      | (o) make `binary()` function that is used in ccall().
-|.      | (-) filename changable
+|       | (-) import binary code and shica origanl code
+|.      | (-) filename changable                                     <- IN PROGRESS
 |
 +- [3] Add original shica feature
 |   |(o) state transition
@@ -54,9 +61,9 @@
 |   |  |- (o) yyrelease 
 |   |  |- (o) mark
 |   |
-|   |(*) global variable               <- IN PROGRESS
 |.  |(o) error message
-|   |(-) local variable
+|   |(*) global variable               
+|   |(-) state local variable.             <- IN PROGRESS
 |   |(-) type checking
 |   |  |> push function into function list.
 |   |  |> When the function is called for the first time, copile it by its argument type.
@@ -65,14 +72,14 @@
 |   |     |(-) String value
 |   |     |(-) Float value
 |   |(-) event condition
-|   |(-) event definition <---
+|   |(-) event definition 
 |   |(-) Pointcut
 |   |[-] Add more feature
 |         |(-) Event variable
 |         |(-) State parameter/argument
-|         |(-) Concurrent grammer/feature?
-|         |(-) Distributed grammer/feature?
-|         |(-) Apply real device (micro controller)
+|         |(-) Concurrent grammer/feature....
+|         |(-) Distributed grammer/feature...
+|         |(-) Apply real device (micro controller)... or web app (dear-project)
 |
 +- [4] Run multiple agent
 |   |(o) sotre one or more codes. 
@@ -80,7 +87,7 @@
 |   |(o) implement all.               
 |   |(o) msgc (each heap memory)
 |.  |     |(o) msgcs: make test.
-|.  |     |(-) copyGC:                
+|.  |     |(-) copyGC:                                  <-- (----)     
 |.  |     |(-) stdatomic.h: pallarel GC
 |.  |(-) communicaton                      
 |.        |(*) think about witch communication model we use.  <- IN PROGRESS
@@ -140,3 +147,22 @@ emsdk をインストール
 
 >emcc -v
 emcc は emscripten の C コンパイラで、.wasm を生成できます。
+
+
+
+// color chage model
+
+stt state(){
+    clickEH(x,y){
+      setColor(199, 31, 104);
+      setXY(x,y);
+      stt s2;
+    }
+}
+
+stt s2(){
+    clickEH(x,y){
+      setColor(0, 0, 0);
+      stt state;
+    }
+}
