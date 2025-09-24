@@ -5,7 +5,7 @@ interface Message {
   id: string;
   text: string;
   sender: 'A' | 'B';
-  timestamp: Date;
+  timestamp: String;
 }
 
 interface UserSession {
@@ -16,25 +16,30 @@ interface UserSession {
 }
 
 export default function WebRTCPage() {
-  // 共通のメッセージ状態
-  const [messages, setMessages] = useState<Message[]>([]);
-  
-  // ユーザーA用の状態
+  // Common message state
+  const [messagesA, setMessagesA] = useState<Message[]>([]);
+  const [messagesB, setMessagesB] = useState<Message[]>([]);
+
+  // User A state
   const [userAInput, setUserAInput] = useState('');
   const [userASession, setUserASession] = useState<UserSession>({ userId: 'A', isConnected: false });
   
-  // ユーザーB用の状態
+  // User B state
   const [userBInput, setUserBInput] = useState('');
   const [userBSession, setUserBSession] = useState<UserSession>({ userId: 'B', isConnected: false });
   
-  // 接続状態
-  const [connectionStatus, setConnectionStatus] = useState<string>('接続待機中...');
+  // Connection status
+  const [connectionStatus, setConnectionStatus] = useState<string>('Waiting for connection...');
   
   // Refs for RTCPeerConnection management
   const userAConnectionRef = useRef<RTCPeerConnection | null>(null);
   const userBConnectionRef = useRef<RTCPeerConnection | null>(null);
   const userADataChannelRef = useRef<RTCDataChannel | null>(null);
   const userBDataChannelRef = useRef<RTCDataChannel | null>(null);
+  
+  // Refs for chat scroll management
+  const userAChatRef = useRef<HTMLDivElement>(null);
+  const userBChatRef = useRef<HTMLDivElement>(null);
 
   // ICE servers configuration
   const iceServers = {
@@ -44,45 +49,76 @@ export default function WebRTCPage() {
     ]
   };
 
-  // メッセージ追加関数
-  const addMessage = (text: string, sender: 'A' | 'B') => {
-    const newMessage: Message = {
+  // Auto scroll function
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (userAChatRef.current) {
+        userAChatRef.current.scrollTop = userAChatRef.current.scrollHeight;
+      }
+      if (userBChatRef.current) {
+        userBChatRef.current.scrollTop = userBChatRef.current.scrollHeight;
+      }
+    }, 100);
+  };
+  const createMessage = ({ text, sender }: Partial<Message> = {}): Message => {
+    return {
       id: Date.now().toString() + Math.random(),
-      text,
-      sender,
-      timestamp: new Date()
+      text: text || 'what?',
+      sender: sender || 'A',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      ...{}
     };
-    setMessages(prev => [...prev, newMessage]);
   };
 
-  // WebRTC接続の初期化
+  // Add message function
+  const addMessage = (msg: Message, storage: 'A' | 'B') => {
+    if (storage === 'A') {
+      setMessagesA(prev => [...prev, msg]);
+    } else {
+      setMessagesB(prev => [...prev, msg]);
+    }
+    scrollToBottom(); // Auto scroll when message is added
+  };
+
+  // WebRTC connection initialization
   const initializeWebRTC = async () => {
     try {
-      // ユーザーA側の設定（オファー側）
+      // User A configuration (offer side)
       const pcA = new RTCPeerConnection(iceServers);
       const pcB = new RTCPeerConnection(iceServers);
 
       userAConnectionRef.current = pcA;
       userBConnectionRef.current = pcB;
 
-      // データチャンネルの作成（A→B）
+      // データチャンネルの作成（A→B用）
       const dataChannelA = pcA.createDataChannel('chatA', { ordered: true });
       userADataChannelRef.current = dataChannelA;
 
-      // データチャンネルの受信設定（B側）
-      pcB.ondatachannel = (event) => {
-        const dataChannelB = event.channel;
-        userBDataChannelRef.current = dataChannelB;
+      // データチャンネルの作成（B→A用）  
+      const dataChannelB = pcB.createDataChannel('chatB', { ordered: true });
+      userBDataChannelRef.current = dataChannelB;
 
-        dataChannelB.onopen = () => {
-          console.log('Data channel B opened');
-          setUserBSession(prev => ({ ...prev, isConnected: true }));
-          setConnectionStatus('P2P接続完了');
+      // A側でBからのデータチャンネルを受信
+      pcA.ondatachannel = (event) => {
+        const receivedChannel = event.channel;
+        receivedChannel.onmessage = (event) => {
+          const data = JSON.parse(event.data) as Message;
+          if (data.sender === 'B') {
+            console.log(`Received message at A from B: ${data.text}`);
+            addMessage(data, 'A');
+          }
         };
+      };
 
-        dataChannelB.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          addMessage(data.message, 'A');
+      // B側でAからのデータチャンネルを受信
+      pcB.ondatachannel = (event) => {
+        const receivedChannel = event.channel;
+        receivedChannel.onmessage = (event) => {
+          const data:Message = JSON.parse(event.data) as Message;
+          if (data.sender === 'A') {
+            console.log(`Received message at B from A: ${data.text}`);
+            addMessage(data, 'B');
+          }
         };
       };
 
@@ -92,9 +128,11 @@ export default function WebRTCPage() {
         setUserASession(prev => ({ ...prev, isConnected: true }));
       };
 
-      dataChannelA.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        addMessage(data.message, 'B');
+      // データチャンネルB側のイベント設定
+      dataChannelB.onopen = () => {
+        console.log('Data channel B opened');
+        setUserBSession(prev => ({ ...prev, isConnected: true }));
+        setConnectionStatus('P2P Connected');
       };
 
       // ICE候補の交換
@@ -132,24 +170,30 @@ export default function WebRTCPage() {
         }
       }, 1000);
 
-      setConnectionStatus('WebRTC接続中...');
+      setConnectionStatus('WebRTC Connecting...');
 
     } catch (error) {
       console.error('WebRTC initialization failed:', error);
-      setConnectionStatus('接続失敗');
+      setConnectionStatus('Connection Failed');
     }
   };
 
-  // メッセージ送信関数
+  // Message sending function
   const sendMessage = (sender: 'A' | 'B', message: string) => {
     if (!message.trim()) return;
 
     const dataChannel = sender === 'A' ? userADataChannelRef.current : userBDataChannelRef.current;
     
     if (dataChannel && dataChannel.readyState === 'open') {
-      dataChannel.send(JSON.stringify({ message, sender }));
-      addMessage(message, sender);
-      
+      // 自分のメッセージを即座に表示
+      console.log(`Sending message from ${sender}: ${message}`);
+      const msg = createMessage({ text: message, sender });
+
+      addMessage(msg, sender);
+
+      // 相手に送信（相手側では受信として表示される）
+      dataChannel.send(JSON.stringify(msg));
+
       // 入力フィールドをクリア
       if (sender === 'A') {
         setUserAInput('');
@@ -171,6 +215,11 @@ export default function WebRTCPage() {
       userBDataChannelRef.current?.close();
     };
   }, []);
+
+  // メッセージが変更されたときの自動スクロール
+  useEffect(() => {
+    scrollToBottom();
+  }, [messagesA, messagesB]);
 
   // キーボードイベント
   const handleKeyPress = (e: React.KeyboardEvent, sender: 'A' | 'B') => {
@@ -201,20 +250,23 @@ export default function WebRTCPage() {
           color: 'white',
           textAlign: 'center'
         }}>
-          <h2>ユーザーA</h2>
+          <h2>User A</h2>
           <div style={{ fontSize: '12px' }}>
-            状態: {userASession.isConnected ? '接続済み' : '未接続'}
+            Status: {userASession.isConnected ? 'Connected' : 'Disconnected'}
           </div>
         </div>
         
         {/* チャット履歴 */}
-        <div style={{ 
-          flex: 1, 
-          padding: '10px', 
-          overflowY: 'auto',
-          backgroundColor: 'white'
-        }}>
-          {messages.map((msg) => (
+        <div 
+          ref={userAChatRef}
+          style={{ 
+            flex: 1, 
+            padding: '10px', 
+            overflowY: 'auto',
+            backgroundColor: 'white'
+          }}
+        >
+          {messagesA.map((msg) => (
             <div
               key={msg.id}
               style={{
@@ -239,7 +291,7 @@ export default function WebRTCPage() {
                   opacity: 0.7, 
                   marginTop: '2px' 
                 }}>
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {msg.timestamp}
                 </div>
               </div>
             </div>
@@ -258,7 +310,7 @@ export default function WebRTCPage() {
             value={userAInput}
             onChange={(e) => setUserAInput(e.target.value)}
             onKeyPress={(e) => handleKeyPress(e, 'A')}
-            placeholder="メッセージを入力..."
+            placeholder="Type a message..."
             disabled={!userASession.isConnected}
             style={{
               flex: 1,
@@ -281,7 +333,7 @@ export default function WebRTCPage() {
               opacity: userASession.isConnected ? 1 : 0.5
             }}
           >
-            送信
+            Send
           </button>
         </div>
       </div>
@@ -321,20 +373,23 @@ export default function WebRTCPage() {
           color: 'white',
           textAlign: 'center'
         }}>
-          <h2>ユーザーB</h2>
+          <h2>User B</h2>
           <div style={{ fontSize: '12px' }}>
-            状態: {userBSession.isConnected ? '接続済み' : '未接続'}
+            Status: {userBSession.isConnected ? 'Connected' : 'Disconnected'}
           </div>
         </div>
         
         {/* チャット履歴 */}
-        <div style={{ 
-          flex: 1, 
-          padding: '10px', 
-          overflowY: 'auto',
-          backgroundColor: 'white'
-        }}>
-          {messages.map((msg) => (
+        <div 
+          ref={userBChatRef}
+          style={{ 
+            flex: 1, 
+            padding: '10px', 
+            overflowY: 'auto',
+            backgroundColor: 'white'
+          }}
+        >
+          {messagesB.map((msg) => (
             <div
               key={msg.id}
               style={{
@@ -359,7 +414,7 @@ export default function WebRTCPage() {
                   opacity: 0.7, 
                   marginTop: '2px' 
                 }}>
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {msg.timestamp}
                 </div>
               </div>
             </div>
@@ -378,7 +433,7 @@ export default function WebRTCPage() {
             value={userBInput}
             onChange={(e) => setUserBInput(e.target.value)}
             onKeyPress={(e) => handleKeyPress(e, 'B')}
-            placeholder="メッセージを入力..."
+            placeholder="Type a message..."
             disabled={!userBSession.isConnected}
             style={{
               flex: 1,
@@ -401,7 +456,7 @@ export default function WebRTCPage() {
               opacity: userBSession.isConnected ? 1 : 0.5
             }}
           >
-            送信
+            Send
           </button>
         </div>
       </div>
