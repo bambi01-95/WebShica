@@ -2,11 +2,19 @@
 
 ## WEB Shica TO DO LIST
 
+1. same page communication.
+2. local communication (local dev env)
+3. hosting env. communication.
+0
+
 * execute()内のglobalとローカルの実装
     * global-varialbe: 全体スタックのstack[0]が基準
     * local-varialbe: 全体スタックのglobalのMAXから0、つまり、stack[gMax]
 
-* lcoal comm
+* local same page communication.
+
+* (WebRTC clone)[https://webrtc.googlesource.com/src]
+* lcoal communication 
     * radio group
 
 - 19 week...!!!!...!!!
@@ -14,7 +22,7 @@
 
 ## pub/sub communication
 
-* libp2p + GossipSub: P2P pub/sub model.
+* libp2p + GossipSub: P2P pub/sub model. (hosting model is ok... but ...)
     - web: Init webRTC module
     - rpi: UDP (wifi)
 
@@ -39,7 +47,7 @@
 |   |(*) change the rober color         
 |   |(-) detect touch                <- IN PROGRESS
 |   |(-) detect collision            <- IN PROGRESS
-|   |(-) trigger web timer
+|   |(-) trigger web timer           <- IN PROGRESS
 |
 +- [2] Web UI/UX
 |  |- (o) add cimpile and run logging
@@ -149,20 +157,6 @@ emsdk をインストール
 emcc は emscripten の C コンパイラで、.wasm を生成できます。
 
 
-
-// color chage model
-
-stt state(){
-    clickEH(x,y){
-      setColor(199, 31, 104);
-      setXY(x,y);
-      stt s2;
-    }
-}
-
-stt s2(){
-    clickEH(x,y){
-      setColor(0, 0, 0);
-      stt state;
-    }
-}
+## installがうまくいかないとき
+* docker build -t shica-next-app-webshica .
+* docker run -p 3000:3000 shica-next-app-webshica

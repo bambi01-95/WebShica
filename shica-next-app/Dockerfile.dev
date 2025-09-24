@@ -1,26 +1,23 @@
-# ベースイメージ
+# 開発用Dockerfile
 FROM node:18-alpine
 
 # 作業ディレクトリ作成
 WORKDIR /app
 
-# package.jsonとpackage-lock.jsonをコピー
-COPY package*.json ./
-
 # 必要なシステムパッケージをインストール（WebSocket関連）
 RUN apk add --no-cache libc6-compat
 
-# 依存関係インストール
-RUN npm ci --only=production --silent
+# package.jsonとpackage-lock.jsonをコピー
+COPY package*.json ./
+
+# 依存関係インストール（開発用も含む）
+RUN npm install
 
 # 残りのファイルをコピー
 COPY . .
 
-# Next.jsをビルド
-RUN npm run build
-
 # ポート3000を公開
 EXPOSE 3000
 
-# 本番サーバー起動
-CMD ["npm", "start"]
+# 開発サーバー起動
+CMD ["npm", "run", "dev"]
