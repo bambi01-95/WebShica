@@ -1,23 +1,40 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 
-interface Peer {
+interface Message {
   id: string;
-  isHost: boolean;
+  text: string;
+  sender: 'A' | 'B';
+  timestamp: Date;
+}
+
+interface UserSession {
+  userId: 'A' | 'B';
   connection?: RTCPeerConnection;
   dataChannel?: RTCDataChannel;
+  isConnected: boolean;
 }
 
 export default function WebRTCPage() {
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<string[]>([]);
-  const [input, setInput] = useState('');
-  const [clientId, setClientId] = useState<string>('');
-  const [isHost, setIsHost] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string>('接続中...');
-  const [peers, setPeers] = useState<Map<string, Peer>>(new Map());
+  // 共通のメッセージ状態
+  const [messages, setMessages] = useState<Message[]>([]);
   
-  const peersRef = useRef<Map<string, Peer>>(new Map());
+  // ユーザーA用の状態
+  const [userAInput, setUserAInput] = useState('');
+  const [userASession, setUserASession] = useState<UserSession>({ userId: 'A', isConnected: false });
+  
+  // ユーザーB用の状態
+  const [userBInput, setUserBInput] = useState('');
+  const [userBSession, setUserBSession] = useState<UserSession>({ userId: 'B', isConnected: false });
+  
+  // 接続状態
+  const [connectionStatus, setConnectionStatus] = useState<string>('接続待機中...');
+  
+  // Refs for RTCPeerConnection management
+  const userAConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const userBConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const userADataChannelRef = useRef<RTCDataChannel | null>(null);
+  const userBDataChannelRef = useRef<RTCDataChannel | null>(null);
 
   // ICE servers configuration
   const iceServers = {
@@ -27,336 +44,366 @@ export default function WebRTCPage() {
     ]
   };
 
-  const addMessage = (message: string) => {
-    setMessages(prev => [...prev, message]);
+  // メッセージ追加関数
+  const addMessage = (text: string, sender: 'A' | 'B') => {
+    const newMessage: Message = {
+      id: Date.now().toString() + Math.random(),
+      text,
+      sender,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, newMessage]);
   };
 
-  const createPeerConnection = (peerId: string, isInitiator: boolean): RTCPeerConnection => {
-    const pc = new RTCPeerConnection(iceServers);
-    
-    pc.onicecandidate = (event) => {
-      if (event.candidate && ws) {
-        ws.send(JSON.stringify({
-          type: 'ice-candidate',
-          candidate: event.candidate,
-          targetId: peerId
-        }));
-      }
-    };
+  // WebRTC接続の初期化
+  const initializeWebRTC = async () => {
+    try {
+      // ユーザーA側の設定（オファー側）
+      const pcA = new RTCPeerConnection(iceServers);
+      const pcB = new RTCPeerConnection(iceServers);
 
-    pc.onconnectionstatechange = () => {
-      console.log(`Connection with ${peerId}:`, pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        setConnectionStatus('P2P接続済み');
-      }
-    };
+      userAConnectionRef.current = pcA;
+      userBConnectionRef.current = pcB;
 
-    // データチャンネルの作成（イニシエーター側）
-    if (isInitiator) {
-      const dataChannel = pc.createDataChannel('chat', { ordered: true });
-      setupDataChannel(dataChannel, peerId);
-      
-      peersRef.current.set(peerId, {
-        ...peersRef.current.get(peerId)!,
-        connection: pc,
-        dataChannel
-      });
-    } else {
-      // データチャンネルの受信（レシーバー側）
-      pc.ondatachannel = (event) => {
-        setupDataChannel(event.channel, peerId);
-        peersRef.current.set(peerId, {
-          ...peersRef.current.get(peerId)!,
-          connection: pc,
-          dataChannel: event.channel
-        });
+      // データチャンネルの作成（A→B）
+      const dataChannelA = pcA.createDataChannel('chatA', { ordered: true });
+      userADataChannelRef.current = dataChannelA;
+
+      // データチャンネルの受信設定（B側）
+      pcB.ondatachannel = (event) => {
+        const dataChannelB = event.channel;
+        userBDataChannelRef.current = dataChannelB;
+
+        dataChannelB.onopen = () => {
+          console.log('Data channel B opened');
+          setUserBSession(prev => ({ ...prev, isConnected: true }));
+          setConnectionStatus('P2P接続完了');
+        };
+
+        dataChannelB.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          addMessage(data.message, 'A');
+        };
       };
-    }
 
-    return pc;
-  };
+      // データチャンネルA側のイベント設定
+      dataChannelA.onopen = () => {
+        console.log('Data channel A opened');
+        setUserASession(prev => ({ ...prev, isConnected: true }));
+      };
 
-  const setupDataChannel = (dataChannel: RTCDataChannel, peerId: string) => {
-    dataChannel.onopen = () => {
-      console.log(`Data channel with ${peerId} opened`);
-      addMessage(`🔗 ${peerId} とP2P接続が確立されました`);
-    };
-
-    dataChannel.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      addMessage(`${data.fromId}: ${data.message}`);
-    };
-
-    dataChannel.onclose = () => {
-      console.log(`Data channel with ${peerId} closed`);
-      addMessage(`❌ ${peerId} との接続が切断されました`);
-    };
-  };
-
-  const sendOfferToPeer = async (peerId: string) => {
-    const peer = peersRef.current.get(peerId);
-    if (!peer?.connection) return;
-
-    try {
-      const offer = await peer.connection.createOffer();
-      await peer.connection.setLocalDescription(offer);
-      
-      if (ws) {
-        ws.send(JSON.stringify({
-          type: 'offer',
-          offer,
-          targetId: peerId
-        }));
-      }
-    } catch (error) {
-      console.error('Error creating offer:', error);
-    }
-  };
-
-  const handleOffer = async (fromId: string, offer: RTCSessionDescriptionInit) => {
-    let peer = peersRef.current.get(fromId);
-    if (!peer) {
-      const newPeer: Peer = { id: fromId, isHost: false };
-      peersRef.current.set(fromId, newPeer);
-      peer = newPeer;
-    }
-
-    if (!peer.connection) {
-      peer.connection = createPeerConnection(fromId, false);
-    }
-
-    try {
-      await peer.connection.setRemoteDescription(offer);
-      const answer = await peer.connection.createAnswer();
-      await peer.connection.setLocalDescription(answer);
-      
-      if (ws) {
-        ws.send(JSON.stringify({
-          type: 'answer',
-          answer,
-          targetId: fromId
-        }));
-      }
-    } catch (error) {
-      console.error('Error handling offer:', error);
-    }
-  };
-
-  const handleAnswer = async (fromId: string, answer: RTCSessionDescriptionInit) => {
-    const peer = peersRef.current.get(fromId);
-    if (peer?.connection) {
-      try {
-        await peer.connection.setRemoteDescription(answer);
-      } catch (error) {
-        console.error('Error handling answer:', error);
-      }
-    }
-  };
-
-  const handleIceCandidate = async (fromId: string, candidate: RTCIceCandidateInit) => {
-    const peer = peersRef.current.get(fromId);
-    if (peer?.connection) {
-      try {
-        await peer.connection.addIceCandidate(candidate);
-      } catch (error) {
-        console.error('Error adding ICE candidate:', error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    // APIに一度GETしてサーバー初期化
-    fetch('/api/test/webrtc');
-
-    // WebSocketのURLを動的に決定
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${location.host}/api/test/webrtc`;
-    console.log('Connecting to WebSocket:', wsUrl);
-    
-    const socket = new WebSocket(wsUrl);
-    
-    socket.onopen = () => {
-      console.log('WebSocket connected');
-      setConnectionStatus('シグナリングサーバー接続済み');
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setConnectionStatus('WebSocket接続エラー');
-    };
-    
-    socket.onmessage = async (event) => {
-      try {
+      dataChannelA.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'connected':
-            setClientId(data.clientId);
-            setIsHost(data.isHost);
-            addMessage(data.message);
-            break;
-            
-          case 'existing-peers':
-            // 既存のピアに接続を開始
-            for (const peerInfo of data.peers) {
-              const peer: Peer = { id: peerInfo.id, isHost: peerInfo.isHost };
-              peersRef.current.set(peerInfo.id, peer);
-              peer.connection = createPeerConnection(peerInfo.id, true);
-              sendOfferToPeer(peerInfo.id);
-            }
-            setPeers(new Map(peersRef.current));
-            break;
-            
-          case 'peer-joined':
-            const newPeer: Peer = { id: data.peerId, isHost: data.isNewPeerHost };
-            peersRef.current.set(data.peerId, newPeer);
-            setPeers(new Map(peersRef.current));
-            addMessage(`👋 ${data.peerId} が参加しました`);
-            break;
-            
-          case 'peer-left':
-            peersRef.current.delete(data.peerId);
-            setPeers(new Map(peersRef.current));
-            addMessage(`👋 ${data.peerId} が退出しました`);
-            break;
-            
-          case 'offer':
-            await handleOffer(data.fromId, data.offer);
-            break;
-            
-          case 'answer':
-            await handleAnswer(data.fromId, data.answer);
-            break;
-            
-          case 'ice-candidate':
-            await handleIceCandidate(data.fromId, data.candidate);
-            break;
-            
-          case 'chat':
-            addMessage(`${data.fromId}${data.fromHost ? ' (Host)' : ''}: ${data.message}`);
-            break;
+        addMessage(data.message, 'B');
+      };
+
+      // ICE候補の交換
+      const iceCandidatesA: RTCIceCandidate[] = [];
+      const iceCandidatesB: RTCIceCandidate[] = [];
+
+      pcA.onicecandidate = (event) => {
+        if (event.candidate) {
+          iceCandidatesA.push(event.candidate);
         }
-      } catch (error) {
-        console.error('Error parsing message:', error);
+      };
+
+      pcB.onicecandidate = (event) => {
+        if (event.candidate) {
+          iceCandidatesB.push(event.candidate);
+        }
+      };
+
+      // オファー/アンサーの交換
+      const offer = await pcA.createOffer();
+      await pcA.setLocalDescription(offer);
+      await pcB.setRemoteDescription(offer);
+
+      const answer = await pcB.createAnswer();
+      await pcB.setLocalDescription(answer);
+      await pcA.setRemoteDescription(answer);
+
+      // ICE候補の追加
+      setTimeout(async () => {
+        for (const candidate of iceCandidatesA) {
+          await pcB.addIceCandidate(candidate);
+        }
+        for (const candidate of iceCandidatesB) {
+          await pcA.addIceCandidate(candidate);
+        }
+      }, 1000);
+
+      setConnectionStatus('WebRTC接続中...');
+
+    } catch (error) {
+      console.error('WebRTC initialization failed:', error);
+      setConnectionStatus('接続失敗');
+    }
+  };
+
+  // メッセージ送信関数
+  const sendMessage = (sender: 'A' | 'B', message: string) => {
+    if (!message.trim()) return;
+
+    const dataChannel = sender === 'A' ? userADataChannelRef.current : userBDataChannelRef.current;
+    
+    if (dataChannel && dataChannel.readyState === 'open') {
+      dataChannel.send(JSON.stringify({ message, sender }));
+      addMessage(message, sender);
+      
+      // 入力フィールドをクリア
+      if (sender === 'A') {
+        setUserAInput('');
+      } else {
+        setUserBInput('');
       }
-    };
+    }
+  };
 
-    socket.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
-      setConnectionStatus(`切断されました (Code: ${event.code})`);
-      addMessage(`❌ WebSocket接続が切断されました (Code: ${event.code}, Reason: ${event.reason || 'Unknown'})`);
-    };
-
-    setWs(socket);
+  // 初期化
+  useEffect(() => {
+    initializeWebRTC();
+    
     return () => {
-      socket.close();
-      peersRef.current.forEach(peer => {
-        peer.connection?.close();
-        peer.dataChannel?.close();
-      });
+      // クリーンアップ
+      userAConnectionRef.current?.close();
+      userBConnectionRef.current?.close();
+      userADataChannelRef.current?.close();
+      userBDataChannelRef.current?.close();
     };
   }, []);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-
-    // P2P接続が利用可能な場合はそちらを使用
-    let sentViaP2P = false;
-    peersRef.current.forEach(peer => {
-      if (peer.dataChannel && peer.dataChannel.readyState === 'open') {
-        peer.dataChannel.send(JSON.stringify({
-          message: input,
-          fromId: clientId
-        }));
-        sentViaP2P = true;
-      }
-    });
-
-    if (sentViaP2P) {
-      addMessage(`あなた: ${input}`);
-    } else {
-      // フォールバック: WebSocketサーバー経由
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'chat',
-          message: input
-        }));
-        addMessage(`あなた (via server): ${input}`);
-      }
-    }
-
-    setInput('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  // キーボードイベント
+  const handleKeyPress = (e: React.KeyboardEvent, sender: 'A' | 'B') => {
     if (e.key === 'Enter') {
-      sendMessage();
+      const message = sender === 'A' ? userAInput : userBInput;
+      sendMessage(sender, message);
     }
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1>WebRTC P2P Chat</h1>
-      
-      <div style={{ marginBottom: '10px' }}>
-        <strong>状態:</strong> {connectionStatus}<br />
-        <strong>あなたのID:</strong> {clientId}<br />
-        <strong>ロール:</strong> {isHost ? 'ホスト' : 'ピア'}<br />
-        <strong>接続中のピア:</strong> {peers.size}人
-      </div>
-
-      <div style={{
-        border: '1px solid #ccc',
-        padding: '10px',
-        height: '300px',
-        overflowY: 'auto',
-        backgroundColor: '#f9f9f9',
-        marginBottom: '10px'
+    <div style={{ 
+      display: 'flex', 
+      height: '100vh', 
+      fontFamily: 'Arial, sans-serif',
+      backgroundColor: '#f0f0f0'
+    }}>
+      {/* ユーザーA側 */}
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: '#e3f2fd',
+        border: '1px solid #2196f3'
       }}>
-        {messages.map((message, index) => (
-          <div key={index} style={{ marginBottom: '5px' }}>
-            {message}
+        <div style={{ 
+          padding: '15px', 
+          backgroundColor: '#2196f3', 
+          color: 'white',
+          textAlign: 'center'
+        }}>
+          <h2>ユーザーA</h2>
+          <div style={{ fontSize: '12px' }}>
+            状態: {userASession.isConnected ? '接続済み' : '未接続'}
           </div>
-        ))}
+        </div>
+        
+        {/* チャット履歴 */}
+        <div style={{ 
+          flex: 1, 
+          padding: '10px', 
+          overflowY: 'auto',
+          backgroundColor: 'white'
+        }}>
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              style={{
+                display: 'flex',
+                justifyContent: msg.sender === 'A' ? 'flex-end' : 'flex-start',
+                marginBottom: '10px'
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: '70%',
+                  padding: '8px 12px',
+                  borderRadius: '18px',
+                  backgroundColor: msg.sender === 'A' ? '#2196f3' : '#e0e0e0',
+                  color: msg.sender === 'A' ? 'white' : 'black',
+                  fontSize: '14px'
+                }}
+              >
+                {msg.text}
+                <div style={{ 
+                  fontSize: '10px', 
+                  opacity: 0.7, 
+                  marginTop: '2px' 
+                }}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* 入力欄 */}
+        <div style={{ 
+          padding: '10px', 
+          backgroundColor: '#f5f5f5',
+          display: 'flex',
+          gap: '10px'
+        }}>
+          <input
+            type="text"
+            value={userAInput}
+            onChange={(e) => setUserAInput(e.target.value)}
+            onKeyPress={(e) => handleKeyPress(e, 'A')}
+            placeholder="メッセージを入力..."
+            disabled={!userASession.isConnected}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '20px',
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={() => sendMessage('A', userAInput)}
+            disabled={!userASession.isConnected || !userAInput.trim()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#2196f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: userASession.isConnected ? 'pointer' : 'not-allowed',
+              opacity: userASession.isConnected ? 1 : 0.5
+            }}
+          >
+            送信
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="メッセージを入力"
-          style={{
-            flex: 1,
-            padding: '8px',
-            border: '1px solid #ccc',
-            borderRadius: '4px'
-          }}
-        />
-        <button
-          onClick={sendMessage}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          送信
-        </button>
+      {/* 中央の区切り線 */}
+      <div style={{ 
+        width: '2px', 
+        backgroundColor: '#333',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative'
+      }}>
+        <div style={{
+          backgroundColor: '#333',
+          color: 'white',
+          padding: '5px 10px',
+          borderRadius: '10px',
+          fontSize: '12px',
+          position: 'absolute'
+        }}>
+          {connectionStatus}
+        </div>
       </div>
 
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-        <h3>接続状況:</h3>
-        {Array.from(peers.values()).map(peer => (
-          <div key={peer.id}>
-            {peer.id} - {peer.connection?.connectionState || 'connecting'} 
-            {peer.dataChannel?.readyState === 'open' && ' (P2P通信中)'}
+      {/* ユーザーB側 */}
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: '#e8f5e8',
+        border: '1px solid #4caf50'
+      }}>
+        <div style={{ 
+          padding: '15px', 
+          backgroundColor: '#4caf50', 
+          color: 'white',
+          textAlign: 'center'
+        }}>
+          <h2>ユーザーB</h2>
+          <div style={{ fontSize: '12px' }}>
+            状態: {userBSession.isConnected ? '接続済み' : '未接続'}
           </div>
-        ))}
+        </div>
+        
+        {/* チャット履歴 */}
+        <div style={{ 
+          flex: 1, 
+          padding: '10px', 
+          overflowY: 'auto',
+          backgroundColor: 'white'
+        }}>
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              style={{
+                display: 'flex',
+                justifyContent: msg.sender === 'B' ? 'flex-end' : 'flex-start',
+                marginBottom: '10px'
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: '70%',
+                  padding: '8px 12px',
+                  borderRadius: '18px',
+                  backgroundColor: msg.sender === 'B' ? '#4caf50' : '#e0e0e0',
+                  color: msg.sender === 'B' ? 'white' : 'black',
+                  fontSize: '14px'
+                }}
+              >
+                {msg.text}
+                <div style={{ 
+                  fontSize: '10px', 
+                  opacity: 0.7, 
+                  marginTop: '2px' 
+                }}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* 入力欄 */}
+        <div style={{ 
+          padding: '10px', 
+          backgroundColor: '#f5f5f5',
+          display: 'flex',
+          gap: '10px'
+        }}>
+          <input
+            type="text"
+            value={userBInput}
+            onChange={(e) => setUserBInput(e.target.value)}
+            onKeyPress={(e) => handleKeyPress(e, 'B')}
+            placeholder="メッセージを入力..."
+            disabled={!userBSession.isConnected}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '20px',
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={() => sendMessage('B', userBInput)}
+            disabled={!userBSession.isConnected || !userBInput.trim()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#4caf50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: userBSession.isConnected ? 'pointer' : 'not-allowed',
+              opacity: userBSession.isConnected ? 1 : 0.5
+            }}
+          >
+            送信
+          </button>
+        </div>
       </div>
     </div>
   );
