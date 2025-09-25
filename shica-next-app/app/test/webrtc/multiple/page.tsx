@@ -75,40 +75,18 @@ export default function WebRTCChat() {
     };
   };
 
-  // Add message to specific users based on target
-  const addMessage = (msg: Message) => {
+  // Add message to specific users based on updateUserId
+  const addMessage = (msg: Message, updateUserId: UppercaseLetter) => {
     setUserSessions(prev => {
-      const updated = { ...prev };
-      Object.keys(prev).forEach(userId => {
-        const userSession = prev[userId as UppercaseLetter];
-        if (userSession) {
-          // Show message if it's for everyone, or if it's for this specific user, or if this user sent it
-          const shouldShowMessage = 
-            msg.target === 'ALL' || 
-            msg.target === userId || 
-            msg.sender === userId;
-            
-          if (shouldShowMessage) {
-            updated[userId as UppercaseLetter] = {
-              ...userSession,
-              messages: [...userSession.messages, msg]
-            };
-          }
-        }
-      });
-      return updated;
+      const updatedSessions = { ...prev };
+
+    updatedSessions[updateUserId] = {
+        ...updatedSessions[updateUserId]!,
+        messages: [...updatedSessions[updateUserId]!.messages, msg]
+    };
+      return updatedSessions;
     });
-    
-    // Scroll to bottom for users who received the message
-    Object.keys(userSessions).forEach(userId => {
-      const shouldShowMessage = 
-        msg.target === 'ALL' || 
-        msg.target === userId || 
-        msg.sender === userId;
-      if (shouldShowMessage) {
-        scrollToBottom(userId as UppercaseLetter);
-      }
-    });
+    scrollToBottom(updateUserId);
   };
 
   // Create peer connection between two users
@@ -143,8 +121,8 @@ export default function WebRTCChat() {
       const channel = event.channel;
       channel.onmessage = (event) => {
         const msg = JSON.parse(event.data) as Message;
-        console.log(`Received message from ${msg.sender}: ${msg.text}`);
-        addMessage(msg);
+        console.log(`Received message from ${msg.sender}: ${msg.text} (to ${fromUser})`);
+        addMessage(msg, fromUser);
       };
     };
 
@@ -241,8 +219,8 @@ export default function WebRTCChat() {
       target, 
       isPrivate 
     });
-    
-    addMessage(msg);
+
+    addMessage(msg, sender);
 
     // Send to specific users based on target
     const senderChannels = dataChannelsRef.current[sender];
