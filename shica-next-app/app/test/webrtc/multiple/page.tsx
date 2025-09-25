@@ -12,6 +12,8 @@ interface Message {
   text: string;
   sender: UppercaseLetter;
   timestamp: string;
+  target?: 'ALL' | UppercaseLetter;
+  isPrivate?: boolean;
 }
 
 interface UserSession {
@@ -19,12 +21,13 @@ interface UserSession {
   isConnected: boolean;
   messages: Message[];
   input: string;
+  selectedTarget: 'ALL' | UppercaseLetter;
 }
 
 export default function WebRTCChat() {
   const [userSessions, setUserSessions] = useState<{ [key in UppercaseLetter]?: UserSession }>({
-    A: { userId: 'A', isConnected: false, messages: [], input: '' },
-    B: { userId: 'B', isConnected: false, messages: [], input: '' }
+    A: { userId: 'A', isConnected: false, messages: [], input: '', selectedTarget: 'ALL' },
+    B: { userId: 'B', isConnected: false, messages: [], input: '', selectedTarget: 'ALL' }
   });
   const [connectionStatus, setConnectionStatus] = useState<string>('Waiting for connection...');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -61,34 +64,50 @@ export default function WebRTCChat() {
     }, 100);
   };
 
-  const createMessage = ({ text, sender }: Partial<Message> = {}): Message => {
+  const createMessage = ({ text, sender, target, isPrivate }: Partial<Message> = {}): Message => {
     return {
       id: Date.now().toString() + Math.random(),
       text: text || 'Hello!',
       sender: sender || 'A',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      target: target || 'ALL',
+      isPrivate: isPrivate || false,
     };
   };
 
-  // Add message to specific user's message list and all other users
+  // Add message to specific users based on target
   const addMessage = (msg: Message) => {
     setUserSessions(prev => {
       const updated = { ...prev };
       Object.keys(prev).forEach(userId => {
         const userSession = prev[userId as UppercaseLetter];
         if (userSession) {
-          updated[userId as UppercaseLetter] = {
-            ...userSession,
-            messages: [...userSession.messages, msg]
-          };
+          // Show message if it's for everyone, or if it's for this specific user, or if this user sent it
+          const shouldShowMessage = 
+            msg.target === 'ALL' || 
+            msg.target === userId || 
+            msg.sender === userId;
+            
+          if (shouldShowMessage) {
+            updated[userId as UppercaseLetter] = {
+              ...userSession,
+              messages: [...userSession.messages, msg]
+            };
+          }
         }
       });
       return updated;
     });
     
-    // Scroll to bottom for all users
+    // Scroll to bottom for users who received the message
     Object.keys(userSessions).forEach(userId => {
-      scrollToBottom(userId as UppercaseLetter);
+      const shouldShowMessage = 
+        msg.target === 'ALL' || 
+        msg.target === userId || 
+        msg.sender === userId;
+      if (shouldShowMessage) {
+        scrollToBottom(userId as UppercaseLetter);
+      }
     });
   };
 
@@ -210,17 +229,38 @@ export default function WebRTCChat() {
   const sendMessage = (sender: UppercaseLetter, message: string) => {
     if (!message.trim()) return;
 
-    const msg = createMessage({ text: message, sender });
+    const senderSession = userSessions[sender];
+    if (!senderSession) return;
+
+    const target = senderSession.selectedTarget;
+    const isPrivate = target !== 'ALL';
+    
+    const msg = createMessage({ 
+      text: message, 
+      sender, 
+      target, 
+      isPrivate 
+    });
+    
     addMessage(msg);
 
-    // Send to all other users via their data channels
+    // Send to specific users based on target
     const senderChannels = dataChannelsRef.current[sender];
     if (senderChannels) {
-      Object.values(senderChannels).forEach(dataChannel => {
-        if (dataChannel && dataChannel.readyState === 'open') {
-          dataChannel.send(JSON.stringify(msg));
+      if (target === 'ALL') {
+        // Send to all other users
+        Object.values(senderChannels).forEach(dataChannel => {
+          if (dataChannel && dataChannel.readyState === 'open') {
+            dataChannel.send(JSON.stringify(msg));
+          }
+        });
+      } else {
+        // Send to specific user only
+        const targetChannel = senderChannels[target];
+        if (targetChannel && targetChannel.readyState === 'open') {
+          targetChannel.send(JSON.stringify(msg));
         }
-      });
+      }
     }
 
     // Clear input field
@@ -238,6 +278,14 @@ export default function WebRTCChat() {
     }));
   };
 
+  // Update selected target
+  const updateSelectedTarget = (userId: UppercaseLetter, target: 'ALL' | UppercaseLetter) => {
+    setUserSessions(prev => ({
+      ...prev,
+      [userId]: prev[userId] ? { ...prev[userId], selectedTarget: target } : prev[userId]
+    }));
+  };
+
   // Add new user (max 12)
   const addUserSession = () => {
     const currentUsers = Object.keys(userSessions);
@@ -249,7 +297,7 @@ export default function WebRTCChat() {
     const newUserId = String.fromCharCode(65 + currentUsers.length) as UppercaseLetter;
     setUserSessions(prev => ({
       ...prev,
-      [newUserId]: { userId: newUserId, isConnected: false, messages: [], input: '' }
+      [newUserId]: { userId: newUserId, isConnected: false, messages: [], input: '', selectedTarget: 'ALL' }
     }));
     
     setIsInitialized(false); // Force re-initialization
@@ -327,12 +375,32 @@ export default function WebRTCChat() {
                 maxWidth: '80%',
                 padding: '8px 12px',
                 borderRadius: '15px',
-                backgroundColor: msg.sender === userSession.userId ? '#2196f3' : '#e0e0e0',
+                backgroundColor: msg.sender === userSession.userId 
+                  ? (msg.isPrivate ? '#ff9800' : '#2196f3') 
+                  : (msg.isPrivate ? '#ffecb3' : '#e0e0e0'),
                 color: msg.sender === userSession.userId ? 'white' : 'black',
-                fontSize: '14px'
+                fontSize: '14px',
+                border: msg.isPrivate ? '2px solid #ff6f00' : 'none'
               }}>
-                <div style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '2px' }}>
-                  {msg.sender}
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  fontSize: '12px', 
+                  marginBottom: '2px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>{msg.sender}</span>
+                  {msg.isPrivate && (
+                    <span style={{ 
+                      fontSize: '10px', 
+                      backgroundColor: 'rgba(255,255,255,0.3)',
+                      padding: '2px 6px',
+                      borderRadius: '8px'
+                    }}>
+                      → {msg.target}
+                    </span>
+                  )}
                 </div>
                 {msg.text}
                 <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>
@@ -343,6 +411,35 @@ export default function WebRTCChat() {
           ))}
         </div>
 
+        {/* Target Selection */}
+        <div style={{ marginBottom: '8px' }}>
+          <label style={{ fontSize: '12px', marginBottom: '4px', display: 'block', fontWeight: 'bold' }}>
+            Send to:
+          </label>
+          <select
+            value={userSession.selectedTarget}
+            onChange={(e) => updateSelectedTarget(userSession.userId, e.target.value as 'ALL' | UppercaseLetter)}
+            disabled={!userSession.isConnected}
+            style={{
+              width: '100%',
+              padding: '6px',
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              backgroundColor: 'white',
+              fontSize: '12px'
+            }}
+          >
+            <option value="ALL">🌐 Everyone</option>
+            {Object.keys(userSessions)
+              .filter(userId => userId !== userSession.userId)
+              .map(userId => (
+                <option key={userId} value={userId}>
+                  👤 User {userId} (Private)
+                </option>
+              ))}
+          </select>
+        </div>
+
         {/* Input */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
@@ -350,14 +447,17 @@ export default function WebRTCChat() {
             value={userSession.input}
             onChange={(e) => updateUserInput(userSession.userId, e.target.value)}
             onKeyPress={(e) => handleKeyPress(e, userSession.userId)}
-            placeholder="Type a message..."
+            placeholder={userSession.selectedTarget === 'ALL' 
+              ? "Type a message to everyone..." 
+              : `Type a private message to User ${userSession.selectedTarget}...`}
             disabled={!userSession.isConnected}
             style={{
               flex: 1,
               padding: '8px',
               border: '1px solid #ccc',
               borderRadius: '15px',
-              outline: 'none'
+              outline: 'none',
+              backgroundColor: userSession.selectedTarget === 'ALL' ? 'white' : '#fff3e0'
             }}
           />
           <button
@@ -365,15 +465,16 @@ export default function WebRTCChat() {
             disabled={!userSession.isConnected || !userSession.input.trim()}
             style={{
               padding: '8px 12px',
-              backgroundColor: '#2196f3',
+              backgroundColor: userSession.selectedTarget === 'ALL' ? '#2196f3' : '#ff9800',
               color: 'white',
               border: 'none',
               borderRadius: '15px',
               cursor: userSession.isConnected ? 'pointer' : 'not-allowed',
-              opacity: userSession.isConnected ? 1 : 0.5
+              opacity: userSession.isConnected ? 1 : 0.5,
+              fontSize: '12px'
             }}
           >
-            Send
+            {userSession.selectedTarget === 'ALL' ? 'Send All' : 'Send Private'}
           </button>
         </div>
       </div>
