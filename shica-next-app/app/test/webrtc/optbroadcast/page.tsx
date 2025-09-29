@@ -6,7 +6,7 @@ interface Message {
   id: string;
   sender: string;
   content: string;
-  timestamp: Date;
+  timestamp: string;
   target: string;
   isPrivate: boolean;
 }
@@ -17,7 +17,13 @@ interface UserSession {
   messages: Message[];
   input: string;
   selectedTarget: string;
-  isHost: boolean;
+}
+
+interface CommunicationHost {
+  id: string;
+  isActive: boolean;
+  connectedUsers: Set<string>;
+  messageQueue: Message[];
 }
 
 const OptimizedWebRTCChat = () => {
@@ -25,30 +31,48 @@ const OptimizedWebRTCChat = () => {
   const [userSessions, setUserSessions] = useState<UserSession[]>([
     { 
       userId: 'user1', 
-      isConnected: true, 
+      isConnected: false, 
       messages: [], 
       input: '', 
-      selectedTarget: 'everyone',
-      isHost: true
+      selectedTarget: 'everyone'
     },
     { 
       userId: 'user2', 
       isConnected: false, 
       messages: [], 
       input: '', 
-      selectedTarget: 'everyone',
-      isHost: false
+      selectedTarget: 'everyone'
     }
   ]);
 
-  const hostConnectionRef = useRef<RTCPeerConnection | null>(null);
-  const hostDataChannelRef = useRef<RTCDataChannel | null>(null);
-  const clientConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const clientDataChannelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
+  // Communication Host (separate from users)
+  const [communicationHost, setCommunicationHost] = useState<CommunicationHost>({
+    id: 'comm-host',
+    isActive: false,
+    connectedUsers: new Set(),
+    messageQueue: []
+  });
+
+  // WebRTC connections - Host manages all user connections
+  const hostConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const hostDataChannelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
+  
+  // User connections to host
+  const userToHostConnectionRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const userToHostDataChannelRef = useRef<Map<string, RTCDataChannel>>(new Map());
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isHostActiveRef = useRef(false);
+
+  const iceServers = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
 
   useEffect(() => {
-    initializeWebRTC();
+    initializeCommunicationHost();
     return () => {
       cleanup();
     };
@@ -59,161 +83,259 @@ const OptimizedWebRTCChat = () => {
   }, [userSessions]);
 
   const cleanup = () => {
-    hostConnectionRef.current?.close();
-    clientConnectionsRef.current.forEach(conn => conn.close());
-    clientConnectionsRef.current.clear();
-    clientDataChannelsRef.current.clear();
+    // Close all host connections
+    hostConnectionsRef.current.forEach(conn => conn.close());
+    hostConnectionsRef.current.clear();
+    hostDataChannelsRef.current.clear();
+
+    // Close all user connections
+    userToHostConnectionRef.current.forEach(conn => conn.close());
+    userToHostConnectionRef.current.clear();
+    userToHostDataChannelRef.current.clear();
+
+    isHostActiveRef.current = false;
   };
 
-  const initializeWebRTC = async () => {
-    // Host user (user1) creates connections to all clients
-    if (currentUserId === 'user1') {
-      await setupHostConnections();
-    }
-  };
-
-  const setupHostConnections = async () => {
-    // Setup connection for host to broadcast to all clients
-    const config = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    };
-
-    hostConnectionRef.current = new RTCPeerConnection(config);
+  // Initialize dedicated communication host
+  const initializeCommunicationHost = async () => {
+    console.log('🏢 Initializing Communication Host...');
     
-    // Create data channel for broadcasting
-    hostDataChannelRef.current = hostConnectionRef.current.createDataChannel('broadcast', {
-      ordered: true
-    });
-
-    hostDataChannelRef.current.onopen = () => {
-      console.log('Host broadcast channel opened');
-    };
-
-    hostDataChannelRef.current.onmessage = (event) => {
-      const messageData = JSON.parse(event.data);
-      handleReceivedMessage(messageData);
-    };
+    setCommunicationHost(prev => ({
+      ...prev,
+      isActive: true,
+      connectedUsers: new Set()
+    }));
+    
+    isHostActiveRef.current = true;
+    console.log('🟢 Communication Host is now active');
   };
 
-  const connectUser = async (userId: string) => {
-    if (currentUserId === 'user1') {
-      // Host creates connection to client
-      await createHostToClientConnection(userId);
-    } else {
-      // Client connects to host
-      await createClientToHostConnection();
+  // Host creates connection to a specific user
+  const createHostToUserConnection = async (userId: string): Promise<boolean> => {
+    if (!isHostActiveRef.current) {
+      console.error('❌ Communication Host is not active');
+      return false;
     }
-  };
 
-  const createHostToClientConnection = async (clientUserId: string) => {
-    const config = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    };
+    try {
+      console.log(`🔗 Host creating connection to ${userId}...`);
+      
+      const pc = new RTCPeerConnection(iceServers);
+      hostConnectionsRef.current.set(userId, pc);
 
-    const connection = new RTCPeerConnection(config);
-    clientConnectionsRef.current.set(clientUserId, connection);
+      // Create data channel from host to user
+      const dataChannel = pc.createDataChannel(`host-to-${userId}`, {
+        ordered: true
+      });
+      
+      hostDataChannelsRef.current.set(userId, dataChannel);
 
-    // Create data channel for this specific client
-    const dataChannel = connection.createDataChannel(`client-${clientUserId}`, {
-      ordered: true
-    });
-
-    dataChannel.onopen = () => {
-      console.log(`Connection to ${clientUserId} opened`);
-    };
-
-    dataChannel.onmessage = (event) => {
-      const messageData = JSON.parse(event.data);
-      // Host receives message from client and broadcasts to others
-      broadcastFromHost(messageData, clientUserId);
-    };
-
-    clientDataChannelsRef.current.set(clientUserId, dataChannel);
-
-    // Simulate connection establishment (in real app, you'd exchange offers/answers)
-    setTimeout(() => {
-      setUserSessions(prev => 
-        prev.map(s => 
-          s.userId === clientUserId 
-            ? { ...s, isConnected: true }
-            : s
-        )
-      );
-    }, 1000);
-  };
-
-  const createClientToHostConnection = async () => {
-    const config = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    };
-
-    const connection = new RTCPeerConnection(config);
-    clientConnectionsRef.current.set('host', connection);
-
-    connection.ondatachannel = (event) => {
-      const dataChannel = event.channel;
-      clientDataChannelsRef.current.set('host', dataChannel);
-
+      // Host data channel events
       dataChannel.onopen = () => {
-        console.log('Client connected to host');
+        console.log(`✅ Host connection to ${userId} established`);
+        
+        setCommunicationHost(prev => ({
+          ...prev,
+          connectedUsers: new Set([...prev.connectedUsers, userId])
+        }));
+        
+        setUserSessions(prev => 
+          prev.map(s => 
+            s.userId === userId 
+              ? { ...s, isConnected: true }
+              : s
+          )
+        );
       };
 
       dataChannel.onmessage = (event) => {
         const messageData = JSON.parse(event.data);
-        handleReceivedMessage(messageData);
+        console.log(`📨 Host received message from ${userId}:`, messageData);
+        handleMessageFromUser(messageData, userId);
       };
-    };
 
-    // Simulate connection establishment
-    setTimeout(() => {
-      setUserSessions(prev => 
-        prev.map(s => 
-          s.userId === currentUserId 
-            ? { ...s, isConnected: true }
-            : s
-        )
-      );
-    }, 1000);
+      dataChannel.onclose = () => {
+        console.log(`🔴 Host connection to ${userId} closed`);
+        setCommunicationHost(prev => {
+          const newConnectedUsers = new Set(prev.connectedUsers);
+          newConnectedUsers.delete(userId);
+          return {
+            ...prev,
+            connectedUsers: newConnectedUsers
+          };
+        });
+      };
+
+      dataChannel.onerror = (error) => {
+        console.error(`❌ Host data channel error for ${userId}:`, error);
+      };
+
+      // Peer connection events
+      pc.onconnectionstatechange = () => {
+        console.log(`🔄 Host->${userId} connection state:`, pc.connectionState);
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          // In a real implementation, this would be sent through signaling server
+          // For this demo, we'll simulate the ICE exchange
+          handleICECandidateForUser(userId, event.candidate);
+        }
+      };
+
+      // Simulate offer/answer exchange
+      await simulateOfferAnswerExchange(pc, userId);
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to create host connection to ${userId}:`, error);
+      return false;
+    }
   };
 
-  const broadcastFromHost = (messageData: any, excludeUserId?: string) => {
-    // Host broadcasts message to all connected clients except sender
-    clientDataChannelsRef.current.forEach((dataChannel, userId) => {
-      if (userId !== excludeUserId && dataChannel.readyState === 'open') {
+  // User creates connection to host
+  const createUserToHostConnection = async (userId: string): Promise<boolean> => {
+    try {
+      console.log(`🔗 ${userId} connecting to host...`);
+      
+      const pc = new RTCPeerConnection(iceServers);
+      userToHostConnectionRef.current.set(userId, pc);
+
+      // Handle incoming data channel from host
+      pc.ondatachannel = (event) => {
+        const dataChannel = event.channel;
+        userToHostDataChannelRef.current.set(userId, dataChannel);
+        
+        dataChannel.onopen = () => {
+          console.log(`✅ ${userId} connected to host`);
+        };
+
+        dataChannel.onmessage = (event) => {
+          const messageData = JSON.parse(event.data);
+          console.log(`📨 ${userId} received message from host:`, messageData);
+          handleMessageFromHost(messageData, userId);
+        };
+
+        dataChannel.onclose = () => {
+          console.log(`🔴 ${userId} disconnected from host`);
+          setUserSessions(prev => 
+            prev.map(s => 
+              s.userId === userId 
+                ? { ...s, isConnected: false }
+                : s
+            )
+          );
+        };
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log(`🔄 ${userId}->Host connection state:`, pc.connectionState);
+      };
+
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to create ${userId} connection to host:`, error);
+      return false;
+    }
+  };
+
+  // Simulate WebRTC offer/answer exchange (normally done through signaling server)
+  const simulateOfferAnswerExchange = async (hostPc: RTCPeerConnection, userId: string) => {
+    // In a real implementation, this would involve a signaling server
+    // For demo purposes, we simulate the exchange
+    setTimeout(async () => {
+      try {
+        // Create user connection
+        await createUserToHostConnection(userId);
+        const userPc = userToHostConnectionRef.current.get(userId);
+        
+        if (userPc) {
+          // Create offer from host
+          const offer = await hostPc.createOffer();
+          await hostPc.setLocalDescription(offer);
+          await userPc.setRemoteDescription(offer);
+
+          // Create answer from user
+          const answer = await userPc.createAnswer();
+          await userPc.setLocalDescription(answer);
+          await hostPc.setRemoteDescription(answer);
+
+          console.log(`🤝 Offer/Answer exchange completed for ${userId}`);
+        }
+      } catch (error) {
+        console.error(`❌ Offer/Answer exchange failed for ${userId}:`, error);
+      }
+    }, 100);
+  };
+
+  // Handle ICE candidates (simplified)
+  const handleICECandidateForUser = async (userId: string, candidate: RTCIceCandidate) => {
+    setTimeout(async () => {
+      const userPc = userToHostConnectionRef.current.get(userId);
+      if (userPc) {
         try {
-          dataChannel.send(JSON.stringify(messageData));
+          await userPc.addIceCandidate(candidate);
         } catch (error) {
-          console.error(`Failed to send to ${userId}:`, error);
+          console.error(`❌ Failed to add ICE candidate for ${userId}:`, error);
         }
       }
-    });
-
-    // Also handle message locally on host
-    handleReceivedMessage(messageData);
+    }, 50);
   };
 
-  const handleReceivedMessage = (messageData: { message: Message }) => {
+  // Host handles message from user and routes it
+  const handleMessageFromUser = (messageData: { message: Message }, fromUserId: string) => {
+    const { message } = messageData;
+    
+    console.log(`🏢 Host routing message from ${fromUserId} to ${message.target}`);
+    
+    // Add to host's message queue
+    setCommunicationHost(prev => ({
+      ...prev,
+      messageQueue: [...prev.messageQueue, message]
+    }));
+
+    // Route message based on target
+    if (message.target === 'everyone') {
+      // Broadcast to all connected users except sender
+      hostDataChannelsRef.current.forEach((dataChannel, userId) => {
+        if (userId !== fromUserId && dataChannel.readyState === 'open') {
+          try {
+            dataChannel.send(JSON.stringify(messageData));
+            console.log(`📤 Host broadcasted message to ${userId}`);
+          } catch (error) {
+            console.error(`❌ Failed to broadcast to ${userId}:`, error);
+          }
+        }
+      });
+    } else {
+      // Send to specific user
+      const targetChannel = hostDataChannelsRef.current.get(message.target);
+      if (targetChannel && targetChannel.readyState === 'open') {
+        try {
+          targetChannel.send(JSON.stringify(messageData));
+          console.log(`📤 Host sent private message to ${message.target}`);
+        } catch (error) {
+          console.error(`❌ Failed to send private message to ${message.target}:`, error);
+        }
+      }
+    }
+  };
+
+  // User handles message from host
+  const handleMessageFromHost = (messageData: { message: Message }, userId: string) => {
     const { message } = messageData;
     
     setUserSessions(prev => {
       return prev.map(session => {
-        // Show message in sender's session and target's session (if private)
-        const shouldShowMessage = 
-          session.userId === message.sender || 
-          message.target === 'everyone' ||
-          (message.target === session.userId && message.isPrivate);
-        
-        if (shouldShowMessage && !session.messages.find(m => m.id === message.id)) {
-          return {
-            ...session,
-            messages: [...session.messages, message]
-          };
+        // Show message in target user's session
+        if (session.userId === userId) {
+          const messageExists = session.messages.find(m => m.id === message.id);
+          if (!messageExists) {
+            return {
+              ...session,
+              messages: [...session.messages, message]
+            };
+          }
         }
         return session;
       });
@@ -229,7 +351,7 @@ const OptimizedWebRTCChat = () => {
       id: `${sender}-${Date.now()}-${Math.random()}`,
       sender,
       content,
-      timestamp: new Date(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       target,
       isPrivate: target !== 'everyone'
     };
@@ -242,44 +364,81 @@ const OptimizedWebRTCChat = () => {
     const message = createMessage(sessionUserId, session.input, session.selectedTarget);
     const messageData = { message };
 
-    if (sessionUserId === 'user1') {
-      // Host broadcasts to all clients
-      broadcastFromHost(messageData);
-    } else {
-      // Client sends to host (which will then broadcast)
-      const hostDataChannel = clientDataChannelsRef.current.get('host');
-      if (hostDataChannel && hostDataChannel.readyState === 'open') {
-        hostDataChannel.send(JSON.stringify(messageData));
+    // Send message through host
+    const userChannel = userToHostDataChannelRef.current.get(sessionUserId);
+    if (userChannel && userChannel.readyState === 'open') {
+      try {
+        userChannel.send(JSON.stringify(messageData));
+        console.log(`📤 ${sessionUserId} sent message to host`);
+        
+        // Add message to sender's local state immediately
+        setUserSessions(prev => {
+          return prev.map(s => {
+            if (s.userId === sessionUserId) {
+              return {
+                ...s,
+                messages: [...s.messages, message],
+                input: ''
+              };
+            }
+            return s;
+          });
+        });
+      } catch (error) {
+        console.error(`❌ Failed to send message from ${sessionUserId}:`, error);
       }
+    } else {
+      console.warn(`⚠️ ${sessionUserId} is not connected to host`);
+    }
+  };
+
+  const connectUser = async (userId: string) => {
+    if (!isHostActiveRef.current) {
+      console.error('❌ Cannot connect user: Communication Host is not active');
+      return;
     }
 
-    // Add message to local state
-    setUserSessions(prev => {
-      return prev.map(s => {
-        if (s.userId === sessionUserId) {
-          return {
-            ...s,
-            messages: [...s.messages, message],
-            input: ''
-          };
-        }
-        // Also add to target user's session if private
-        if (message.isPrivate && s.userId === message.target) {
-          return {
-            ...s,
-            messages: [...s.messages, message]
-          };
-        }
-        // Add to all sessions if public
-        if (message.target === 'everyone') {
-          return {
-            ...s,
-            messages: [...s.messages, message]
-          };
-        }
-        return s;
-      });
+    const success = await createHostToUserConnection(userId);
+    if (success) {
+      console.log(`✅ ${userId} connection process initiated`);
+    }
+  };
+
+  const disconnectUser = async (userId: string) => {
+    // Close host connection to user
+    const hostConnection = hostConnectionsRef.current.get(userId);
+    if (hostConnection) {
+      hostConnection.close();
+      hostConnectionsRef.current.delete(userId);
+      hostDataChannelsRef.current.delete(userId);
+    }
+
+    // Close user connection to host
+    const userConnection = userToHostConnectionRef.current.get(userId);
+    if (userConnection) {
+      userConnection.close();
+      userToHostConnectionRef.current.delete(userId);
+      userToHostDataChannelRef.current.delete(userId);
+    }
+
+    setUserSessions(prev => 
+      prev.map(s => 
+        s.userId === userId 
+          ? { ...s, isConnected: false }
+          : s
+      )
+    );
+
+    setCommunicationHost(prev => {
+      const newConnectedUsers = new Set(prev.connectedUsers);
+      newConnectedUsers.delete(userId);
+      return {
+        ...prev,
+        connectedUsers: newConnectedUsers
+      };
     });
+
+    console.log(`🔴 ${userId} disconnected`);
   };
 
   const addUser = () => {
@@ -291,20 +450,17 @@ const OptimizedWebRTCChat = () => {
       isConnected: false,
       messages: [],
       input: '',
-      selectedTarget: 'everyone',
-      isHost: false
+      selectedTarget: 'everyone'
     }]);
   };
 
   const removeUser = (userId: string) => {
-    if (userSessions.length <= 2 || userId === 'user1') return;
+    if (userSessions.length <= 2) return;
     
-    // Clean up connections
-    const connection = clientConnectionsRef.current.get(userId);
-    connection?.close();
-    clientConnectionsRef.current.delete(userId);
-    clientDataChannelsRef.current.delete(userId);
-
+    // Disconnect user first
+    disconnectUser(userId);
+    
+    // Remove from sessions
     setUserSessions(prev => prev.filter(s => s.userId !== userId));
   };
 
@@ -313,21 +469,8 @@ const OptimizedWebRTCChat = () => {
     if (!session) return;
 
     if (session.isConnected) {
-      // Disconnect
-      const connection = clientConnectionsRef.current.get(userId);
-      connection?.close();
-      clientConnectionsRef.current.delete(userId);
-      clientDataChannelsRef.current.delete(userId);
-      
-      setUserSessions(prev => 
-        prev.map(s => 
-          s.userId === userId 
-            ? { ...s, isConnected: false }
-            : s
-        )
-      );
+      await disconnectUser(userId);
     } else {
-      // Connect
       await connectUser(userId);
     }
   };
@@ -356,18 +499,63 @@ const OptimizedWebRTCChat = () => {
     return userSessions.filter(s => s.userId !== currentUser && s.isConnected);
   };
 
-  const getConnectionCount = () => {
-    // Optimized: Host has N-1 connections (star topology)
-    return userSessions.length - 1;
+  const getConnectionStats = () => {
+    const connectedCount = Array.from(communicationHost.connectedUsers).length;
+    const totalUsers = userSessions.length;
+    const meshConnections = totalUsers * (totalUsers - 1);
+    const starConnections = totalUsers; // Each user connects to host
+    
+    return {
+      connected: connectedCount,
+      total: totalUsers,
+      starConnections,
+      meshConnections
+    };
   };
 
+  const stats = getConnectionStats();
+
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Header */}
       <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-        <h1>Optimized WebRTC Chat System (Star Topology)</h1>
-        <p>Current User: <strong>{currentUserId}</strong></p>
-        <p>Total Connections: <strong>{getConnectionCount()}</strong> (vs {userSessions.length * (userSessions.length - 1)} in mesh)</p>
+        <h1>WebRTC with Dedicated Communication Host</h1>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          gap: '20px',
+          marginBottom: '15px'
+        }}>
+          <div style={{ 
+            padding: '10px 15px',
+            backgroundColor: communicationHost.isActive ? '#28a745' : '#dc3545',
+            color: 'white',
+            borderRadius: '8px',
+            fontWeight: 'bold'
+          }}>
+            🏢 Communication Host: {communicationHost.isActive ? 'ACTIVE' : 'INACTIVE'}
+          </div>
+          <div style={{ 
+            padding: '10px 15px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            borderRadius: '8px'
+          }}>
+            Connected: {stats.connected}/{stats.total}
+          </div>
+          <div style={{ 
+            padding: '10px 15px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            borderRadius: '8px'
+          }}>
+            Connections: {stats.starConnections} (vs {stats.meshConnections} mesh)
+          </div>
+        </div>
+        
         <div style={{ marginTop: '10px' }}>
+          <p><strong>Current User:</strong> {currentUserId}</p>
           {userSessions.map(session => (
             <button
               key={session.userId}
@@ -382,22 +570,61 @@ const OptimizedWebRTCChat = () => {
                 cursor: 'pointer'
               }}
             >
-              {session.userId} {session.isHost && '👑'}
+              {session.userId} {session.isConnected ? '🟢' : '🔴'}
             </button>
           ))}
         </div>
+        
         <div style={{ marginTop: '10px' }}>
-          <button onClick={addUser} disabled={userSessions.length >= 12} style={{ marginRight: '10px', padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: userSessions.length >= 12 ? 'not-allowed' : 'pointer' }}>
+          <button 
+            onClick={addUser} 
+            disabled={userSessions.length >= 12} 
+            style={{ 
+              marginRight: '10px', 
+              padding: '8px 16px', 
+              backgroundColor: '#28a745', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: userSessions.length >= 12 ? 'not-allowed' : 'pointer' 
+            }}
+          >
             Add User (Max: 12)
           </button>
         </div>
       </div>
 
+      {/* Communication Host Status */}
+      <div style={{ 
+        marginBottom: '20px', 
+        padding: '15px', 
+        backgroundColor: '#f8f9fa', 
+        borderRadius: '8px',
+        border: '2px solid #e9ecef'
+      }}>
+        <h4>🏢 Communication Host Status</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+          <div>
+            <strong>Status:</strong> {communicationHost.isActive ? '🟢 Active' : '🔴 Inactive'}
+          </div>
+          <div>
+            <strong>Connected Users:</strong> {Array.from(communicationHost.connectedUsers).join(', ') || 'None'}
+          </div>
+          <div>
+            <strong>Messages Processed:</strong> {communicationHost.messageQueue.length}
+          </div>
+          <div>
+            <strong>Architecture:</strong> Star Topology (Hub & Spoke)
+          </div>
+        </div>
+      </div>
+
+      {/* User Sessions Grid */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
         gap: '20px',
-        maxHeight: '80vh',
+        maxHeight: '70vh',
         overflow: 'auto'
       }}>
         {userSessions.map(session => (
@@ -408,6 +635,7 @@ const OptimizedWebRTCChat = () => {
             backgroundColor: currentUserId === session.userId ? '#f0f8ff' : '#ffffff',
             boxShadow: currentUserId === session.userId ? '0 0 10px rgba(0,123,255,0.3)' : 'none'
           }}>
+            {/* User Header */}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -417,27 +645,34 @@ const OptimizedWebRTCChat = () => {
               borderBottom: '1px solid #eee'
             }}>
               <h3 style={{ margin: 0 }}>
-                {session.userId} 
-                {session.isHost && <span style={{ marginLeft: '5px' }}>👑 Host</span>}
+                👤 {session.userId}
+                <span style={{ 
+                  marginLeft: '8px',
+                  fontSize: '12px',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  backgroundColor: session.isConnected ? '#28a745' : '#dc3545',
+                  color: 'white'
+                }}>
+                  {session.isConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                </span>
               </h3>
               <div>
                 <button
                   onClick={() => toggleConnection(session.userId)}
-                  disabled={session.userId === 'user1'}
                   style={{
                     padding: '4px 8px',
                     backgroundColor: session.isConnected ? '#dc3545' : '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '3px',
-                    cursor: session.userId === 'user1' ? 'not-allowed' : 'pointer',
-                    marginRight: '5px',
-                    opacity: session.userId === 'user1' ? 0.5 : 1
+                    cursor: 'pointer',
+                    marginRight: '5px'
                   }}
                 >
                   {session.isConnected ? 'Disconnect' : 'Connect'}
                 </button>
-                {userSessions.length > 2 && session.userId !== 'user1' && (
+                {userSessions.length > 2 && (
                   <button
                     onClick={() => removeUser(session.userId)}
                     style={{
@@ -455,6 +690,7 @@ const OptimizedWebRTCChat = () => {
               </div>
             </div>
 
+            {/* Messages Area */}
             <div style={{ 
               height: '300px', 
               overflowY: 'auto', 
@@ -473,9 +709,9 @@ const OptimizedWebRTCChat = () => {
                     maxWidth: '70%', 
                     padding: '8px 12px', 
                     borderRadius: '18px',
-                    backgroundColor: msg.sender === session.userId ? '#007bff' : '#e9ecef',
-                    color: msg.sender === session.userId ? 'white' : 'black',
-                    position: 'relative'
+                    backgroundColor: msg.sender === session.userId ? '#007bff' : (msg.isPrivate ? '#fd7e14' : '#e9ecef'),
+                    color: msg.sender === session.userId ? 'white' : (msg.isPrivate ? 'white' : 'black'),
+                    border: msg.isPrivate ? '2px solid #fd7e14' : 'none'
                   }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '2px' }}>
                       {msg.sender}
@@ -487,7 +723,7 @@ const OptimizedWebRTCChat = () => {
                     </div>
                     <div>{msg.content}</div>
                     <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>
-                      {msg.timestamp.toLocaleTimeString()}
+                      {msg.timestamp}
                     </div>
                   </div>
                 </div>
@@ -495,17 +731,23 @@ const OptimizedWebRTCChat = () => {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Input Area */}
             {session.isConnected && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 <select
                   value={session.selectedTarget}
                   onChange={(e) => updateSelectedTarget(session.userId, e.target.value)}
-                  style={{ padding: '5px', border: '1px solid #ccc', borderRadius: '5px' }}
+                  style={{ 
+                    padding: '5px', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '5px',
+                    backgroundColor: session.selectedTarget !== 'everyone' ? '#fff3cd' : 'white'
+                  }}
                 >
-                  <option value="everyone">Send to Everyone</option>
+                  <option value="everyone">🌐 Send to Everyone</option>
                   {getAvailableTargets(session.userId).map(target => (
                     <option key={target.userId} value={target.userId}>
-                      Send to {target.userId}
+                      👤 Send to {target.userId} (Private)
                     </option>
                   ))}
                 </select>
@@ -519,52 +761,81 @@ const OptimizedWebRTCChat = () => {
                         sendMessage(session.userId);
                       }
                     }}
-                    placeholder="Enter message..."
+                    placeholder="Type a message..."
                     style={{ 
                       flex: 1, 
                       padding: '8px', 
                       border: '1px solid #ccc', 
                       borderRadius: '20px',
-                      marginRight: '8px'
+                      marginRight: '8px',
+                      backgroundColor: session.selectedTarget !== 'everyone' ? '#fff3cd' : 'white'
                     }}
                   />
                   <button
                     onClick={() => sendMessage(session.userId)}
+                    disabled={!session.input.trim()}
                     style={{ 
                       padding: '8px 16px', 
-                      backgroundColor: '#007bff', 
+                      backgroundColor: session.selectedTarget !== 'everyone' ? '#fd7e14' : '#007bff', 
                       color: 'white', 
                       border: 'none', 
                       borderRadius: '20px',
-                      cursor: 'pointer'
+                      cursor: session.input.trim() ? 'pointer' : 'not-allowed',
+                      opacity: session.input.trim() ? 1 : 0.6
                     }}
                   >
-                    Send
+                    {session.selectedTarget !== 'everyone' ? 'Send Private' : 'Send All'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {!session.isConnected && (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '20px', 
+                color: '#6c757d',
+                fontStyle: 'italic'
+              }}>
+                Click "Connect" to join the communication network
               </div>
             )}
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px', fontSize: '14px' }}>
-        <h4>Optimized WebRTC Star Topology</h4>
-        <p><strong>Advantages:</strong></p>
-        <ul>
-          <li><strong>Scalable:</strong> Only N-1 connections needed (vs N×(N-1) in mesh)</li>
-          <li><strong>Efficient:</strong> For 12 users: 11 connections vs 132 in mesh topology</li>
-          <li><strong>Centralized routing:</strong> Host manages all message distribution</li>
-          <li><strong>True P2P:</strong> Works across different devices/networks</li>
-          <li><strong>Reduced bandwidth:</strong> Each client only connects to host</li>
-        </ul>
-        <p><strong>Trade-offs:</strong></p>
-        <ul>
-          <li>Host becomes single point of failure</li>
-          <li>Host handles more processing and bandwidth</li>
-          <li>Slightly higher latency for client-to-client communication</li>
-          <li>More complex signaling required in real implementation</li>
-        </ul>
+      {/* Architecture Info */}
+      <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e7f3ff', borderRadius: '5px', fontSize: '14px' }}>
+        <h4>🏗️ Dedicated Communication Host Architecture</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
+          <div>
+            <p><strong>📡 Communication Flow:</strong></p>
+            <ul>
+              <li>Users connect only to dedicated host</li>
+              <li>Host routes all messages between users</li>
+              <li>No direct user-to-user connections</li>
+              <li>Host handles message broadcasting and private messaging</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>✅ Advantages:</strong></p>
+            <ul>
+              <li><strong>Scalable:</strong> N connections (vs N×(N-1) mesh)</li>
+              <li><strong>Equal participation:</strong> No user has special role</li>
+              <li><strong>Centralized control:</strong> Message routing, moderation</li>
+              <li><strong>Reliable:</strong> Host manages all communications</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>⚠️ Considerations:</strong></p>
+            <ul>
+              <li>Host is single point of failure</li>
+              <li>Requires dedicated host infrastructure</li>
+              <li>All traffic goes through central point</li>
+              <li>Host bandwidth usage scales with users</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );

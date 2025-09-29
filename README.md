@@ -5,7 +5,6 @@
 1. same page communication.
 2. local communication (local dev env)
 3. hosting env. communication.
-0
 
 * execute()内のglobalとローカルの実装
     * global-varialbe: 全体スタックのstack[0]が基準
@@ -14,11 +13,6 @@
 * local same page communication.
 
 * (WebRTC clone)[https://webrtc.googlesource.com/src]
-* lcoal communication 
-    * radio group
-
-- 19 week...!!!!...!!!
-    - start outline!!!
 
 ## pub/sub communication
 
@@ -105,8 +99,6 @@
 |   |(-) make interface generator that works web
 
 ```
-
-## MECHA. MEMO
 
 
 ## web server

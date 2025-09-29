@@ -52,10 +52,26 @@ int searchTopicsInJson(json_t* topic, json_t json)
 
 ## process
 
-A B C D
+```c
+typedef char ret_t;
+ret_t pushMessage(void* ptr)
+{
+    pushMSG(ptr);
+}
+exprort ret_t addBroadcaseMemeber(char *queue);
 
-A
-B
-C
-D
-
+ret_t intiGetMessage_lib(ent agent, ent eh)
+{
+    ent data = newQueue(msg);
+    push(msg)= return;
+    
+}
+void getMSG_lib(ent agent,ent eh){
+    const queue = getWebQueue(eh->EH.value[0]);
+    if(queue==NULL)return;
+    char* list = json(queue);
+    if(eval(list,eh))return;
+    enqueue(newList(list));
+    return;
+}
+```
