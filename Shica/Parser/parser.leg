@@ -17,6 +17,14 @@ oop parserRetFlags[3] = {
 	MAKE_OOP_FLAG(PARSER_READY),
 };
 
+oop Types[] = {
+	MAKE_OOP_FLAG(Undefined),// var | fn
+	MAKE_OOP_FLAG(Integer),// int
+	MAKE_OOP_FLAG(Float),// float
+	MAKE_OOP_FLAG(String),// string
+};
+
+
 static int nlines = 1;
 //LEG AREA
 %}
@@ -45,8 +53,8 @@ eparams	= LPAR p:mkNil
  	  RPAR				{ $$ = p }
 
 params	= LPAR p:mkNil
-	  ( i:id			{ p = newPair(i, p) }
-	    ( COMMA i:id		{ p = newPair(i, p) }
+	  ( t:TYPE i:id			{ p = newParams(t, i, p) }
+	    ( COMMA t:TYPE i:id		{ p = newParams(t, i, p) }
 	    )*
 	  )?
  	  RPAR				{ $$ = p }
@@ -63,9 +71,9 @@ block   = LBRACE b:mkBlock
 
 mkBlock =                               { $$ = newBlock() }
 
-define = FUNC i:id p:params b:block { $$ = newSetVar(i, newUserFunc(p, b),0, nlines); }
-       | i:id ASSIGN x:assignment SEMI { $$ = newSetVar(i, x, SCOPE_GLOBAL, nlines) }
-       | v:value i:index ASSIGN x:assignment SEMI { $$ = newSetArray(v, i, x, SCOPE_GLOBAL); }
+define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0, nlines); }
+       | t:TYPE i:id ASSIGN x:assignment SEMI { $$ = newSetVar(t,i, x, SCOPE_GLOBAL, nlines) }
+       | t:TYPE v:value i:index ASSIGN x:assignment SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -82,19 +90,19 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }
 		| - SEMI				  		
 
 args	= LPAR a:mkNil
-	  ( i:expr			{ a = newPair(i, a) }
-	    ( COMMA i:expr		{ a = newPair(i, a) }
+	  ( i:expr			{ a = newArgs(i, a) }
+	    ( COMMA i:expr		{ a = newArgs(i, a) }
 	    )*
 	  )?
  	  RPAR				{ $$ = a }
 
 expr	= assignment
 
-stt_local_assignment = i:id ASSIGN x:assignment { $$ = newSetVar(i, x, SCOPE_STATE_LOCAL, nlines) }
-	  			 | v:value i:index ASSIGN x:assignment { $$ = newSetArray(v, i, x, SCOPE_STATE_LOCAL); }
+stt_local_assignment = t:TYPE i:id ASSIGN x:assignment { $$ = newSetVar(t, i, x, SCOPE_STATE_LOCAL, nlines) }
+	  			     | t:TYPE v:value i:index ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL); }
 
-assignment  = i:id ASSIGN x:assignment			{ $$ = newSetVar(i, x, SCOPE_LOCAL, nlines) }
-			| v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(v, i, x, SCOPE_LOCAL); }
+assignment  = (t:TYPE | t:mkNil) i:id ASSIGN x:assignment			{ $$ = newSetVar(t, i, x, SCOPE_LOCAL, nlines) }
+			| (t:TYPE | t:mkNil) v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(t, v, i, x, SCOPE_LOCAL); }
 			| eqop
 
 eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }
@@ -133,6 +141,7 @@ index	= LBRAK e:expr RBRAK		{ $$ = e }
 
 value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
 	| integer
+	| string 
 	| i:id				{ $$ = newGetVar(i,nlines) }
 	| array
 
@@ -144,12 +153,20 @@ mkArray	=      	  			{ $$ = newArray(0) }
 
 integer	= < [0-9]+ > -  		{ $$ = newInteger(atoi(yytext)) }
 
+float_	= < ( [0-9]+            expnt
+	    | [0-9]+ '.' [0-9]* expnt?
+	    | [0-9]* '.' [0-9]+ expnt?
+	    ) > -			{ $$ = newFloat(yytext) }
+
+expnt	= 'e' [-+]? [0-9]+
+
+string	= DQUOTE < alpha alnumsym* > DQUOTE -	{ $$ = newString(yytext); }
 id	= < alpha alnum* > -		{ $$ = intern(yytext);  }
 
 alpha	= [a-zA-Z_]
 alnum	= [a-zA-Z_0-9]
-
-
+symbol =  [+\-*/%<>=!] 
+alnumsym =  [a-zA-Z_0-9+\-*/%<>=! ]
 -	= blank*
 
 blank	= [ \t]
@@ -184,14 +201,26 @@ LBRAK   = "[" 	    -
 RBRAK   = "]" 	    -
 PLING	= "!" !"="  -
 
+QUOTE   = "\'"      
+DQUOTE  = "\"" 
+
 STATE = "stt" -
 IF    = "if" -
 ELSE  = "else" -
 PRINT = "print" -
 WHILE = "while" -
 FOR   = "for" -
-FUNC = "fn" -
+
 RET = "return" -
+
+TYPE = VAR | INT | FLO | STR | FUNC 
+
+FUNC = "fn" - 
+VAR = "var" - { $$ = Types[Undefined]; }
+INT = "int" - { $$ = Types[Integer]; }
+FLO = "flo" - { $$ = Types[Float]; }
+STR = "str" - { $$ = Types[String]; }
+
 %%;
 void initLine(void)
 {

@@ -65,7 +65,8 @@
 |   |
 |.  |(o) error message
 |   |(*) global variable               
-|   |(-) state local variable.             <- IN PROGRESS
+|   |(-) state local variable.             <- IN PROGRES
+|.  |(*) String type                       <- IN PROGRES
 |   |(-) type checking
 |   |  |> push function into function list.
 |   |  |> When the function is called for the first time, copile it by its argument type.

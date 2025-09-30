@@ -18,11 +18,11 @@ extern oop exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, Symbol, Pair, Array, Closure, StdFunc, UserFunc,
-    /*  8 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
-    /* 14 */ Call, Return, Break, Continue,
-    /* 18 */ Print, If, Loop, Block,
-	/* 21 */ Transition, State, Event,EventH,
+    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Params Array, Closure, StdFunc, UserFunc,
+    /*  9 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
+    /* 16 */ Call, Return, Break, Continue,
+    /* 20 */ Print, If, Loop, Block,
+	/* 24 */ Transition, State, Event,EventH,
 	/* AF LEG */
 	/* 25 */ Variables,EmitContext,
 	/* LEG OBJ */
@@ -34,8 +34,12 @@ enum unyop { NEG, NOT, AINC, BINC, ADEC, BDEC,};
 /* before leg */
 struct Undefined { type_t _type; };
 struct Integer 	 { type_t _type;           int _value;  };
+struct Float   	 { type_t _type;           double _value; };
+struct String  	 { type_t _type;           char *value; };
 struct Symbol  	 { type_t _type;           char *name;  oop value; };
 struct Pair  	 { type_t _type;           oop a, b; };
+struct Args  	 { type_t _type;           oop value, next; };
+struct Params     { type_t _type;           oop type, id; oop next; };
 struct Tensor    { type_t _type;           int *shape;  int ndim;  oop *elements; };
 struct Array  	 { type_t _type;           oop *elements;  int size, capacity; };
 struct Closure 	 { type_t _type;           int nArgs; int pos; };
@@ -44,9 +48,9 @@ struct UserFunc	 { type_t _type;           oop parameters, body, code; };
 struct Binop   	 { type_t _type;           enum binop op;  oop lhs, rhs; };
 struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
 struct GetVar  	 { type_t _type; int line; oop id; };
-struct SetVar  	 { type_t _type; int line; oop id; oop rhs;int scope;  };
+struct SetVar  	 { type_t _type; int line; oop type; oop id; oop rhs;int scope;  };
 struct GetArray	 { type_t _type;           oop array, index; };
-struct SetArray	 { type_t _type;           oop array, index, value;int scope; };
+struct SetArray	 { type_t _type;           oop type, array, index, value;int scope; };
 struct Call 	 { type_t _type; int line; oop function, arguments; };
 struct Return 	 { type_t _type;           oop value; };
 struct Break 	 { type_t _type;           };
@@ -78,8 +82,12 @@ union Object {
     enum   Type     _type;
 	struct Undefined Undefined;
     struct Integer  Integer;
+    struct Float    Float;
+    struct String   String;
     struct Symbol   Symbol;
     struct Pair     Pair;
+    struct Args     Args;
+    struct Params   Params;
     struct Array    Array;
     struct Closure  Closure;
 	struct StdFunc  StdFunc;
@@ -125,8 +133,12 @@ oop newInteger(int value);
 int Integer_value(oop obj);
 
 /* Float */
-oop newFloat(double value);
+oop newFloat(char* value);
 double Float_value(oop obj);
+
+/* String */
+oop newString(char *value);
+#define String_value(obj) (get(obj, String, value))
 
 /* Symbol: not string */
 oop newSymbol(char *name);
@@ -157,10 +169,10 @@ typedef enum {
   SCOPE_CONST
 } ScopeClass;
 oop newGetVar(oop id,int line);
-oop newSetVar(oop id, oop rhs,ScopeClass scope, int line);
+oop newSetVar(oop type, oop id, oop rhs,ScopeClass scope, int line);
 
 oop newGetArray(oop array, oop index);
-oop newSetArray(oop array, oop index, oop value, ScopeClass scope);
+oop newSetArray(oop type, oop array, oop index, oop value, ScopeClass scope);
 
 oop newCall(oop arguments, oop function, int line);
 

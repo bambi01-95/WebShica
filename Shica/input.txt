@@ -1,5 +1,5 @@
-a = 11;
-stt state(){
+a = "hello world";
+stt s1(){
     timerEH(s){
         print(a);
     }

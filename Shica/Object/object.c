@@ -72,9 +72,10 @@ int Integer_value(oop obj)
     return (intptr_t)obj >> TAGBITS;
 }
 
-oop newFloat(double value)
+oop newFloat(char* value)
 {
-    union { double d;  intptr_t i; } u = { .d = value };
+	double d = atof(value);
+    union { double d;  intptr_t i; } u = { .d = d };
     return (oop)(((intptr_t)u.i & ~TAGMASK) | TAG_FLT_OOP);
 }
 
@@ -83,6 +84,16 @@ double Float_value(oop obj)
     assert(Float == getType(obj));
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
+}
+
+oop newString(char *value)
+{
+	gc_pushRoot((void*)&value);
+	GC_PUSH(oop, str, newObject(String));
+	str->String.value = strdup(value);
+	GC_POP(str);
+	gc_popRoots(1);
+	return str;
 }
 
 oop newSymbol(char *name)
@@ -149,6 +160,30 @@ oop newPair(oop a, oop b)
     obj->Pair.b = b;
 	gc_popRoots(2);
     return obj;
+}
+
+oop newArgs(oop value, oop next)
+{
+	gc_pushRoot((void*)&value);
+	gc_pushRoot((void*)&next);	
+	oop obj = newObject(Args);
+	obj->Args.value = value;
+	obj->Args.next  = next;
+	gc_popRoots(2);
+	return obj;
+}
+
+oop newParams(oop type, oop id, oop next)
+{
+	gc_pushRoot((void*)&type);
+	gc_pushRoot((void*)&id);	
+	gc_pushRoot((void*)&next);	
+	oop obj = newObject(Params);
+	obj->Params.type = type;
+	obj->Params.id   = id;
+	obj->Params.next = next;
+	gc_popRoots(3);
+	return obj;
 }
 
 oop newArray(int size)
@@ -271,10 +306,11 @@ oop newGetVar(oop id,int line)
 }
 
 
-oop newSetVar(oop id, oop rhs, ScopeClass scope, int line)
+oop newSetVar(oop type, oop id, oop rhs, ScopeClass scope, int line)
 {
 	gc_pushRoot((void*)&id);
     oop node = newObject(SetVar);
+	node->SetVar.type = type;
     node->SetVar.id  = id;
     node->SetVar.rhs = rhs;
 	node->SetVar.scope = scope;
@@ -294,12 +330,13 @@ oop newGetArray(oop array, oop index)
     return node;
 }
 
-oop newSetArray(oop array, oop index, oop value, ScopeClass scope)
+oop newSetArray(oop type, oop array, oop index, oop value, ScopeClass scope)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
 	gc_pushRoot((void*)&value);
     oop node = newObject(SetArray);
+	node->SetArray.type = type;
     node->SetArray.array = array;
     node->SetArray.index = index;
     node->SetArray.value = value;

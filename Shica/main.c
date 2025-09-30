@@ -864,6 +864,7 @@ int emitOn(ent prog,oop vars, oop ast)
 					return 0;
 				}
 				case Integer:
+				case String:
 				case GetVar:
 				case Unyop:
 				case Binop:{
@@ -1406,6 +1407,12 @@ void collectEmpty(void){
 void markObject(oop obj){
 	switch(getType(obj)){
 case Integer :{return;}
+case String :{
+	if (obj->String.value) {
+		gc_markOnly(obj->String.value);
+	}
+	return;
+}
 case Symbol  :
 {
 	if (obj->Symbol.value) {
