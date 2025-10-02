@@ -18,7 +18,7 @@ extern oop exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Params Array, Closure, StdFunc, UserFunc,
+    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Params, Array, Closure, StdFunc, UserFunc,
     /*  9 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
     /* 16 */ Call, Return, Break, Continue,
     /* 20 */ Print, If, Loop, Block,
@@ -147,6 +147,8 @@ void initSymbols();
 void collectSymbols();
 
 oop newPair(oop a, oop b);
+oop newArgs(oop value, oop next);
+oop newParams(oop type, oop id, oop next);
 
 oop newArray(int size);
 oop Array_grow(oop array);
