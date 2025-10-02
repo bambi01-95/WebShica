@@ -164,8 +164,8 @@ oop newUnyop(enum unyop op, oop rhs);
 
 typedef enum {
   SCOPE_GLOBAL,
-  SCOPE_LOCAL,
   SCOPE_STATE_LOCAL,
+  SCOPE_LOCAL,
   SCOPE_UPVALUE,
   SCOPE_CONST
 } ScopeClass;
@@ -198,8 +198,14 @@ oop newEvent(oop id, oop parameters, oop block,int line);
 oop newEventH(int id, int nArgs);
 
 oop newVariable(oop type, oop id);
-oop insertVariable(oop list, oop sym);
-oop searchVariable(oop list, oop sym);
+
+struct RetVarFunc{
+	ScopeClass scope; // G: global, S: state, L: local
+	int index; // index of the variable
+};
+struct RetVarFunc insertVariable(oop ctx, oop sym, oop type);
+struct RetVarFunc appendVariable(oop ctx, oop sym, oop type);
+struct RetVarFunc searchVariable(oop ctx, oop sym, oop type);
 #define discardVariables(V,X) V->Array.size = X
 
 oop newEmitContext();

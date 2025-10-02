@@ -569,32 +569,79 @@ oop newVariable(oop type, oop id)
 	return node;
 }
 
-oop insertVariable(oop arr, oop sym)
+
+
+struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
+{
+	for(int scope = 0; scope < 3; scope++)
+	{
+		oop arr = ctx->EmitContext.global_vars + sizeof(oop) * scope;
+		if(arr == NULL) continue;
+		// linear search for existing variable
+		int nvariables = arr ? arr->Array.size : 0;
+		oop *variables = arr ? arr->Array.elements : 0;
+		for (int i = 0;  i < nvariables;  ++i){
+			if ((variables[i]->Variable.id)== sym){
+				if(variables[i]->Variable.type != sym){
+					reportError("variable %s type mismatch", get(sym, Symbol,name));
+					return (struct RetVarFunc){0, -1}; // error
+				}
+				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
+			}	
+		}
+	}
+	oop arr = ctx->EmitContext.local_vars; // local variables
+	gc_pushRoot((void*)&sym);
+	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
+	arr->Array.elements[arr->Array.size] = newVariable(type, sym);
+	gc_popRoots(1);
+	return (struct RetVarFunc){SCOPE_LOCAL, arr->Array.size++};
+}
+
+/*
+IF variable already exists, report error and return NULL
+ELSE append variable to the array and return the appended variable
+*/
+struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 {
 	// linear search for existing variable
 	int nvariables = arr ? arr->Array.size : 0;
 	oop *variables = arr ? arr->Array.elements : 0;
 	for (int i = 0;  i < nvariables;  ++i){
-		if ((variables[i]->Pair.a)== sym) return variables[i];
+		if ((variables[i]->Variable.id)== var){
+			reportError("variable %s already exists", get(var, Symbol,name));
+			return (struct RetVarFunc){0, -1}; // error
+		}
 	}
 	gc_pushRoot((void*)&arr);
-	gc_pushRoot((void*)&sym);
+	gc_pushRoot((void*)&var);
 	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
-	arr->Array.elements[arr->Array.size] = newPair(sym, newInteger(arr->Array.size));
+	arr->Array.elements[arr->Array.size] = newVariable(type, var);
 	gc_popRoots(2);
-	return arr->Array.elements[arr->Array.size++];
+	return (struct RetVarFunc){0, arr->Array.size++};
 }
 
-oop searchVariable(oop arr, oop sym)
+struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)
 {
-	if (arr == 0) return NULL; // no variables
-	int nvariables = get(arr, Array, size);
-	oop *variables = get(arr, Array, elements);
-	if (nvariables == 0) return NULL; // no variables
-	// linear search for existing variable
-	for (int i = 0;  i < nvariables;  ++i)
-	if ((variables[i]->Pair.a) == sym) return variables[i];
-	return NULL;
+	assert(ctx != NULL);
+	for(int scope = 0; scope < 3; scope++)
+	{
+		oop arr = ctx->EmitContext.global_vars + sizeof(oop) * scope;
+		if(arr == NULL) continue;
+		int nvariables = arr ? arr->Array.size : 0;
+		oop *variables = arr ? arr->Array.elements : 0;
+		for (int i = 0;  i < nvariables;  ++i){
+			if ((variables[i]->Variable.id)== sym){
+				if(variables[i]->Variable.type != type){
+					reportError("variable %s type mismatch", get(sym, Symbol,name));
+					return (struct RetVarFunc){0, -1}; // error
+				}
+				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
+			}	
+		}
+	}
+	reportError("variable %s not found", get(sym, Symbol,name));
+	return (struct RetVarFunc){0, -1}; // not found
 }
 
 oop newEmitContext()
