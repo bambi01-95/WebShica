@@ -833,7 +833,7 @@ int emitOn(ent prog,oop vars, oop ast)
 					}
 					oop params = get(rhs, UserFunc,parameters);
 					oop body = get(rhs, UserFunc,body);
-					get(vars, EmitContext, local_vars) = newVariables();
+					get(vars, EmitContext, local_vars) = newArray(0);
 					GC_PUSH(oop, closure, newClosure());
 					while(params != nil){
 						oop param = get(params, Pair,a);
@@ -857,7 +857,7 @@ int emitOn(ent prog,oop vars, oop ast)
 						GC_POP(closure);
 						return 1; // compile function body
 					}
-					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Variables, size); // set the size of local variables
+					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Array, size); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
 					get(vars, EmitContext, local_vars) = NULL; // clear local variables
@@ -934,7 +934,7 @@ int emitOn(ent prog,oop vars, oop ast)
 		case If:{
 			printTYPE(_If_);
 			//NEXT-TODO
-			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Variables, size) : 0; // remember the size of variables
+			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 			oop condition = get(ast, If,condition);
 			oop statement1 = get(ast, If,statement1);
 			oop statement2 = get(ast, If,statement2);
@@ -965,7 +965,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop iteration      = get(ast, Loop,iteration);
 			oop statement      = get(ast, Loop,statement);
 			//NEXT-TODO
-			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Variables, size) : 0; // remember the size of variables
+			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
 			if (initialization != false) {
 				if(emitOn(prog, vars, initialization)) return 1; // compile initialization
@@ -1035,7 +1035,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop preid = false;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
-			get(vars, EmitContext, state_vars) = newVariables(); // set state variables for the state
+			get(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
 
 			for (int i = 0;  i < get(events, Block, size);  ++i) {
 				if(eventList[i] == NULL){
@@ -1119,7 +1119,7 @@ int emitOn(ent prog,oop vars, oop ast)
 				return 1;
 			}
 
-			get(vars, EmitContext, local_vars) = newVariables(); // set local variables for the event
+			get(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
 			int nArgs = eh->EventH.nArgs;
 			int paramSize =0;
 			int cPos      = 0;
@@ -1148,9 +1148,9 @@ int emitOn(ent prog,oop vars, oop ast)
 
 
 			if(emitOn(prog, vars, block))return 1; // compile block
-			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Variables, size)); // emit EOE instruction to mark the end of the event handler
+			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Variables, size); // store number of local variables
+			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Array, size); // store number of local variables
 			get(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(oop,apos, newInteger(aPos));
 			GC_PUSH(oop,cpos,newInteger(cPos));
@@ -1351,8 +1351,8 @@ int roots = gc_ctx.nroots;
 	if(result == parserRetFlags[PARSER_FINISH]){
 		printf("compilation finished\n");
 		emitI (prog, iHALT); // end of program
-		printf("total variable size %d\n", get(vars, EmitContext, global_vars)->Variables.size);
-		prog->IntArray.elements[1] = get(vars, EmitContext, global_vars)->Variables.size; // store number of variables
+		printf("total variable size %d\n", get(vars, EmitContext, global_vars)->Array.size);
+		prog->IntArray.elements[1] = get(vars, EmitContext, global_vars)->Array.size; // store number of variables
 		setTransPos(prog); // set transition positions
 	}else if(result == parserRetFlags[PARSER_ERROR]){
 		printf("compilation error\n");
@@ -1628,20 +1628,6 @@ case Event   :
 }
 case EventH :
 {
-	return;
-}
-case Variables:
-{
-	if (obj->Variables.elements) {
-		for (int i = 0;  i < obj->Variables.size;  ++i) {
-			if (obj->Variables.elements[i]) {
-				gc_mark(obj->Variables.elements[i]);
-			}
-		}
-	}
-	if (obj->Variables.elements) {
-		gc_markOnly(obj->Variables.elements);
-	}
 	return;
 }
 case EmitContext:

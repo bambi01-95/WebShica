@@ -9,7 +9,15 @@
     "vector": "c",
     "deque": "c",
     "__bit_reference": "c",
-    "__split_buffer": "c"
+    "__split_buffer": "c",
+    "__hash_table": "c",
+    "__tree": "c",
+    "bitset": "c",
+    "initializer_list": "c",
+    "map": "c",
+    "queue": "c",
+    "stack": "c",
+    "unordered_map": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

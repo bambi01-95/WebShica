@@ -24,7 +24,7 @@ typedef enum Type {
     /* 20 */ Print, If, Loop, Block,
 	/* 24 */ Transition, State, Event,EventH,
 	/* AF LEG */
-	/* 25 */ Variables,EmitContext,
+	/* 25 */ Variable,EmitContext,
 	/* LEG OBJ */
 }type_t;
 
@@ -71,11 +71,10 @@ struct EmitContext{
 	oop state_vars; // state variables to emit code for
 	oop local_vars; // local variables to emit code for
 };
-struct Variables{
-	type_t _type;
-	int size;
-	int capacity;
-	oop *elements;
+struct Variable{
+    type_t _type;
+    oop type; // type of variable (for future use)
+    oop id; // symbol
 };
 
 union Object {
@@ -112,7 +111,7 @@ union Object {
 	struct EventH   EventH;
 
 	/* AF LEG */
-	struct Variables Variables;
+    struct Variable Variable;
     struct EmitContext EmitContext; // for emit code
 };
 
@@ -198,10 +197,10 @@ oop newEvent(oop id, oop parameters, oop block,int line);
 
 oop newEventH(int id, int nArgs);
 
-oop newVariables();
+oop newVariable(oop type, oop id);
 oop insertVariable(oop list, oop sym);
 oop searchVariable(oop list, oop sym);
-#define discardVariables(V,X) V->Variables.size = X
+#define discardVariables(V,X) V->Array.size = X
 
 oop newEmitContext();
 

@@ -559,38 +559,37 @@ oop newEventH(int id, int nArgs)
 	return node;
 }
 
-oop variables = 0; // list of variables
-oop newVariables()
+oop newVariable(oop type, oop id)
 {
-	GC_PUSH(oop, list, newObject(Variables));
-	list->Variables.size = 0;
-	list->Variables.capacity = 4;
-	list->Variables.elements = (oop*)gc_beAtomic(malloc(sizeof(oop) * list->Variables.capacity));
+	gc_pushRoot((void*)&id);
+	oop node = newObject(Variable);
+	node->Variable.id = id;
+	node->Variable.type = type;
 	gc_popRoots(1);
-	return list;
+	return node;
 }
 
-oop insertVariable(oop list, oop sym)
+oop insertVariable(oop arr, oop sym)
 {
 	// linear search for existing variable
-	int nvariables = list ? list->Variables.size : 0;
-	oop *variables = list ? list->Variables.elements : 0;
+	int nvariables = arr ? arr->Array.size : 0;
+	oop *variables = arr ? arr->Array.elements : 0;
 	for (int i = 0;  i < nvariables;  ++i){
 		if ((variables[i]->Pair.a)== sym) return variables[i];
 	}
-	gc_pushRoot((void*)&list);
+	gc_pushRoot((void*)&arr);
 	gc_pushRoot((void*)&sym);
-	list->Variables.elements = realloc(list->Variables.elements, sizeof(*list->Variables.elements) * (list->Variables.size + 1));
-	list->Variables.elements[list->Variables.size] = newPair(sym, newInteger(list->Variables.size));
+	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
+	arr->Array.elements[arr->Array.size] = newPair(sym, newInteger(arr->Array.size));
 	gc_popRoots(2);
-	return list->Variables.elements[list->Variables.size++];
+	return arr->Array.elements[arr->Array.size++];
 }
 
-oop searchVariable(oop list, oop sym)
+oop searchVariable(oop arr, oop sym)
 {
-	if (list == 0) return NULL; // no variables
-	int nvariables = get(list, Variables, size);
-	oop *variables = get(list, Variables, elements);
+	if (arr == 0) return NULL; // no variables
+	int nvariables = get(arr, Array, size);
+	oop *variables = get(arr, Array, elements);
 	if (nvariables == 0) return NULL; // no variables
 	// linear search for existing variable
 	for (int i = 0;  i < nvariables;  ++i)
@@ -601,7 +600,7 @@ oop searchVariable(oop list, oop sym)
 oop newEmitContext()
 {
 	GC_PUSH(oop, context, newObject(EmitContext));
-	context->EmitContext.global_vars = newVariables();
+	context->EmitContext.global_vars = newArray(0);
 	context->EmitContext.state_vars  = NULL;
 	context->EmitContext.local_vars  = NULL;
 	GC_POP(context);
@@ -756,20 +755,6 @@ void printlnObject(oop node, int indent)
 	}
 	case EventH: {
 	    printf("EventH %d, nArgs: %d\n", get(node, EventH,id), get(node, EventH,nArgs));
-	    break;
-	}
-	case Variables: {
-	    printf("Variables\n");
-	    int size = get(node, Variables,size);
-	    for (int i = 0; i < size; i++) {
-		oop var = get(node, Variables,elements)[i];
-		if (var) {
-		    printf("%s ", get(var, Symbol,name));
-		} else {
-		    printf("nil ");
-		}
-	    }
-	    printf("\n");
 	    break;
 	}
 	default:
