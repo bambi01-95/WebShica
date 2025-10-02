@@ -1630,6 +1630,16 @@ case EventH :
 {
 	return;
 }
+case Variable:
+{
+	if (obj->Variable.id) {
+		gc_mark(obj->Variable.id);
+	}
+	if (obj->Variable.value) {
+		gc_mark(obj->Variable.value);
+	}
+	return;
+}
 case EmitContext:
 {
 	if (obj->EmitContext.local_vars) {
