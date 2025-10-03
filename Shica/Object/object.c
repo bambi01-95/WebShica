@@ -16,7 +16,6 @@
 
 
 
-
 oop nil   = 0;
 oop false = 0;
 oop true  = 0;
@@ -170,6 +169,20 @@ oop newArgs(oop value, oop next)
 	obj->Args.value = value;
 	obj->Args.next  = next;
 	gc_popRoots(2);
+	return obj;
+}
+
+oop newEparams(oop type, oop id, oop cond, oop next)
+{
+	gc_pushRoot((void*)&id);	
+	gc_pushRoot((void*)&cond);	
+	gc_pushRoot((void*)&next);	
+	oop obj = newObject(Eparams);
+	obj->Eparams.type = type;
+	obj->Eparams.id   = id;
+	obj->Eparams.cond = cond;
+	obj->Eparams.next = next;
+	gc_popRoots(3);
 	return obj;
 }
 
@@ -570,7 +583,7 @@ oop newVariable(oop type, oop id)
 }
 
 
-
+//FIXME: report error line number
 struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
 {
 	for(int scope = 0; scope < 3; scope++)
@@ -583,7 +596,7 @@ struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(variables[i]->Variable.type != sym){
-					reportError("variable %s type mismatch", get(sym, Symbol,name));
+					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name)); 
 					return (struct RetVarFunc){0, -1}; // error
 				}
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
@@ -602,6 +615,7 @@ struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
 IF variable already exists, report error and return NULL
 ELSE append variable to the array and return the appended variable
 */
+//FIXME: report error line number
 struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 {
 	// linear search for existing variable
@@ -609,7 +623,7 @@ struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 	oop *variables = arr ? arr->Array.elements : 0;
 	for (int i = 0;  i < nvariables;  ++i){
 		if ((variables[i]->Variable.id)== var){
-			reportError("variable %s already exists", get(var, Symbol,name));
+			reportError(ERROR, 0, "variable %s already exists", get(var, Symbol,name));
 			return (struct RetVarFunc){0, -1}; // error
 		}
 	}
@@ -621,6 +635,7 @@ struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 	return (struct RetVarFunc){0, arr->Array.size++};
 }
 
+//FIXME: report error line number
 struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)
 {
 	assert(ctx != NULL);
@@ -633,14 +648,14 @@ struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(variables[i]->Variable.type != type){
-					reportError("variable %s type mismatch", get(sym, Symbol,name));
+					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
 					return (struct RetVarFunc){0, -1}; // error
 				}
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
 			}	
 		}
 	}
-	reportError("variable %s not found", get(sym, Symbol,name));
+	reportError(ERROR, 0, "variable %s not found", get(sym, Symbol,name));
 	return (struct RetVarFunc){0, -1}; // not found
 }
 
@@ -821,6 +836,31 @@ void print(oop node)
 	default:	println(node);				break;
     }
 }
+
+char* appendNewChar(char *arr, int size, char value)
+{
+	gc_pushRoot((void*)&arr);
+	arr = realloc(arr, sizeof(*arr) * (size + 1));
+	arr[size] = value;
+	gc_popRoots(1);
+	return arr;
+}
+
+int* appendNewInt(int *arr, int size, int value)
+{
+	gc_pushRoot((void*)&arr);
+	arr = realloc(arr, sizeof(*arr) * (size + 1));
+	arr[size] = value;
+	gc_popRoots(1);
+	return arr;
+}
+
+oop TYPES[4] = {
+	MAKE_OOP_FLAG(Undefined),// var | fn
+	MAKE_OOP_FLAG(Integer),// int
+	MAKE_OOP_FLAG(Float),// float
+	MAKE_OOP_FLAG(String),// string
+};
 
 #ifdef MSGC
 #undef newAtomicObject

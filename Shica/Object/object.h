@@ -18,7 +18,7 @@ extern oop exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Params, Array, Closure, StdFunc, UserFunc,
+    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
     /*  9 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
     /* 16 */ Call, Return, Break, Continue,
     /* 20 */ Print, If, Loop, Block,
@@ -39,11 +39,12 @@ struct String  	 { type_t _type;           char *value; };
 struct Symbol  	 { type_t _type;           char *name;  oop value; };
 struct Pair  	 { type_t _type;           oop a, b; };
 struct Args  	 { type_t _type;           oop value, next; };
+struct Eparams   { type_t _type;           oop type, id, cond, next; };
 struct Params     { type_t _type;           oop type, id; oop next; };
 struct Tensor    { type_t _type;           int *shape;  int ndim;  oop *elements; };
 struct Array  	 { type_t _type;           oop *elements;  int size, capacity; };
-struct Closure 	 { type_t _type;           int nArgs; int pos; };
-struct StdFunc   { type_t _type;           int index; };
+struct Closure 	 { type_t _type;           int nArgs; int pos,retType; int *argTypes; };//store user defined function
+struct StdFunc   { type_t _type;           int index;  };
 struct UserFunc	 { type_t _type;           oop parameters, body, code; };
 struct Binop   	 { type_t _type;           enum binop op;  oop lhs, rhs; };
 struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
@@ -62,7 +63,7 @@ struct Loop   	 { type_t _type;           oop initialization,condition,iteration
 struct Block   	 { type_t _type;           oop *statements;  int size; };
 struct State   	 { type_t _type; int line; oop id, parameters, events; };
 struct Event   	 { type_t _type; int line; oop id, parameters, block; };
-struct EventH    { type_t _type;           int id; int nArgs; };
+struct EventH    { type_t _type;           int id; int nArgs; int *argTypes; };
 
 /* after leg */
 struct EmitContext{
@@ -87,6 +88,7 @@ union Object {
     struct Pair     Pair;
     struct Args     Args;
     struct Params   Params;
+    struct Eparams  Eparams;
     struct Array    Array;
     struct Closure  Closure;
 	struct StdFunc  StdFunc;
@@ -147,6 +149,7 @@ void collectSymbols();
 
 oop newPair(oop a, oop b);
 oop newArgs(oop value, oop next);
+oop newEparams(oop type, oop id, oop cond, oop next);
 oop newParams(oop type, oop id, oop next);
 
 oop newArray(int size);
@@ -169,6 +172,7 @@ typedef enum {
   SCOPE_UPVALUE,
   SCOPE_CONST
 } ScopeClass;
+
 oop newGetVar(oop id,int line);
 oop newSetVar(oop type, oop id, oop rhs,ScopeClass scope, int line);
 
@@ -220,13 +224,21 @@ enum {
   TAG_FLT_OOP  = 0b10,   // 浮動小数点数（fixnum）
   TAG_FLAG_OOP = 0b11,   // 列挙フラグ等
 };
+
+
+
 #define MAKE_OOP_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG_OOP))
+#define GET_OOP_FLAG(o) ((int)(((intptr_t)(o)) >> TAGBITS))
 #define TAGBITS 2			// how many bits to use for tag bits
 #define TAGMASK ((1 << TAGBITS) - 1)	// mask to extract just the tag bits
 #define ISTAG_FLAG(o) ((((intptr_t)(o)) & TAGMASK) == TAG_FLAG_OOP) 
 #define ISTAG_INT(o)  ((((intptr_t)(o)) & TAGMASK) == TAG_INT_OOP)
 #define ISTAG_PTR(o)  ((((intptr_t)(o)) & TAGMASK) == TAG_PTR_OOP)
 
+char* appendNewChar(char* arr, int size, char value);
+int* appendNewInt(int* arr, int size, int value);
+
+oop TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
 #endif // OBJECT_H
 
 /*

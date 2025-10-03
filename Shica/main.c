@@ -633,6 +633,19 @@ void setTransPos(ent prog){
 #define printTYPE(OP) ;
 #endif
 
+int parseType(oop vars, oop ast)
+{
+	switch(getType(ast)){
+		case Integer:;
+		case String:
+		return getType(ast);
+		default:
+			reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));
+			return -1;
+	}
+	reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));
+	return -1; // should never reach here
+}
 
 
 void emitL (ent array, oop object) 	  { intArray_append(array, Integer_value(object)); }
@@ -648,7 +661,7 @@ void emitIII(ent array, int i, int j, int k)
 
 void printCode(ent code);
 
-int emitOn(ent prog,oop vars, oop ast)
+int emitOn(ent prog,oop vars, oop ast, oop type)
 {
 	assert(getType(vars) == EmitContext);
 	int ret = 0; /* ret 0 indicates success */
@@ -665,14 +678,14 @@ int emitOn(ent prog,oop vars, oop ast)
 			int size = get(ast, Array,size);
 			emitII(prog, iPUSH, size); // push the size of the array
 			for (int i = 0;  i < size;  ++i) {
-				if(emitOn(prog, vars, elements[i]))return 1; // compile each element
+				if(emitOn(prog, vars, elements[i], type))return 1; // compile each element
 			}
 			return 0; 
 		}
 		case Binop:{
 			printTYPE(_Binop_);
-			if(emitOn(prog, vars, get(ast, Binop,lhs))) return 1;
-			if(emitOn(prog, vars, get(ast, Binop,rhs))) return 1;
+			if(emitOn(prog, vars, get(ast, Binop,lhs), type)) return 1;
+			if(emitOn(prog, vars, get(ast, Binop,rhs), type)) return 1;
 			switch (get(ast, Binop,op)) {
 				case NE: emitI(prog, iNE);  return 0; // emit not equal
 				case EQ: emitI(prog, iEQ);  return 0;
@@ -695,20 +708,17 @@ int emitOn(ent prog,oop vars, oop ast)
 			printTYPE(_Unyop_);
 			oop rhs = get(ast, Unyop,rhs);
 			switch (get(ast, Unyop,op)) {
-				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iSUB); return 0;
-				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs); emitI(prog, iEQ);  return 0;
+				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iSUB); return 0;
+				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iEQ);  return 0;
 				default: break;
 			}
-			oop variable = searchVariable(vars, get(rhs, GetVar,id));
-			if(variable == NULL){
-				reportError(ERROR, 0, "variable %s not found", get(get(rhs, GetVar,id), Symbol,name));
-				return 1;
-			}
+			struct RetVarFunc var = searchVariable(vars, get(rhs, GetVar,id), type);
+			if(var.index == -1)return 1; // variable not found
 			switch(get(ast, Unyop,op)) {
-					case BINC: if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));if(emitOn(prog, vars, rhs))return 1; return 0;
-					case BDEC: if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); if(emitOn(prog, vars, rhs))return 1;return 0;
-					case AINC: if(emitOn(prog, vars, rhs))return 1;if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return 0;
-					case ADEC: if(emitOn(prog, vars, rhs))return 1;if(emitOn(prog, vars, rhs))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b))); return 0;
+					case BINC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index);if(emitOn(prog, vars, rhs, type))return 1; return 0;
+					case BDEC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); if(emitOn(prog, vars, rhs, type))return 1;return 0;
+					case AINC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index); return 0;
+					case ADEC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); return 0;
 				default: break;
 			}
 			fatal("file %s line %d unknown Unyop operator %d", __FILE__, __LINE__, get(ast, Unyop,op));
@@ -718,26 +728,101 @@ int emitOn(ent prog,oop vars, oop ast)
 		case GetVar: {
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
-			oop variable = searchVariable(get(vars, EmitContext, local_vars),sym);// search in local variables first
-			if(variable){
-				printf("found local variable %s\n", get(sym, Symbol,name));
-				emitII(prog, iGETVAR, Integer_value(get(variable,Pair,b)));
-				return 0; 
+			struct RetVarFunc var = searchVariable(vars, sym, type);
+			if(var.index != -1)return 0; // variable found
+			emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the global variable value
+			return 0;
+		}
+		case SetVar: {
+			printTYPE(_SetVar_);
+			oop sym = get(ast, SetVar,id);
+			oop rhs = get(ast, SetVar,rhs);
+			oop declaredType = get(ast, SetVar,type);
+			switch(getType(rhs)){
+				case UserFunc:{
+					printTYPE(_Function_);
+					if(sym->Symbol.value !=false) {
+						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
+						return 1;
+					}
+					oop params = get(rhs, UserFunc,parameters);
+					oop body = get(rhs, UserFunc,body);
+					get(vars, EmitContext, local_vars) = newArray(0);
+					GC_PUSH(oop, closure, newClosure());
+					GC_PUSH(int*, argTypes, NULL);
+					while(params != nil){
+						oop sym = get(params, Params, id);
+						oop type = get(params, Params, type);
+						struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars), sym, type); // insert parameter into local variables
+						if(var.index == -1){
+							GC_POP(argTypes);
+							GC_POP(closure);
+							return 1; // type error
+						}
+						appendNewInt(argTypes, ++(closure->Closure.nArgs), GET_OOP_FLAG(type)); // append parameter type to argument types
+						params = get(params, Pair,b);
+					}
+					closure->Closure.argTypes = argTypes; // set the argument types
+					closure->Closure.retType = GET_OOP_FLAG(declaredType); // set the return type
+					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
+					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
+					closure->Closure.pos = prog->IntArray.size; // remember the position of the closure
+					sym->Symbol.value = closure; // set the closure as the value of the variable
+					emitII(prog, iMKSPACE, 0); // reserve space for local variables
+					int codePos = prog->IntArray.size - 1; // remember the position of the function code
+					if(emitOn(prog, vars, body, declaredType)) {//declated type is the return type
+						GC_POP(closure);
+						return 1; // compile function body
+					}
+					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Array, size); // set the size of local variables
+					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
+					GC_POP(closure);
+					get(vars, EmitContext, local_vars) = NULL; // clear local variables
+					return 0;
+				}
+				case Integer:
+				case String:
+				case GetVar:
+				case Unyop:
+				case Binop:{
+					int scope = get(ast, SetVar,scope);
+					switch(scope) {
+						case SCOPE_LOCAL:{
+							printf("defining local variable %s\n", get(sym, Symbol,name));
+							if(emitOn(prog,vars, rhs, declaredType)) return 1;
+							struct RetVarFunc var = insertVariable(vars, sym, declaredType);
+							if(var.index == -1)return 1; //type error
+							emitII(prog, iSETGLOBALVAR + var.scope, var.index);
+							return 0;
+						}
+						case SCOPE_STATE_LOCAL:{
+							printf("defining state variable %s\n", get(sym, Symbol,name));
+							if(emitOn(prog,vars, rhs, declaredType)) return 1;
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars),sym, declaredType);
+							emitII(prog, iSETSTATEVAR, var.index);
+							return 0;
+						}
+						case SCOPE_GLOBAL:{
+							printf("defining global variable %s\n", get(sym, Symbol,name));
+							if(emitOn(prog,vars, rhs, declaredType)) return 1;
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars),sym, declaredType);
+							emitII(prog, iSETGLOBALVAR, var.index);
+							return 0;
+						}
+					}
+					fatal("file %s line %d emitOn: unknown SetVar scope %d", __FILE__, __LINE__, scope);
+					reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+					return 1;
+				}
+				default:{
+					fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
+					reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+					return 1;
+				}
 			}
-			variable  = searchVariable(get(vars, EmitContext, state_vars),sym); // search in state variables
-			if(variable){
-				printf("found state variable %s\n", get(sym, Symbol,name));
-				emitII(prog, iGETSTATEVAR, Integer_value(get(variable,Pair,b)));
-				return 0; 
-			}
-			variable = searchVariable(get(vars, EmitContext, global_vars),sym); // search in global variables
-			if (variable) {
-				printf("found global variable %s\n", get(sym, Symbol,name));
-				emitII(prog, iGETGLOBALVAR, Integer_value(get(variable,Pair,b)));
-				return 0; 
-			}
-			reportError(ERROR, get(ast,GetVar,line), "variable %s not found", get(sym, Symbol,name));
-			return 1;
+			fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
+			reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+			return 0;
 		}
 		case Call:{
 			//Standard library functions / user defined functions
@@ -749,16 +834,17 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop func = get(id, Symbol, value); // get the function from the variable;
 
 			switch(getType(func)){
-				case EventH:{
+				case EventH:{// event handler
 					printTYPE(_EventH_);
 					int index = get(func, EventH,id);// get the index of the event handler
 					int nArgs = get(func, EventH,nArgs);
+					int *argTypes = get(func, EventH, argTypes);
 					
 					int argsCount = 0;
 					while(args != nil){
-						oop arg = get(args, Pair,a);
-						if(emitOn(prog, vars, arg))return 1; // compile argument
-						args = get(args, Pair,b);
+						oop arg = get(args, Eparams, id);
+						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
+						args = get(args, Eparams, next);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
@@ -768,18 +854,19 @@ int emitOn(ent prog,oop vars, oop ast)
 					emitIII(prog, iPCALL,  index, nArgs); // call the event handler
 					return 0; 
 				}
-				case StdFunc:{
+				case StdFunc:{// standard function
 					printTYPE(_StdFunc_);
 					int funcIndex = get(func, StdFunc, index); // get the index of the standard function
 					int argsCount = 0;
+					struct StdFuncTable func = StdFuncTable[funcIndex];
 					while(args != nil){
-						oop arg = get(args, Pair,a);
-						if(emitOn(prog, vars, arg))return 1; // compile argument
-						args = get(args, Pair,b);
+						oop arg = get(args, Args, value);
+						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
+						args = get(args, Args, next);
 						argsCount++;
 					}
-					if(StdFuncTable[funcIndex].nArgs != argsCount){
-						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(id, Symbol,name), StdFuncTable[funcIndex].nArgs, argsCount);
+					if(func.nArgs != argsCount){
+						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(id, Symbol,name), func.nArgs, argsCount);
 						return 1;
 					}
 
@@ -789,15 +876,16 @@ int emitOn(ent prog,oop vars, oop ast)
 					//emitII(prog, iCLEAN, nReturns); // clean the stack after the call
 					return 0; 
 				}
-				case Closure:{
+				case Closure:{ // user defined function
 					printTYPE(_Closure_);
 					int nArgs = get(func, Closure,nArgs);
+					int *argTypes = get(func, Closure, argTypes);
 					int pos   = get(func, Closure,pos);
 					int argsCount = 0;
 					while(args != nil){
-						oop arg = get(args, Pair,a);
-						if(emitOn(prog, vars, arg))return 1; // compile argument
-						args = get(args, Pair,b);
+						oop arg = get(args, Args, value);
+						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
+						args = get(args, Args, next);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
@@ -820,92 +908,6 @@ int emitOn(ent prog,oop vars, oop ast)
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
-		case SetVar: {
-			printTYPE(_SetVar_);
-			oop sym = get(ast, SetVar,id);
-			oop rhs = get(ast, SetVar,rhs);
-			switch(getType(rhs)){
-				case UserFunc:{
-					printTYPE(_Function_);
-					if(sym->Symbol.value !=false) {
-						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
-						return 1;
-					}
-					oop params = get(rhs, UserFunc,parameters);
-					oop body = get(rhs, UserFunc,body);
-					get(vars, EmitContext, local_vars) = newArray(0);
-					GC_PUSH(oop, closure, newClosure());
-					while(params != nil){
-						oop param = get(params, Pair,a);
-						if (searchVariable(get(vars, EmitContext, local_vars), param) != NULL) {
-							reportError(ERROR, get(ast,SetVar,line), "parameter %s is already defined", get(param, Symbol,name));
-							GC_POP(closure);
-							get(vars, EmitContext, local_vars) = NULL;
-							return 1;
-						}
-						insertVariable(get(vars, EmitContext, local_vars), param); // insert parameter into local variables
-						closure->Closure.nArgs++;
-						params = get(params, Pair,b);
-					}
-					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
-					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
-					closure->Closure.pos = prog->IntArray.size; // remember the position of the closure
-					sym->Symbol.value = closure; // set the closure as the value of the variable
-					emitII(prog, iMKSPACE, 0); // reserve space for local variables
-					int codePos = prog->IntArray.size - 1; // remember the position of the function code
-					if(emitOn(prog, vars, body)) {
-						GC_POP(closure);
-						return 1; // compile function body
-					}
-					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Array, size); // set the size of local variables
-					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
-					GC_POP(closure);
-					get(vars, EmitContext, local_vars) = NULL; // clear local variables
-					return 0;
-				}
-				case Integer:
-				case String:
-				case GetVar:
-				case Unyop:
-				case Binop:{
-					int scope = get(ast, SetVar,scope);
-					switch(scope) {
-						case SCOPE_LOCAL:{
-							printf("defining local variable %s\n", get(sym, Symbol,name));
-							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(get(vars, EmitContext, local_vars),sym);
-							emitII(prog, iSETVAR, Integer_value(get(variable,Pair,b)));
-							return 0;
-						}
-						case SCOPE_STATE_LOCAL:{
-							printf("defining state variable %s\n", get(sym, Symbol,name));
-							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(get(vars, EmitContext, state_vars),sym);
-							emitII(prog, iSETSTATEVAR, Integer_value(get(variable,Pair,b)));
-							return 0;
-						}
-						case SCOPE_GLOBAL:{
-							printf("defining global variable %s\n", get(sym, Symbol,name));
-							if(emitOn(prog,vars, rhs)) return 1;
-							oop variable = insertVariable(get(vars, EmitContext, global_vars),sym);
-							emitII(prog, iSETGLOBALVAR, Integer_value(get(variable,Pair,b)));
-							return 0;
-						}
-					}
-					fatal("file %s line %d emitOn: unknown SetVar scope %d", __FILE__, __LINE__, scope);
-					reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
-					return 1;
-				}
-				default:{
-					fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
-					reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
-					return 1;
-				}
-			}
-			fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
-			reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
-			return 0;
-		}
 		case Pair:{
 			printTYPE(_Pair_);
 			oop a = get(ast, Pair,a);
@@ -920,7 +922,10 @@ int emitOn(ent prog,oop vars, oop ast)
 			int nArgs = 0;
 			while (args != nil) {
 				oop arg = get(args, Pair,a);
-				if(emitOn(prog, vars, arg)) return 1; // compile argument
+				int argType = parseType(vars, arg);
+				if(argType == -1) return 1; // type error
+				
+				if(emitOn(prog, vars, arg,TYPES[argType])) return 1; // compile argument
 				args = get(args, Pair,b);
 				nArgs++;
 			}
@@ -939,16 +944,16 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop statement1 = get(ast, If,statement1);
 			oop statement2 = get(ast, If,statement2);
 
-			if(emitOn(prog, vars, condition)) return 1; // compile condition
+			if(emitOn(prog, vars, condition,TYPES[Integer])) return 1; // compile condition
 
 			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
 			int jumpPos = prog->IntArray.size-1; // remember position for jump
 
-			if(emitOn(prog, vars, statement1)) return 1; // compile first statement
+			if(emitOn(prog, vars, statement1,type)) return 1; // compile first statement
 			if (statement2 != false) {
 				emitII(prog, iJUMP, 0);
 				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
-				if(emitOn(prog, vars, statement2)) return 1; // compile second statement
+				if(emitOn(prog, vars, statement2,type)) return 1; // compile second statement
 				prog->IntArray.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
 				prog->IntArray.elements[jumpPos2] = (prog->IntArray.size - 1) - jumpPos2; // set jump position
 			} else {
@@ -968,20 +973,20 @@ int emitOn(ent prog,oop vars, oop ast)
 			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
 			if (initialization != false) {
-				if(emitOn(prog, vars, initialization)) return 1; // compile initialization
+				if(emitOn(prog, vars, initialization, type)) return 1; // compile initialization
 			}
 			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
 			int jumpPos = 0; // position for the jump if condition is true
 			if(condition != false) {
-				if(emitOn(prog, vars, condition)) return 1; // compile condition
+				if(emitOn(prog, vars, condition, TYPES[Integer])) return 1; // compile condition
 				emitII(prog, iJUMPIF, 0); // emit jump if condition is true
 				jumpPos = prog->IntArray.size - 1; // remember position for jump
 			}
 
-			if(emitOn(prog, vars, statement)) return 1; // compile statement
+			if(emitOn(prog, vars, statement, type)) return 1; // compile statement
 
 			if (iteration != false) {
-				if(emitOn(prog, vars, iteration)) return 1; // compile iteration
+				if(emitOn(prog, vars, iteration, type)) return 1; // compile iteration
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
 			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
@@ -996,7 +1001,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			printTYPE(_Return_);
 			oop value = get(ast, Return,value);
 			if (value != false) {
-				if(emitOn(prog, vars, value)) return 1; // compile return value
+				if(emitOn(prog, vars, value, type)) return 1; // compile return value
 			} else {
 				emitII(prog, iPUSH, 0); // return 0 if no value is specified
 			}
@@ -1008,7 +1013,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			oop *statements = ast->Block.statements;
 			int nStatements = ast->Block.size;
 			for (int i = 0;  i < nStatements;  ++i) {
-				if(emitOn(prog, vars, statements[i])) return 1; // compile each statement
+				if(emitOn(prog, vars, statements[i], type)) return 1; // compile each statement
 			}
 			return 0;
 		}
@@ -1064,7 +1069,7 @@ int emitOn(ent prog,oop vars, oop ast)
 					elements[nElements]++;
 				}
 				dprintf("eventList[%d]: %s\n", i, get(eventList[i], Event,id)->Symbol.name);
-				if(emitOn(prog, vars, eventList[i])) return 1; // compile each event
+				if(emitOn(prog, vars, eventList[i], type)) return 1; // compile each event
 			}
 			dprintf("Finished collecting events\n");
 
@@ -1073,7 +1078,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			//entryEH
 			if(get(eventList[0], Event,id) == entryEH){
-				if(emitOn(prog, vars, eventList[0])) return 1; // compile entryEH
+				if(emitOn(prog, vars, eventList[0], type)) return 1; // compile entryEH
 			}
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
@@ -1096,7 +1101,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			// exitEH
 			for(int i = 0; i < get(events, Block, size); i++){
 				if(get(eventList[i], Event,id) == exitEH){ 
-					if(emitOn(prog, vars, eventList[i])) return 1; // compile exitEH
+					if(emitOn(prog, vars, eventList[i],type)) return 1; // compile exitEH
 				}
 				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
@@ -1124,11 +1129,10 @@ int emitOn(ent prog,oop vars, oop ast)
 			int paramSize =0;
 			int cPos      = 0;
 			while(params != nil) {//a:id-b:cond
-				oop param = get(params, Pair,a);
-				insertVariable(get(vars, EmitContext, local_vars), get(param,Pair,a)); // add parameter to local variables
-				if(get(param, Pair, b)!= false){
+				appendVariable(get(vars->EmitContext.local_vars, EmitContext, local_vars), get(params, Eparams, id), get(params, Eparams, type)); // add parameter to local variables
+				if(get(params, Eparams, cond) != false){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
-					if(emitOn(prog, vars, get(param, Pair,b))) return 1; // compile condition if exists
+					if(emitOn(prog, vars, get(params, Eparams, cond), get(params, Eparams, type))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
 				params = get(params, Pair,b);
@@ -1147,7 +1151,7 @@ int emitOn(ent prog,oop vars, oop ast)
 			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
 
 
-			if(emitOn(prog, vars, block))return 1; // compile block
+			if(emitOn(prog, vars, block, type))return 1; // compile block
 			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
 
 			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Array, size); // store number of local variables
@@ -1344,7 +1348,7 @@ int roots = gc_ctx.nroots;
 		}
 		printf("test line %d: result flag %d\n", __LINE__, ISTAG_FLAG(result));
 		printf("compiling statement %d\n", line);
-		if(emitOn(prog, vars, result))return NULL;
+		if(emitOn(prog, vars, result, NULL))return NULL;
 		result = parserRetFlags[PARSER_READY];
 		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
@@ -1634,9 +1638,6 @@ case Variable:
 {
 	if (obj->Variable.id) {
 		gc_mark(obj->Variable.id);
-	}
-	if (obj->Variable.value) {
-		gc_mark(obj->Variable.value);
 	}
 	return;
 }

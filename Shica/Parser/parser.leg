@@ -17,12 +17,7 @@ oop parserRetFlags[3] = {
 	MAKE_OOP_FLAG(PARSER_READY),
 };
 
-oop Types[] = {
-	MAKE_OOP_FLAG(Undefined),// var | fn
-	MAKE_OOP_FLAG(Integer),// int
-	MAKE_OOP_FLAG(Float),// float
-	MAKE_OOP_FLAG(String),// string
-};
+
 
 
 static int nlines = 1;
@@ -46,8 +41,8 @@ events = LBRACE b:mkBlock
 event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
 
 eparams	= LPAR p:mkNil
-	  ( i:id c:mkFalse (c:eqop)?			{ p = newPair(newPair(i,c), p) }
-	    ( COMMA i:id	c:mkFalse (c:eqop)?	{ p = newPair(newPair(i,c), p) }
+	  ( t:TYPE i:id c:mkFalse (c:eqop)?			{ p = newEparams(t, i, c, p) }
+	    ( COMMA t:TYPE i:id	c:mkFalse (c:eqop)?	{ p = newEparams(t, i, c, p) }
 	    )*
 	  )?
  	  RPAR				{ $$ = p }
@@ -216,10 +211,10 @@ RET = "return" -
 TYPE = VAR | INT | FLO | STR | FUNC 
 
 FUNC = "fn" - 
-VAR = "var" - { $$ = Types[Undefined]; }
-INT = "int" - { $$ = Types[Integer]; }
-FLO = "flo" - { $$ = Types[Float]; }
-STR = "str" - { $$ = Types[String]; }
+VAR = "var" - { $$ = TYPES[Undefined]; }
+INT = "int" - { $$ = TYPES[Integer]; }
+FLO = "flo" - { $$ = TYPES[Float]; }
+STR = "str" - { $$ = TYPES[String]; }
 
 %%;
 void initLine(void)

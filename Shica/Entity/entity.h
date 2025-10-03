@@ -104,6 +104,8 @@ ent getIrCode(int index);
 struct StdFuncTable{
 	int (*stdfunc)(ent stack); // standard function
 	int nArgs;
+	int *argTypes;
+	int retType;
 	//return value
 };
 extern struct StdFuncTable *StdFuncTable;

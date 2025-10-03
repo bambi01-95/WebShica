@@ -15,12 +15,15 @@ enum opcode_t {
     iMUL, 
     iDIV, 
     iMOD,
-    iGETVAR, 
-    iGETGLOBALVAR,
+
+    iGETGLOBALVAR,//don't change the order of these three
     iGETSTATEVAR,
-    iSETVAR,
-    iSETGLOBALVAR,
+    iGETVAR, 
+
+    iSETGLOBALVAR,// don't change the order of these three
 	iSETSTATEVAR,
+    iSETVAR,
+
 	iMKSPACE,
 	iPRINT,
 	iJUMP, // jump to a position
