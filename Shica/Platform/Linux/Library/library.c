@@ -69,7 +69,7 @@ int lib_exit(ent stack)
 
  struct StdFuncTable __StdFuncTable__[] =
 {
-	{lib_exit, 1}, // exit function takes 1 argument
+	{lib_exit, 1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
 };
 
 

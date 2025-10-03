@@ -373,14 +373,14 @@ int lib_setcolor(ent stack)
 
 struct StdFuncTable __StdFuncTable__[] =
 {
-	{lib_log, 1}, // log function takes 1 argument
-	{lib_setxy, 2}, // setXY function takes 2 arguments
-	{lib_setx, 1}, // setX function takes 1 argument
-	{lib_sety, 1}, // setY function takes 1 argument
-	{lib_setvxy, 2}, // setVXY function takes 2 arguments
-	{lib_setvx, 1}, // setVX function takes 1 argument
-	{lib_setvy, 1}, // setVY function takes 1 argument
-	{lib_setcolor, 3}, // setColor function takes 3 arguments
+	{lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
+	{lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
+	{lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
+	{lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
+	{lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
+	{lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
+	{lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
+	{lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
 };
 
 int compile_func_init()
