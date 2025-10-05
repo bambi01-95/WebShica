@@ -636,9 +636,14 @@ void setTransPos(ent prog){
 int parseType(oop vars, oop ast)
 {
 	switch(getType(ast)){
-		case Integer:;
-		case String:
-		return getType(ast);
+		case Integer:return MAKE_OOP_FLAG_INT(Integer);
+		case String:return MAKE_OOP_FLAG_INT(String);
+		case GetVar:{
+			struct RetVarFunc var = searchVariable(vars, get(ast, GetVar,id), NULL);
+			if(var.index == -1)return -1; // variable not found
+			oop type = get(vars, EmitContext, global_vars)->Array.elements[var.index]->Variable.type;
+			return (intptr_t)type;
+		}
 		default:
 			reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));
 			return -1;
@@ -670,6 +675,25 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		case Integer:{
 			printTYPE(_Integer_);
 			emitIL(prog, iPUSH, ast);
+			return 0;
+		}
+		case String:{
+			printTYPE(_String_);
+			char* str = get(ast, String,value);
+			int sLen = strlen(str);
+			emitII(prog, sPUSH, sLen); // push the length of the string
+			for(int i = 0; i < sLen; i++){
+				int data = 0;
+				for(int j = 0; j < 4; j++, i++){
+					if(i < sLen){
+						data |= (str[i] & 0xFF) << (j * 8);
+					}else{
+						data |= (0 & 0xFF) << (j * 8);
+					}
+				}
+				intArray_append(prog, data);
+				--i;
+			}
 			return 0;
 		}
 		case Array:{
@@ -798,14 +822,14 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 						case SCOPE_STATE_LOCAL:{
 							printf("defining state variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars),sym, declaredType);
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType);
 							emitII(prog, iSETSTATEVAR, var.index);
 							return 0;
 						}
 						case SCOPE_GLOBAL:{
 							printf("defining global variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars),sym, declaredType);
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType);
 							emitII(prog, iSETGLOBALVAR, var.index);
 							return 0;
 						}
@@ -921,12 +945,13 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			oop args = get(ast, Print,arguments);
 			int nArgs = 0;
 			while (args != nil) {
-				oop arg = get(args, Pair,a);
-				int argType = parseType(vars, arg);
+				oop value = get(args, Args, value);
+				int argType = parseType(vars, value);
+				printf("type of argument %d is %d\n", nArgs+1, argType);
+				printf("String type is %d\n", String);
 				if(argType == -1) return 1; // type error
-				
-				if(emitOn(prog, vars, arg,TYPES[argType])) return 1; // compile argument
-				args = get(args, Pair,b);
+				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
+				args = get(args, Args, next);
 				nArgs++;
 			}
 			if(nArgs == 0) {
@@ -1032,7 +1057,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			oop events = get(ast, State,events);
 			dprintf("State: %s\n", get(id, Symbol,name));
 
-			// compile events
+			// compile events  
 			oop *eventList = events->Block.statements;
 			int nElements = 0;
 			int elements[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
@@ -1128,14 +1153,18 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			int nArgs = eh->EventH.nArgs;
 			int paramSize =0;
 			int cPos      = 0;
+
 			while(params != nil) {//a:id-b:cond
-				appendVariable(get(vars->EmitContext.local_vars, EmitContext, local_vars), get(params, Eparams, id), get(params, Eparams, type)); // add parameter to local variables
+				appendVariable(
+					get(vars, EmitContext, local_vars), 
+					get(params, Eparams, id), 
+					get(params, Eparams, type)); // add parameter to local variables
 				if(get(params, Eparams, cond) != false){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, get(params, Eparams, cond), get(params, Eparams, type))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
-				params = get(params, Pair,b);
+				params = get(params, Eparams, next);
 				paramSize++;
 			}
 			if(cPos != 0){
@@ -1184,6 +1213,16 @@ void printCode(ent code){
 				int value = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, value);
 				break;
+			case sPUSH:{
+				inst = "LOADS";
+				int sLen = code->IntArray.elements[++i];
+				char sValue[sLen+1];
+				memcpy(sValue, &code->IntArray.elements[++i], sLen);
+				sValue[sLen] = '\0';
+				printf("%03d: %-10s \"%s\"\n", i-2, inst, sValue);
+				i += sLen - 1;
+				break;
+			}
 			case iGT:   inst = "GT"; goto simple;
 			case iGE:   inst = "GE"; goto simple;
 			case iEQ:   inst = "EQ"; goto simple;
@@ -2123,6 +2162,8 @@ int main(int argc, char **argv)
 	gc_markOnly(code); // mark the code itself
 	gc_markOnly(code->IntArray.elements); // mark the code elements
 	gc_collect();
+
+	return 0; // TEST NOW
 
 	if(opt_c == 1){
 		rprintf("end of compilation\n");

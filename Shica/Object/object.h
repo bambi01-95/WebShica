@@ -19,9 +19,9 @@ extern oop exitEH;
 typedef enum Type {
     /*  0 */ Undefined = 0,
     /*  1 */ Integer, Float, String, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
-    /*  9 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
-    /* 16 */ Call, Return, Break, Continue,
-    /* 20 */ Print, If, Loop, Block,
+    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
+    /* 18 */ Call, Return, Break, Continue,
+    /* 22 */ Print, If, Loop, Block,
 	/* 24 */ Transition, State, Event,EventH,
 	/* AF LEG */
 	/* 25 */ Variable,EmitContext,
@@ -228,6 +228,7 @@ enum {
 
 
 #define MAKE_OOP_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG_OOP))
+#define MAKE_OOP_FLAG_INT(f) (((intptr_t)(f) << TAGBITS) | TAG_INT_OOP)
 #define GET_OOP_FLAG(o) ((int)(((intptr_t)(o)) >> TAGBITS))
 #define TAGBITS 2			// how many bits to use for tag bits
 #define TAGMASK ((1 << TAGBITS) - 1)	// mask to extract just the tag bits

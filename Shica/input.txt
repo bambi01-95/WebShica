@@ -1,6 +1,6 @@
-a = "hello world";
+str a = "hello world";
 stt s1(){
-    timerEH(s){
+    timerEH(int s){
         print(a);
     }
 }

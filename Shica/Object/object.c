@@ -618,6 +618,7 @@ ELSE append variable to the array and return the appended variable
 //FIXME: report error line number
 struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 {
+	assert(arr != NULL);
 	// linear search for existing variable
 	int nvariables = arr ? arr->Array.size : 0;
 	oop *variables = arr ? arr->Array.elements : 0;
@@ -636,7 +637,7 @@ struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 }
 
 //FIXME: report error line number
-struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)
+struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)//TYPE 
 {
 	assert(ctx != NULL);
 	for(int scope = 0; scope < 3; scope++)
@@ -647,7 +648,7 @@ struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)
 		oop *variables = arr ? arr->Array.elements : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
-				if(variables[i]->Variable.type != type){
+				if(type!=NULL && variables[i]->Variable.type != type){
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
 					return (struct RetVarFunc){0, -1}; // error
 				}

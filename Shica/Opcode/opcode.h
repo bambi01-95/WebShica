@@ -4,6 +4,7 @@
 enum opcode_t {
     iHALT, 
     iPUSH,
+    sPUSH,
     iGT, 
     iGE, 
     iEQ, 
@@ -47,6 +48,7 @@ typedef enum opcode_t opcode_t;
 static const char *_opcode_names[] = {
     "iHALT", 
     "iPUSH",
+    "sPUSH",
     "iGT", 
     "iGE", 
     "iEQ", 
