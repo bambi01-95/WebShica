@@ -7,7 +7,9 @@
 #include <stdarg.h>
 #include "entity.h"
 
-
+#define TAGBITS 3
+#define TAG_INT_ENT 0x1
+#define TAG_FLT_ENT 0x2
 
 
 static ent _newEntity(size_t size, kind_t kind)
@@ -22,6 +24,50 @@ static ent _newEntity(size_t size, kind_t kind)
 }
 #define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
 
+ent newIntVal(int value)
+{
+    return (ent)(((intptr_t)value << TAGBITS) | TAG_INT_ENT);
+}
+
+int IntVal_value(ent obj)
+{
+    return (intptr_t)obj >> TAGBITS;
+}
+
+ent newFloVal(double value)
+{
+    return (ent)(((intptr_t)value << TAGBITS) | TAG_FLT_ENT);
+}
+
+double FloVal_value(ent obj)
+{
+    union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
+    return u.d;
+}
+
+ent newStrVal(const char *value)
+{
+	if(value == NULL){
+		ent obj = newEntity(StrVal);
+		obj->StrVal.value = NULL;
+		return obj;
+	}
+	gc_pushRoot((void*)&value);
+	ent obj = newEntity(StrVal);
+	obj->StrVal.value = strdup(value);
+	gc_popRoots(1);
+	return obj;
+}
+
+char* StrVal_value(ent obj)
+{
+	if (obj->kind != StrVal) {
+		fprintf(stderr, "expected StrVal got %d\n", obj->kind);
+		exit(1);
+	}
+	return obj->StrVal.value;
+}
+
 ent intArray_init(void)
 {
 	GC_PUSH(ent, a, newEntity(IntArray));
@@ -35,15 +81,42 @@ ent intArray_init(void)
 
 ent newStack(const int initVal)
 {
-	GC_PUSH(ent, a, newEntity(IntArray));
-	a->IntArray.elements = NULL;
-	a->IntArray.elements = (int*)gc_beAtomic(gc_alloc(sizeof(int) * 10));
-	a->IntArray.elements[0] = initVal; // rbp
-	a->IntArray.size     = 1;// rbp is always 0 at the start
-	a->IntArray.capacity = 10;
+	GC_PUSH(ent, a, newEntity(Stack));
+	a->Stack.elements = NULL;
+	a->Stack.elements = (ent*)gc_beAtomic(gc_alloc(sizeof(ent) * 10));
+	a->Stack.elements[0] = newIntVal(initVal); // rbp 
+	a->Stack.size     = 1;// rbp is always 0 at the start
+	a->Stack.capacity = 10;
 	GC_POP(a);
 	return a;
 }
+
+ent pushStack(ent stack, ent value)
+{
+	assert(stack->kind == Stack);
+	if (stack->Stack.size >= stack->Stack.capacity) {
+		stack->Stack.capacity = stack->Stack.capacity ? stack->Stack.capacity * 2 : 4;
+		gc_pushRoot((void*)stack);
+		stack->Stack.elements = realloc(stack->Stack.elements, sizeof(ent) * stack->Stack.capacity);
+		gc_popRoots(1);
+	}
+	stack->Stack.elements[stack->Stack.size++] = value;
+	return stack;
+}
+ent popStack(ent stack)
+{
+	assert(stack->kind == Stack);
+	if (stack->Stack.size == 0) fatal("pop: stack is empty");
+	return stack->Stack.elements[--stack->Stack.size];
+}
+ent lastStack(ent stack)
+{
+	assert(stack->kind == Stack);
+	if (stack->Stack.size == 0) fatal("last: stack is empty");
+	return stack->Stack.elements[stack->Stack.size - 1];
+}
+
+
 void printStack(ent stack)
 {
 	printf("Stack: \n");
@@ -95,13 +168,13 @@ ent newQue3(int nArgs)
 	q->IntQue3.nArgs = nArgs;
 	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
 	for (int i = 0;  i < IntQue3Size;  ++i) {
-		q->IntQue3.que[i] = (int*)gc_beAtomic(gc_alloc(sizeof(int) * nArgs));
+		q->IntQue3.que[i] = (ent)gc_beAtomic(gc_alloc(sizeof(ent) * nArgs));
 	}
 	GC_POP(q);
 	return q;
 }
 
-void enqueue3(ent eh, int *value)
+void enqueue3(ent eh, ent value)//value should be stack
 {
 	ent *threads = eh->EventHandler.threads;
 
@@ -112,9 +185,7 @@ void enqueue3(ent eh, int *value)
 			q->IntQue3.size = IntQue3Size; // reset size to max
 			//exit(1);
 		}
-		for (int j = 0; j < q->IntQue3.nArgs; ++j) {
-			q->IntQue3.que[q->IntQue3.tail][j] = value[j];
-		}
+		q->IntQue3.que[q->IntQue3.tail] = value;
 		q->IntQue3.tail = (q->IntQue3.tail + 1) % 3;
 		q->IntQue3.size++;
 	}
@@ -127,10 +198,8 @@ ent dequeue3(ent thread)
 		return NULL; // queue is empty
 	}
 	ent stack = thread->Thread.stack =  newStack(0);
-	for(int i = 0; i < q->IntQue3.nArgs; ++i){
-		int x = q->IntQue3.que[q->IntQue3.head][i];
-		intArray_push(stack, x);
-	}
+	ent x = q->IntQue3.que[q->IntQue3.head];
+	pushStack(stack, x);
 
 	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
 	q->IntQue3.size--;
@@ -166,10 +235,7 @@ ent newEventHandler(int ehIndex, int nThreads)
 
 	int nData = EventTable[ehIndex].nData;
 	if(nData > 0) {
-		eh->EventHandler.data = (int*)gc_beAtomic(gc_alloc(sizeof(int) * nData));
-		for(int i = 0; i < nData; ++i){
-			eh->EventHandler.data[i] = 0; // initialize data to 0
-		}
+		eh->EventHandler.data = (ent*)gc_beAtomic(gc_alloc(sizeof(ent) * nData));
 	} else {
 		eh->EventHandler.data = NULL; // no data
 	}

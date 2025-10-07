@@ -8,12 +8,29 @@ typedef Entity *ent;
 
 typedef enum kind{
 	Undeclar = 0,
+	IntVal,
+	FloVal,
+	StrVal,
 	IntArray,
+	Stack,
 	IntQue3,
 	Thread,
 	EventHandler,
 	Agent,
 } kind_t;
+
+struct IntVal{
+	kind_t kind; // kind of the integer
+	int value;
+};
+struct FloVal{
+	kind_t kind; // kind of the float
+	double value;
+};
+struct StrVal{
+	kind_t kind; // kind of the string
+	char *value;
+};
 
 struct IntArray{
 	kind_t kind; // kind of the array
@@ -21,10 +38,16 @@ struct IntArray{
 	int *elements;
 };
 
+struct Stack{
+	kind_t kind;
+	int size, capacity;
+	ent *elements;
+};
+
 struct IntQue3{
 	kind_t kind; // kind of the queue
 	char tail, head,size,nArgs;
-	int *que[3];
+	ent que[3];
 };
 typedef int (*opfunc)(ent q);
 
@@ -43,7 +66,7 @@ struct EventHandler{
 	kind_t kind;
 	int size;
 	int EventH;
-	int *data; // data for the event handler
+	ent *data; // event handler data (stack)
 	ent *threads; // thread that this handler belongs to
 }; 
 
@@ -64,11 +87,26 @@ union Entity{
 	struct EventHandler EventHandler;
 	struct Thread Thread;
 	struct IntArray IntArray;
+	struct Stack Stack;
 	struct IntQue3 IntQue3;	
+	struct IntVal IntVal;
+	struct FloVal FloVal;
+	struct StrVal StrVal;
 };
+
+ent newIntVal(int value);
+int IntVal_value(ent obj);
+ent newFloVal(double value);
+double FloVal_value(ent obj);
+ent newStrVal(const char *value);
+char* StrVal_value(ent obj);
 
 ent intArray_init(void);
 ent newStack(const int initVal);
+ent pushStack(ent stack, ent value);
+ent popStack(ent stack);
+ent lastStack(ent stack);
+
 void printStack(ent stack);
 void intArray_push(ent a, int value);
 void intArray_append(ent a, int value);
@@ -78,7 +116,7 @@ int intArray_last(ent a);
 #define IntQue3Size 3
 
 ent newQue3(int nArgs);
-void enqueue3(ent eh, int *value);
+void enqueue3(ent eh, ent value);
 ent dequeue3(ent thread);
 
 struct EventTable{

@@ -650,12 +650,14 @@ struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)//TYPE
 			if ((variables[i]->Variable.id)== sym){
 				if(type!=NULL && variables[i]->Variable.type != type){
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
+					printf("variable type mismatch\n");
 					return (struct RetVarFunc){0, -1}; // error
 				}
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
 			}	
 		}
 	}
+	printf("variable %s not found\n", get(sym, Symbol,name));
 	reportError(ERROR, 0, "variable %s not found", get(sym, Symbol,name));
 	return (struct RetVarFunc){0, -1}; // not found
 }

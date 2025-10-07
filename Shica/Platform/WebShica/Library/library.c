@@ -174,8 +174,9 @@ int getAllAgentDataSizePtr(){
 int event_handler(ent eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		ent thread = eh->EventHandler.threads[0];
-		int val[1] = {0}; // initialize value to 0
-		enqueue3(eh, val);
+		ent stack = newStack(0);
+		enqueue3(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		return 1;
 	}
 	return 0; // return 0 to indicate no event
 }
@@ -193,7 +194,8 @@ int timer_handler(ent eh)
 	if (WEB_TIMER-time >=1000) {
 		eh->EventHandler.data[1]++;
 		eh->EventHandler.data[0] = WEB_TIMER;
-		enqueue3(eh,&eh->EventHandler.data[1]); // dequeue the first element
+		ent stack = newStack(0);
+		enqueue3(eh, pushStack(stack, newIntVal(eh->EventHandler.data[1]))); // enqueue a stack with value
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -208,7 +210,8 @@ int touch_handler(ent eh)
 {
 	int touch = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &touch); // dequeue the first element
+		ent stack = newStack(0);
+		enqueue3(eh, pushStack(stack, newIntVal(touch))); // enqueue a stack with value
 		printf("touch event: %d\n", touch);
 		return 1; // return 1 to indicate success
 	}
@@ -218,7 +221,8 @@ int collision_handler(ent eh)
 {
 	int collision = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &collision); // dequeue the first element
+		ent stack = newStack(0);
+		enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue a stack with value
 		printf("collision event: %d\n", collision);
 		return 1; // return 1 to indicate success
 	}
@@ -229,7 +233,8 @@ int self_state_handler(ent eh)
 {
 	int state = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		enqueue3(eh, &state); // dequeue the first element
+		ent stack = newStack(0);
+		enqueue3(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
 		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
 	}
@@ -241,8 +246,10 @@ int click_handler(ent eh)
 	printf("triggered click event\n");
 	if (WEB_CLICK_STT[2]==1) {
 		printf("clicked!!!\n");
-		int click[2] = {WEB_CLICK_STT[0], WEB_CLICK_STT[1]};
-		enqueue3(eh, click); // dequeue the first element
+		ent stack = newStack(0);
+		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
+		pushStack(stack, newIntVal(WEB_CLICK_STT[1])); // y
+		enqueue3(eh, stack); // enqueue the stack
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event

@@ -130,10 +130,10 @@ int executor_func_init()
 #endif
 
 
-#define push(O)	intArray_push(stack, O)
-#define pop()	intArray_pop(stack)
-#define top()	intArray_last(stack)
-#define pick(I)  stack->IntArray.elements[I]
+#define push(O)	pushStack(stack, O)
+#define pop()	popStack(stack)
+#define top()	lastStack(stack)
+#define pick(I)  stack->Stack.elements[I]
 
 
 ent execute(ent prog, ent entity, ent agent);
@@ -255,29 +255,28 @@ ent execute(ent prog,ent entity, ent agent)
 			}
 			continue;
 		}
-	    case iGT:printOP(iGT);  r = pop();  l = pop();  push(l > r);  continue;
-		case iGE:printOP(iGE);  r = pop();  l = pop();  push(l >= r); continue;
-		case iEQ:printOP(iEQ);  r = pop();  l = pop();  push(l == r); continue;
-		case iNE:printOP(iNE);  r = pop();  l = pop();  push(l != r); continue;
-		case iLE:printOP(iLE);  r = pop();  l = pop();  push(l <= r); continue;
-		case iLT:printOP(iLT);  r = pop();  l = pop();  push(l < r);  continue;
-	    case iADD:printOP(iADD);  r = pop();  l = pop();  push(l + r);  continue;
-	    case iSUB:printOP(iSUB);  r = pop();  l = pop();  push(l - r);  continue;
-	    case iMUL:printOP(iMUL);  r = pop();  l = pop();  push(l * r);  continue;
-	    case iDIV:printOP(iDIV);  r = pop();  l = pop();  push(l / r);  continue;
-	    case iMOD:printOP(iMOD);  r = pop();  l = pop();  push(l % r);  continue;
+	    case iGT:printOP(iGT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l > r));  continue;
+		case iGE:printOP(iGE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l >= r)); continue;
+		case iEQ:printOP(iEQ);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l == r)); continue;
+		case iNE:printOP(iNE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l != r)); continue;
+		case iLE:printOP(iLE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l <= r)); continue;
+		case iLT:printOP(iLT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l < r));  continue;
+	    case iADD:printOP(iADD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l + r));  continue;
+	    case iSUB:printOP(iSUB);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l - r));  continue;
+	    case iMUL:printOP(iMUL);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l * r));  continue;
+	    case iDIV:printOP(iDIV);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l / r));  continue;
+	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
 	    case iGETVAR:{
 			printOP(iGETVAR);
+			printf("pc %d\n", *pc);
 			int symIndex = fetch(); // need to change
-			push(stack->IntArray.elements[symIndex + *rbp+1]); // get the variable value
-			dprintf("%d => %d\n", symIndex, stack->IntArray.elements[symIndex + *rbp+1]);
+			push(stack->Stack.elements[symIndex + *rbp+1]); // get the variable value
 			continue;
 		}
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
 			printOP(iGETGLOBALVAR);
 			int symIndex = fetch(); 
-			push(agent->Agent.stack->IntArray.elements[symIndex]);
-			dprintf("%d => %d\n", symIndex, agent->Agent.stack->IntArray.elements[symIndex]);
+			push(agent->Agent.stack->Stack.elements[symIndex]);
 			continue;
 		}
 		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
@@ -288,23 +287,23 @@ ent execute(ent prog,ent entity, ent agent)
 	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
 			printOP(iSETVAR);
 			int symIndex = fetch();
-			stack->IntArray.elements[symIndex+*rbp+1] = pop();
+			stack->Stack.elements[symIndex+*rbp+1] = pop();
 			continue;
 		}
 		case iSETGLOBALVAR:{
 			printOP(iSETGLOBALVAR);
 			int symIndex = fetch();
-			agent->Agent.stack->IntArray.elements[symIndex] = pop(); // set the global variable value
+			agent->Agent.stack->Stack.elements[symIndex] = pop(); // set the global variable value
 			continue;
 		}
 		case iSETSTATEVAR:{
 			printOP(iSETSTATEVAR);
 			int index = fetch();
 			int symIndex = index + agent->Agent.rbp;
-			if(symIndex > agent->Agent.stack->IntArray.size -1)//FIXME: every time check the size is not efficient, it should be done at init state.
-				for(int i = agent->Agent.stack->IntArray.size; i <= symIndex; ++i)
+			if(symIndex > agent->Agent.stack->Stack.size -1)//FIXME: every time check the size is not efficient, it should be done at init state.
+				for(int i = agent->Agent.stack->Stack.size; i <= symIndex; ++i)
 					intArray_push(agent->Agent.stack, 0); // extend the state variable array
-			agent->Agent.stack->IntArray.elements[symIndex] = pop(); // set the state variable value
+			agent->Agent.stack->Stack.elements[symIndex] = pop(); // set the state variable value
 			continue;
 		}
 		case iJUMP:{
@@ -334,11 +333,11 @@ ent execute(ent prog,ent entity, ent agent)
 			if (*rbp == 0) {
 				fatal("return without call");
 			}
-			int retValue = pop(); // get the return value
-			stack->IntArray.size = *rbp+1; // restore the stack size to the base pointer
-			*rbp = pop(); // restore the base pointer
-			*pc = pop(); // restore the program counter
-			
+			ent retValue = pop(); // get the return value
+			stack->Stack.size = *rbp+1; // restore the stack size to the base pointer
+			*rbp = (intptr_t)pop(); // restore the base pointer
+			*pc = (intptr_t)pop(); // restore the program counter
+
 			push(retValue); // push the return value to the stack
 			continue;
 		}
@@ -355,11 +354,11 @@ ent execute(ent prog,ent entity, ent agent)
 			printOP(iUCALL);
 			l = fetch(); // get the function rel position
 			r = fetch(); // get the number of arguments
-			push(*pc); // save the current program counter
+			push(newIntVal(*pc)); // save the current program counter
 			*pc += l; // set program counter to the function position
 
-			push(*rbp); // save the current base pointer
-			*rbp = stack->IntArray.size-1; // set the base pointer to the current stack size
+			push(newIntVal(*rbp)); // save the current base pointer
+			*rbp = stack->Stack.size-1; // set the base pointer to the current stack size
 			dprintf("rbp: %d, pc: %d\n", *rbp, *pc);
 
 			for (int i = 1;  i <= r;  ++i) {
@@ -370,40 +369,83 @@ ent execute(ent prog,ent entity, ent agent)
 		case iPUSH:{
 		printOP(iPUSH);
 			l = fetch();
-			push(l);
+			push(newIntVal(l));
+			continue;
+		}
+		case sPUSH:{
+			printOP(sPUSH);
+			l = fetch();
+			char *str = gc_beAtomic(gc_alloc(l+1));
+			ent obj = newStrVal(str);
+			memcpy(str, &code[(*pc)], l * sizeof(char));
+			str[l] = '\0';
+			obj->StrVal.value = str;
+			push(obj);
+			
+			if(l%4)*pc += l/4 + 1;
+			else *pc += l/4;
 			continue;
 		}
 		case iCLEAN:{
 			printOP(iCLEAN);
 			l = fetch(); // number of variables to clean
-			int retVal = pop(); // get the return value
+			ent retVal = pop(); // get the return value
 			for(int i = 0;  i < l;  ++i) {
-				if (stack->IntArray.size == 0) {
+				if (stack->Stack.size == 0) {
 					fatal("stack is empty");
 				}
 				pop(); // clean the top element
 			}
 			push(retVal); // push the return value back to the stack
-			// stack->IntArray.size -= l; // clean the top l elements from the stack
+			// stack->Stack.size -= l; // clean the top l elements from the stack
+			continue;
+		}
+		case aPRINT:{
+			printOP(aPRINT);
+			ent o = pop();
+			if(o->kind == IntVal){
+				printf("%d\n", IntVal_value(o));
+			}else if(o->kind == FloVal){
+				printf("%f\n", FloVal_value(o));
+			}else if(o->kind == StrVal){
+				printf("%s\n", StrVal_value(o));
+			}else{
+				printf("%p\n", o);
+			}
 			continue;
 		}
 		case iPRINT:{
 			printOP(iPRINT);
-			int nArgs = fetch();
-			for(int i = 0; i < nArgs; i++) {
-				printf("%d ", pop());
-			}
+			int val = (intptr_t)pop();
+			printf("%d", val);
+			continue;
+		}
+		case sPRINT:{
+			printOP(sPRINT);
+			ent obj = pop();
+			char *str = StrVal_value(obj);
+			printf("%s", str);
+			continue;
+		}
+	    case fPRINT:{
+			printOP(fPRINT);
+			ent obj = pop();
+			printf("%f", FloVal_value(obj));
+			continue;
+		}
+		case flashPRINT:{
 			printf("\n");
 			continue;
 		}
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			intArray_push(agent->Agent.stack,  nextStatePos+(*pc));//relative position:
+			pushStack(agent->Agent.stack,  newIntVal(nextStatePos+(*pc)));//relative position:
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
 			printOP(iSETSTATE);
+			printf("iSETSTATE should not be called here\n");
 			assert(entity->kind == Agent);
 			int ehSize = fetch(); // get the number of event handlers
 			printf("ehSize: %d\n", ehSize);
@@ -460,7 +502,7 @@ ent execute(ent prog,ent entity, ent agent)
 				case Thread:{
 					printf("thread finished\n");
 					entity->Thread.inProgress = 0; // set the thread to not in progress
-					entity->Thread.pc = stack->IntArray.elements[0]; // restore the program counter
+					entity->Thread.pc += IntVal_value(stack->Stack.elements[0]); // restore the program counter
 					entity->Thread.rbp = 0;
 					return retFlags[EOE_F]; // return EOE_F to indicate end of execution
 				}
@@ -487,15 +529,15 @@ ent execute(ent prog,ent entity, ent agent)
 				pop(); // clean the top variablesSize elements from the stack
 			}
 			entity->Agent.isActive = 0;
-			entity->Agent.pc = pop();
+			entity->Agent.pc += IntVal_value(pop());
 			entity->Agent.eventHandlers = NULL;//TODO: don't remove this in the future
 			continue;
 		}
 	    case iHALT:{
 			printOP(iHALT);
 			pop();//first rbp
-			for(int i = 0;  i < stack->IntArray.size;  ++i) {
-				printf("%d ", stack->IntArray.elements[i]);
+			for(int i = 0;  i < stack->Stack.size;  ++i) {
+				printf("%d ", IntVal_value(stack->Stack.elements[i]));
 			}
 			printf("\n");
 			return stack; // return the answer
@@ -636,13 +678,13 @@ void setTransPos(ent prog){
 int parseType(oop vars, oop ast)
 {
 	switch(getType(ast)){
-		case Integer:return MAKE_OOP_FLAG_INT(Integer);
-		case String:return MAKE_OOP_FLAG_INT(String);
+		case Integer:return Integer;
+		case String:return String;
 		case GetVar:{
 			struct RetVarFunc var = searchVariable(vars, get(ast, GetVar,id), NULL);
 			if(var.index == -1)return -1; // variable not found
 			oop type = get(vars, EmitContext, global_vars)->Array.elements[var.index]->Variable.type;
-			return (intptr_t)type;
+			return GET_OOP_FLAG(type);
 		}
 		default:
 			reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));
@@ -753,7 +795,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			printTYPE(_GetVar_);
 			oop sym = get(ast, GetVar,id);
 			struct RetVarFunc var = searchVariable(vars, sym, type);
-			if(var.index != -1)return 0; // variable found
+			if(var.index == -1)return 1; // variable found
 			emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the global variable value
 			return 0;
 		}
@@ -945,20 +987,23 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			oop args = get(ast, Print,arguments);
 			int nArgs = 0;
 			while (args != nil) {
+				printf("compiling print argument %d\n", nArgs+1);
 				oop value = get(args, Args, value);
 				int argType = parseType(vars, value);
-				printf("type of argument %d is %d\n", nArgs+1, argType);
-				printf("String type is %d\n", String);
 				if(argType == -1) return 1; // type error
 				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
+				switch(argType){
+					case Integer: emitI(prog, iPRINT); break;
+					case Float:   emitI(prog, fPRINT); break;
+					case String:  emitI(prog, sPRINT); break;
+					default:
+						reportError(ERROR, get(ast, Print, line), "print statement does not support type %d", argType);
+						return 1;
+				}
 				args = get(args, Args, next);
 				nArgs++;
 			}
-			if(nArgs == 0) {
-				reportError(ERROR, get(ast, Print, line), "print statement requires at least one argument");
-				return 1;
-			}
-			emitII(prog, iPRINT, nArgs); // print the result
+			emitI(prog, flashPRINT); // print the result
 			return 0;
 		}
 		case If:{
@@ -1220,7 +1265,10 @@ void printCode(ent code){
 				memcpy(sValue, &code->IntArray.elements[++i], sLen);
 				sValue[sLen] = '\0';
 				printf("%03d: %-10s \"%s\"\n", i-2, inst, sValue);
-				i += sLen - 1;
+				if(sLen % sizeof(int) == 0)
+					i += sLen/sizeof(int) - 1;
+				else
+					i += sLen/sizeof(int);
 				break;
 			}
 			case iGT:   inst = "GT"; goto simple;
@@ -1287,10 +1335,29 @@ simple:
 				int space = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, space);
 				break;
+			case aPRINT: {
+				inst = "aPRINT";
+				printf("%03d: %-10s\n", i-1, inst);
+				break;
+			}
 			case iPRINT: {
 				inst = "PRINT";
-				int nArgs = code->IntArray.elements[++i];
-				printf("%03d: %-10s %03d\n", i-1, inst, nArgs);
+				printf("%03d: %-10s\n", i-1, inst);
+				break;
+			}
+			case fPRINT: {
+				inst = "fPRINT";
+				printf("%03d: %-10s\n", i-1, inst);
+				break;
+			}
+			case sPRINT: {
+				inst = "sPRINT";
+				printf("%03d: %-10s\n", i-1, inst);
+				break;
+			}
+			case flashPRINT: {
+				inst = "flashPRINT";
+				printf("%03d: %-10s\n", i-1, inst);
 				break;
 			}
 			case iJUMP: {
@@ -1733,6 +1800,16 @@ void markExecutors(ent ptr)
 {
 	// collect ir code
 	switch(ptr->kind){
+		case IntVal:break; // nothing to do
+		case FloVal:break; // nothing to do
+		case StrVal:{
+			dprintf("markExecutors StrVal\n");
+			if(ptr->StrVal.value != NULL){
+				gc_markOnly(ptr->StrVal.value); // mark the string value
+			}
+			dprintf("markExecutors StrVal done\n");
+			return;
+		}
 		case IntArray:{
 			dprintf("markExecutors IntArray\n");
 			if(ptr->IntArray.elements != NULL){
@@ -1746,7 +1823,7 @@ void markExecutors(ent ptr)
 			int pos = ptr->IntQue3.head;
 			for(int i = 0; i < ptr->IntQue3.size; i++){
 				if(ptr->IntQue3.que[pos] != NULL){
-					gc_markOnly(ptr->IntQue3.que[pos]); // mark the int que elements
+					gc_mark(ptr->IntQue3.que[pos]); 
 				}
 				pos = (pos + 1) % IntQue3Size;
 			}
@@ -2163,7 +2240,6 @@ int main(int argc, char **argv)
 	gc_markOnly(code->IntArray.elements); // mark the code elements
 	gc_collect();
 
-	return 0; // TEST NOW
 
 	if(opt_c == 1){
 		rprintf("end of compilation\n");
