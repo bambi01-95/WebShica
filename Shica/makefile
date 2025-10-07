@@ -58,7 +58,7 @@ WEB_SHICA_FLAGS = -O3 \
 
 
 
-crun:
+cc:
 	leg -o ./Parser/parser.c ./Parser/parser.leg
 # ./legstruct_type_inserter
 	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
@@ -69,6 +69,8 @@ web: $(WASMOUT)
 $(WASMOUT): $(SRC)
 	gcc $(SRC) ./Platform/WebShica/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/WebShica/Library/
 	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(WEB_SHICA_FLAGS) 
+
+move: web
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
 

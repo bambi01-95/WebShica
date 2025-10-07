@@ -187,21 +187,20 @@ int event_handler_init(ent eh){
 	return 1;
 }
 
-
 int timer_handler(ent eh)
 {
-	int time = eh->EventHandler.data[0];
+	int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
 	if (WEB_TIMER-time >=1000) {
-		eh->EventHandler.data[1]++;
-		eh->EventHandler.data[0] = WEB_TIMER;
+		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
+		eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
 		ent stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(eh->EventHandler.data[1]))); // enqueue a stack with value
+		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
 int timer_handler_init(ent eh){
-	eh->EventHandler.data[0] = WEB_TIMER;
+	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
 	eh->EventHandler.data[1] = 0;
 	return 1;
 }

@@ -20,7 +20,12 @@
     "unordered_map": "c",
     "string.h": "c",
     "error.h": "c",
-    "entity.h": "c"
+    "entity.h": "c",
+    "__node_handle": "c",
+    "limits": "c",
+    "locale": "c",
+    "optional": "c",
+    "ratio": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

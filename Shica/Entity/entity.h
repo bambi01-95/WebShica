@@ -96,6 +96,9 @@ union Entity{
 
 ent newIntVal(int value);
 int IntVal_value(ent obj);
+
+
+
 ent newFloVal(double value);
 double FloVal_value(ent obj);
 ent newStrVal(const char *value);

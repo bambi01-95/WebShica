@@ -239,7 +239,7 @@ enum {
 char* appendNewChar(char* arr, int size, char value);
 int* appendNewInt(int* arr, int size, int value);
 
-oop TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
+extern oop TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
 #endif // OBJECT_H
 
 /*
