@@ -1,6 +1,6 @@
 "use client";
 import FileLists from "@/component/code/FileLists";
-import { CodeEditor } from "@/component/code/CodeEditor";
+import { ShicaCodeEditor } from "@/component/code/ShicaCodeEditor";
 import { useState, useEffect, useRef } from "react";
 import Output, { Log, LogLevel } from "@/component/code/Output";
 import SizeWarningPage from "@/component/code/SizeWaring";
@@ -96,6 +96,12 @@ const examplecodes: string[] = [
 }`,
 ];
 
+interface Agent{
+  uid: number;
+  filename: string;
+  code: string;
+  compiled: boolean;
+}
 const ShicaPage = () => {
   // <CodeEditor>のコード管理
   const [codes, setCodes] = useState<{ filename: string; code: string; compiled: boolean }[]>([
@@ -650,7 +656,7 @@ const ShicaPage = () => {
               </div>
 
               <div className="w-3/4">
-                <CodeEditor
+                <ShicaCodeEditor
                   key={codes[selectedIndex].filename}
                   filename={codes[selectedIndex].filename}
                   language=".shica"
