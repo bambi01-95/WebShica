@@ -99,7 +99,6 @@ struct EObjTable{
     char funcSize;
     int *argTypes;
 }
-
 extern struct EObjTable *EObjTable;
 
 // web/lib.h

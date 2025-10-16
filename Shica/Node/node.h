@@ -18,7 +18,7 @@ extern node exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, String, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
+    /*  1 */ Integer, Float, String, EventObject, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
     /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
     /* 18 */ Call, Return, Break, Continue,
     /* 22 */ Print, If, Loop, Block,
@@ -36,6 +36,7 @@ struct Undefined { type_t _type; };
 struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
+struct EventObject{ type_t _type;           int index; node *funcs;};
 struct Symbol  	 { type_t _type;           char *name;  node value; };
 struct Pair  	 { type_t _type;           node a, b; };
 struct Args  	 { type_t _type;           node value, next; };
@@ -84,6 +85,7 @@ union Node {
     struct Integer  Integer;
     struct Float    Float;
     struct String   String;
+    struct EventObject EventObject;
     struct Symbol   Symbol;
     struct Pair     Pair;
     struct Args     Args;

@@ -152,6 +152,17 @@ struct StdFuncTable{
 extern struct StdFuncTable *StdFuncTable;
 void setStdFuncTable(struct StdFuncTable *tables);
 
+
+// Event Object Table
+struct EventObjectTable{
+	char nArgs; // number of arguments
+	char nFuncs; // number of functions
+	int *argTypes; // types of arguments
+};
+extern struct EventObjectTable *EventObjectTable;
+void setEventObjectTable(struct EventObjectTable *tables);
+
+
 int printAgent(oop agent);
 
 #endif // OBJECT_H

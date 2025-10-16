@@ -418,4 +418,13 @@ int compile_func_init()
 	return 1; // return 1 to indicate success
 }
 
+/*=============== Event Object Table ===============*/
+enum {
+	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	END_EO, /* DO NOT REMOVE THIS LINE */
+}
+struct EventObjectTable __EventObjectTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+};
+
 #endif // SHICA_LIBRARY_C

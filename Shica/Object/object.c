@@ -287,10 +287,17 @@ void setEventTable(struct EventTable *table)
 {
 	EventTable = table;
 }
+
 struct StdFuncTable *StdFuncTable = NULL;
 void setStdFuncTable(struct StdFuncTable *table)
 {
 	StdFuncTable = table;
+}
+
+struct EventObjectTable *EventObjectTable = NULL;
+void setEventObjectTable(struct EventObjectTable *table)
+{
+	EventObjectTable = table;
 }
 
 int printAgent(oop agent)

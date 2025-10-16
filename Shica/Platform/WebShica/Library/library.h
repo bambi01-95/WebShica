@@ -72,6 +72,8 @@ int collision_handler(oop eh);
 int self_state_handler(oop eh);
 int click_handler(oop eh);
 
+/*=============== Event Table ===============*/
+
 extern  struct EventTable __EventTable__[];
 
 int compile_eh_init();
@@ -79,6 +81,11 @@ int compile_eh_init();
 
 extern struct StdFuncTable __StdFuncTable__[];
 int compile_func_init();
+
+/*=============== Event Object Table ===============*/
+
+extern  struct EventObjectTable __EventObjectTable__[];
+int compile_eo_init();
 
 /*================END =========================*/
 #endif
