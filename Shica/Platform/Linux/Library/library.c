@@ -39,7 +39,7 @@ int timer_handler_init(ent eh){
 
 int compile_eh_init(){
 	//standard event handler
-	oop EH = NULL;
+	node EH = NULL;
 	EH = intern("eventEH");
 	EH->Symbol.value = newEventH(EVENT_EH,EventTable[EVENT_EH].nArgs); // 1 argument
     EH = intern("timerEH");
@@ -76,7 +76,7 @@ int lib_exit(ent stack)
 
 int compile_func_init()
 {
-	oop FUNC = NULL;
+	node FUNC = NULL;
 	FUNC = intern("exit");
 	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
 

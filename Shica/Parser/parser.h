@@ -11,7 +11,7 @@
 #include "../Platform/Linux/Library/library.h"
 #endif 
 
-#define YYTYPE oop
+#define YYTYPE node
 extern YYTYPE result;
 
 int yyparse();
@@ -24,7 +24,7 @@ enum {
 	PARSER_READY = 2,
 };
 
-extern oop parserRetFlags[3];
+extern node parserRetFlags[3];
 
 #ifdef MSGC
 void collectYYContext();//

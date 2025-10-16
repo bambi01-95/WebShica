@@ -259,7 +259,7 @@ int click_handler(ent eh)
 int compile_eh_init(){
 	//standard event handler
 	printf("compile_eh_init\n");
-	oop EH = NULL;
+	node EH = NULL;
 
 	EH = intern("eventEH");
 	EH->Symbol.value = newEventH(EVENT_EH,EventTable[EVENT_EH].nArgs); // 1 argument
@@ -391,7 +391,7 @@ struct StdFuncTable __StdFuncTable__[] =
 
 int compile_func_init()
 {
-	oop FUNC = NULL;
+	node FUNC = NULL;
 	FUNC = intern("log");
 	FUNC->Symbol.value = newStdFunc(LOG_FUNC); // log function
 

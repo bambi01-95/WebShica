@@ -6,15 +6,15 @@
 #include "../GC/gc.h"
 #include "../Error/error.h"
 
-union Object;
-typedef union Object Object;
-typedef Object *oop; // ordinary object pointer
+union Node;
+typedef union Node Node;
+typedef Node *node; // ordinary object pointer
 
-extern oop nil;
-extern oop false;
-extern oop true;
-extern oop entryEH;
-extern oop exitEH;
+extern node nil;
+extern node false;
+extern node true;
+extern node entryEH;
+extern node exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
@@ -36,49 +36,49 @@ struct Undefined { type_t _type; };
 struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
-struct Symbol  	 { type_t _type;           char *name;  oop value; };
-struct Pair  	 { type_t _type;           oop a, b; };
-struct Args  	 { type_t _type;           oop value, next; };
-struct Eparams   { type_t _type;           oop type, id, cond, next; };
-struct Params     { type_t _type;           oop type, id; oop next; };
-struct Tensor    { type_t _type;           int *shape;  int ndim;  oop *elements; };
-struct Array  	 { type_t _type;           oop *elements;  int size, capacity; };
+struct Symbol  	 { type_t _type;           char *name;  node value; };
+struct Pair  	 { type_t _type;           node a, b; };
+struct Args  	 { type_t _type;           node value, next; };
+struct Eparams   { type_t _type;           node type, id, cond, next; };
+struct Params     { type_t _type;           node type, id; node next; };
+struct Tensor    { type_t _type;           int *shape;  int ndim;  node *elements; };
+struct Array  	 { type_t _type;           node *elements;  int size, capacity; };
 struct Closure 	 { type_t _type;           int nArgs; int pos,retType; int *argTypes; };//store user defined function
 struct StdFunc   { type_t _type;           int index;  };
-struct UserFunc	 { type_t _type;           oop parameters, body, code; };
-struct Binop   	 { type_t _type;           enum binop op;  oop lhs, rhs; };
-struct Unyop   	 { type_t _type;           enum unyop op;  oop rhs; };
-struct GetVar  	 { type_t _type; int line; oop id; };
-struct SetVar  	 { type_t _type; int line; oop type; oop id; oop rhs;int scope;  };
-struct GetArray	 { type_t _type;           oop array, index; };
-struct SetArray	 { type_t _type;           oop type, array, index, value;int scope; };
-struct Call 	 { type_t _type; int line; oop function, arguments; };
-struct Return 	 { type_t _type;           oop value; };
+struct UserFunc	 { type_t _type;           node parameters, body, code; };
+struct Binop   	 { type_t _type;           enum binop op;  node lhs, rhs; };
+struct Unyop   	 { type_t _type;           enum unyop op;  node rhs; };
+struct GetVar  	 { type_t _type; int line; node id; };
+struct SetVar  	 { type_t _type; int line; node type; node id; node rhs;int scope;  };
+struct GetArray	 { type_t _type;           node array, index; };
+struct SetArray	 { type_t _type;           node type, array, index, value;int scope; };
+struct Call 	 { type_t _type; int line; node function, arguments; };
+struct Return 	 { type_t _type;           node value; };
 struct Break 	 { type_t _type;           };
 struct Continue	 { type_t _type;           };
-struct Transition{ type_t _type;           oop id; };
-struct Print   	 { type_t _type;  int line; oop arguments; };
-struct If      	 { type_t _type;           oop condition, statement1, statement2; };
-struct Loop   	 { type_t _type;           oop initialization,condition,iteration, statement; };
-struct Block   	 { type_t _type;           oop *statements;  int size; };
-struct State   	 { type_t _type; int line; oop id, parameters, events; };
-struct Event   	 { type_t _type; int line; oop id, parameters, block; };
+struct Transition{ type_t _type;           node id; };
+struct Print   	 { type_t _type;  int line; node arguments; };
+struct If      	 { type_t _type;           node condition, statement1, statement2; };
+struct Loop   	 { type_t _type;           node initialization,condition,iteration, statement; };
+struct Block   	 { type_t _type;           node *statements;  int size; };
+struct State   	 { type_t _type; int line; node id, parameters, events; };
+struct Event   	 { type_t _type; int line; node id, parameters, block; };
 struct EventH    { type_t _type;           int id; int nArgs; int *argTypes; };
 
 /* after leg */
 struct EmitContext{
     type_t _type;
-	oop global_vars; // global variables
-	oop state_vars; // state variables to emit code for
-	oop local_vars; // local variables to emit code for
+	node global_vars; // global variables
+	node state_vars; // state variables to emit code for
+	node local_vars; // local variables to emit code for
 };
 struct Variable{
     type_t _type;
-    oop type; // type of variable (for future use)
-    oop id; // symbol
+    node type; // type of variable (for future use)
+    node id; // symbol
 };
 
-union Object {
+union Node {
     enum   Type     _type;
 	struct Undefined Undefined;
     struct Integer  Integer;
@@ -117,53 +117,53 @@ union Object {
     struct EmitContext EmitContext; // for emit code
 };
 
-int getType(oop o);
+int getType(node o);
 
-oop _check(oop node, enum Type type, char *file, int line);
+node _check(node node, enum Type type, char *file, int line);
 #define get(PTR, TYPE, FIELD)	(_check((PTR), TYPE, __FILE__, __LINE__)->TYPE.FIELD)
 
 extern int nobj;
 // It should not be called in outside, only from inside
-// oop _newObject(size_t size, enum Type type);
+// node _newObject(size_t size, enum Type type);
 
-oop newUndefine();
+node newUndefine();
 
 
 /* Integer */
-oop newInteger(int value);
-int Integer_value(oop obj);
+node newInteger(int value);
+int Integer_value(node obj);
 
 /* Float */
-oop newFloat(char* value);
-double Float_value(oop obj);
+node newFloat(char* value);
+double Float_value(node obj);
 
 /* String */
-oop newString(char *value);
+node newString(char *value);
 #define String_value(obj) (get(obj, String, value))
 
 /* Symbol: not string */
-oop newSymbol(char *name);
-oop intern(char *name);
+node newSymbol(char *name);
+node intern(char *name);
 void initSymbols();
 void collectSymbols();
 
-oop newPair(oop a, oop b);
-oop newArgs(oop value, oop next);
-oop newEparams(oop type, oop id, oop cond, oop next);
-oop newParams(oop type, oop id, oop next);
+node newPair(node a, node b);
+node newArgs(node value, node next);
+node newEparams(node type, node id, node cond, node next);
+node newParams(node type, node id, node next);
 
-oop newArray(int size);
-oop Array_grow(oop array);
-oop Array_append(oop array, oop element);
-oop Array_last(oop array);
-oop Array_pop(oop array);
+node newArray(int size);
+node Array_grow(node array);
+node Array_append(node array, node element);
+node Array_last(node array);
+node Array_pop(node array);
 
-oop newClosure();
-oop newStdFunc(int index);
-oop newUserFunc(oop parameters, oop body);
+node newClosure();
+node newStdFunc(int index);
+node newUserFunc(node parameters, node body);
 
-oop newBinop(enum binop op, oop lhs, oop rhs);
-oop newUnyop(enum unyop op, oop rhs);
+node newBinop(enum binop op, node lhs, node rhs);
+node newUnyop(enum unyop op, node rhs);
 
 typedef enum {
   SCOPE_GLOBAL,
@@ -173,50 +173,50 @@ typedef enum {
   SCOPE_CONST
 } ScopeClass;
 
-oop newGetVar(oop id,int line);
-oop newSetVar(oop type, oop id, oop rhs,ScopeClass scope, int line);
+node newGetVar(node id,int line);
+node newSetVar(node type, node id, node rhs,ScopeClass scope, int line);
 
-oop newGetArray(oop array, oop index);
-oop newSetArray(oop type, oop array, oop index, oop value, ScopeClass scope);
+node newGetArray(node array, node index);
+node newSetArray(node type, node array, node index, node value, ScopeClass scope);
 
-oop newCall(oop arguments, oop function, int line);
+node newCall(node arguments, node function, int line);
 
-oop newReturn(oop value);
-oop newBreak(void);
-oop newContinue(void);
+node newReturn(node value);
+node newBreak(void);
+node newContinue(void);
 
-oop newTransition(oop id);
+node newTransition(node id);
 
-oop newPrint(oop arguments,int line);
-oop newIf(oop condition, oop s1, oop s2);
-oop newLoop(oop init,oop cond,oop iterate, oop s);
+node newPrint(node arguments,int line);
+node newIf(node condition, node s1, node s2);
+node newLoop(node init,node cond,node iterate, node s);
 
-oop newBlock(void);
-void Block_append(oop b, oop s);
-void Event_Block_append(oop b, oop e);
+node newBlock(void);
+void Block_append(node b, node s);
+void Event_Block_append(node b, node e);
 
-oop newState(oop id, oop parameters, oop events, int line);
+node newState(node id, node parameters, node events, int line);
 
-oop newEvent(oop id, oop parameters, oop block,int line);
+node newEvent(node id, node parameters, node block,int line);
 
-oop newEventH(int id, int nArgs);
+node newEventH(int id, int nArgs);
 
-oop newVariable(oop type, oop id);
+node newVariable(node type, node id);
 
 struct RetVarFunc{
 	ScopeClass scope; // G: global, S: state, L: local
 	int index; // index of the variable
 };
-struct RetVarFunc insertVariable(oop ctx, oop sym, oop type);
-struct RetVarFunc appendVariable(oop ctx, oop sym, oop type);
-struct RetVarFunc searchVariable(oop ctx, oop sym, oop type);
+struct RetVarFunc insertVariable(node ctx, node sym, node type);
+struct RetVarFunc appendVariable(node ctx, node sym, node type);
+struct RetVarFunc searchVariable(node ctx, node sym, node type);
 #define discardVariables(V,X) V->Array.size = X
 
-oop newEmitContext();
+node newEmitContext();
 
-void printlnObject(oop node, int indent);
-void println(oop obj);
-void print(oop node);
+void printlnObject(node node, int indent);
+void println(node obj);
+void print(node node);
 
 enum {
   TAG_PTR_OOP  = 0b00,   // 普通のポインタ（下位2bit=00）
@@ -227,7 +227,7 @@ enum {
 
 
 
-#define MAKE_OOP_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG_OOP))
+#define MAKE_OOP_FLAG(f) ((node)(((intptr_t)(f) << TAGBITS) | TAG_FLAG_OOP))
 #define MAKE_OOP_FLAG_INT(f) (((intptr_t)(f) << TAGBITS) | TAG_INT_OOP)
 #define GET_OOP_FLAG(o) ((int)(((intptr_t)(o)) >> TAGBITS))
 #define TAGBITS 2			// how many bits to use for tag bits
@@ -239,7 +239,7 @@ enum {
 char* appendNewChar(char* arr, int size, char value);
 int* appendNewInt(int* arr, int size, int value);
 
-extern oop TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
+extern node TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
 #endif // OBJECT_H
 
 /*

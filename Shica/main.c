@@ -579,9 +579,9 @@ ent compile();
 // s3: pos, name;
 enum { APSTATE = 0, ATRANSITION = 1 };
 
-static oop *states = 0;
+static node *states = 0;
 static int nstates = 0;
-static oop *transitions = 0; // transitions between states
+static node *transitions = 0; // transitions between states
 static int ntransitions = 0;
 
 int initSttTrans()
@@ -599,7 +599,7 @@ int collectSttTrans()
 		gc_markOnly(states); // mark the states array itself
 		for(int i = 0;  i < nstates;  ++i)
 		{
-			oop state = states[i];
+			node state = states[i];
 			if (state == NULL) continue; // skip null states
 			gc_mark(state); //PAIR
 		}
@@ -608,7 +608,7 @@ int collectSttTrans()
 		gc_markOnly(transitions); // mark the transitions array itself
 		for(int i = 0;  i < ntransitions;  ++i)
 		{
-			oop trans = transitions[i];
+			node trans = transitions[i];
 			if(trans == NULL) continue; // skip null transitions
 			gc_mark(trans);//PAIR
 		}
@@ -617,16 +617,16 @@ int collectSttTrans()
 }
 
 
-void appendS0T1(oop name, int pos,int type)
+void appendS0T1(node name, int pos,int type)
 {
 	if(type != 0 && type != 1) {
 		printf("type must be 0 or 1, got %d\n", type);
 		return;//error
 	}
-	oop *lists = type == APSTATE ? states : transitions;
+	node *lists = type == APSTATE ? states : transitions;
 	int *listSize = type == APSTATE ? &nstates : &ntransitions;
 	for (int i = 0;  i < *listSize;  ++i) {
-		oop stateName = get(lists[i], Pair,a);
+		node stateName = get(lists[i], Pair,a);
 		if (stateName == name) {
 			printf("state %s already exists\n", get(name, Symbol,name));
 			return;
@@ -636,13 +636,13 @@ void appendS0T1(oop name, int pos,int type)
 	gc_pushRoot((void*)&name);
 	switch(type){
 		case APSTATE:{
-			states = realloc(states, sizeof(oop) * (nstates + 1));
+			states = realloc(states, sizeof(node) * (nstates + 1));
 			states[nstates] = newPair(name, newInteger(pos));
 			nstates++;
 			break;
 		}
 		case ATRANSITION:{
-			transitions = realloc(transitions, sizeof(oop) * (ntransitions + 1));
+			transitions = realloc(transitions, sizeof(node) * (ntransitions + 1));
 			transitions[ntransitions] = newPair(name, newInteger(pos));
 			ntransitions++;
 			break;
@@ -655,12 +655,12 @@ void appendS0T1(oop name, int pos,int type)
 void setTransPos(ent prog){
 	int *code = prog->IntArray.elements;
 	for (int i = 0;  i < ntransitions;  ++i) {
-		oop trans = transitions[i];
-		oop transName = get(trans, Pair,a);
+		node trans = transitions[i];
+		node transName = get(trans, Pair,a);
 		int transPos = Integer_value(get(trans, Pair,b));//pos of after emitII(prog, iTRANSITION, 0);
 		for (int j = 0;  j < nstates;  ++j) {
-			oop state = states[j];
-			oop stateName = get(state, Pair,a);
+			node state = states[j];
+			node stateName = get(state, Pair,a);
 			if (stateName == transName) {
 				int statePos = Integer_value(get(state, Pair,b));
 				code[transPos-1] = statePos - transPos;//relative position
@@ -675,7 +675,7 @@ void setTransPos(ent prog){
 #define printTYPE(OP) ;
 #endif
 
-int parseType(oop vars, oop ast)
+int parseType(node vars, node ast)
 {
 	switch(getType(ast)){
 		case Integer:return Integer;
@@ -683,7 +683,7 @@ int parseType(oop vars, oop ast)
 		case GetVar:{
 			struct RetVarFunc var = searchVariable(vars, get(ast, GetVar,id), NULL);
 			if(var.index == -1)return -1; // variable not found
-			oop type = get(vars, EmitContext, global_vars)->Array.elements[var.index]->Variable.type;
+			node type = get(vars, EmitContext, global_vars)->Array.elements[var.index]->Variable.type;
 			return GET_OOP_FLAG(type);
 		}
 		default:
@@ -695,10 +695,10 @@ int parseType(oop vars, oop ast)
 }
 
 
-void emitL (ent array, oop object) 	  { intArray_append(array, Integer_value(object)); }
+void emitL (ent array, node object) 	  { intArray_append(array, Integer_value(object)); }
 void emitI (ent array, int i     ) 	  { intArray_append(array, i); }
 void emitII(ent array, int i, int j)      { emitI(array, i); emitI(array, j); }
-void emitIL(ent array, int i, oop object) { emitI(array, i); emitL(array, object); }
+void emitIL(ent array, int i, node object) { emitI(array, i); emitL(array, object); }
 void emitIII(ent array, int i, int j, int k)
 {
 	emitI(array, i);
@@ -708,7 +708,7 @@ void emitIII(ent array, int i, int j, int k)
 
 void printCode(ent code);
 
-int emitOn(ent prog,oop vars, oop ast, oop type)
+int emitOn(ent prog,node vars, node ast, node type)
 {
 	assert(getType(vars) == EmitContext);
 	int ret = 0; /* ret 0 indicates success */
@@ -740,7 +740,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Array:{
 			printTYPE(_Array_);
-			oop *elements = get(ast, Array,elements);
+			node *elements = get(ast, Array,elements);
 			int size = get(ast, Array,size);
 			emitII(prog, iPUSH, size); // push the size of the array
 			for (int i = 0;  i < size;  ++i) {
@@ -772,7 +772,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Unyop:{
 			printTYPE(_Unyop_);
-			oop rhs = get(ast, Unyop,rhs);
+			node rhs = get(ast, Unyop,rhs);
 			switch (get(ast, Unyop,op)) {
 				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iSUB); return 0;
 				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iEQ);  return 0;
@@ -793,7 +793,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case GetVar: {
 			printTYPE(_GetVar_);
-			oop sym = get(ast, GetVar,id);
+			node sym = get(ast, GetVar,id);
 			struct RetVarFunc var = searchVariable(vars, sym, type);
 			if(var.index == -1)return 1; // variable found
 			emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the global variable value
@@ -801,9 +801,9 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case SetVar: {
 			printTYPE(_SetVar_);
-			oop sym = get(ast, SetVar,id);
-			oop rhs = get(ast, SetVar,rhs);
-			oop declaredType = get(ast, SetVar,type);
+			node sym = get(ast, SetVar,id);
+			node rhs = get(ast, SetVar,rhs);
+			node declaredType = get(ast, SetVar,type);
 			switch(getType(rhs)){
 				case UserFunc:{
 					printTYPE(_Function_);
@@ -811,14 +811,14 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
 						return 1;
 					}
-					oop params = get(rhs, UserFunc,parameters);
-					oop body = get(rhs, UserFunc,body);
+					node params = get(rhs, UserFunc,parameters);
+					node body = get(rhs, UserFunc,body);
 					get(vars, EmitContext, local_vars) = newArray(0);
-					GC_PUSH(oop, closure, newClosure());
+					GC_PUSH(node, closure, newClosure());
 					GC_PUSH(int*, argTypes, NULL);
 					while(params != nil){
-						oop sym = get(params, Params, id);
-						oop type = get(params, Params, type);
+						node sym = get(params, Params, id);
+						node type = get(params, Params, type);
 						struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars), sym, type); // insert parameter into local variables
 						if(var.index == -1){
 							GC_POP(argTypes);
@@ -893,11 +893,11 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		case Call:{
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
-			oop id   = get(ast, Call, function);
+			node id   = get(ast, Call, function);
 			id = get(id, GetVar, id); // get the variable from the GetVar
-			oop args = get(ast, Call,arguments);
+			node args = get(ast, Call,arguments);
 
-			oop func = get(id, Symbol, value); // get the function from the variable;
+			node func = get(id, Symbol, value); // get the function from the variable;
 
 			switch(getType(func)){
 				case EventH:{// event handler
@@ -908,7 +908,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 					
 					int argsCount = 0;
 					while(args != nil){
-						oop arg = get(args, Eparams, id);
+						node arg = get(args, Eparams, id);
 						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
 						args = get(args, Eparams, next);
 						argsCount++;
@@ -926,7 +926,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 					int argsCount = 0;
 					struct StdFuncTable func = StdFuncTable[funcIndex];
 					while(args != nil){
-						oop arg = get(args, Args, value);
+						node arg = get(args, Args, value);
 						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
 						args = get(args, Args, next);
 						argsCount++;
@@ -949,7 +949,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 					int pos   = get(func, Closure,pos);
 					int argsCount = 0;
 					while(args != nil){
-						oop arg = get(args, Args, value);
+						node arg = get(args, Args, value);
 						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
 						args = get(args, Args, next);
 						argsCount++;
@@ -976,19 +976,19 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Pair:{
 			printTYPE(_Pair_);
-			oop a = get(ast, Pair,a);
-			oop b = get(ast, Pair,b);
+			node a = get(ast, Pair,a);
+			node b = get(ast, Pair,b);
 			fatal("file %s line %d emitOn: Pair is not supported yet", __FILE__, __LINE__);
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case Print:{
 			printTYPE(_Print_);
-			oop args = get(ast, Print,arguments);
+			node args = get(ast, Print,arguments);
 			int nArgs = 0;
 			while (args != nil) {
 				printf("compiling print argument %d\n", nArgs+1);
-				oop value = get(args, Args, value);
+				node value = get(args, Args, value);
 				int argType = parseType(vars, value);
 				if(argType == -1) return 1; // type error
 				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
@@ -1010,9 +1010,9 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			printTYPE(_If_);
 			//NEXT-TODO
 			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
-			oop condition = get(ast, If,condition);
-			oop statement1 = get(ast, If,statement1);
-			oop statement2 = get(ast, If,statement2);
+			node condition = get(ast, If,condition);
+			node statement1 = get(ast, If,statement1);
+			node statement2 = get(ast, If,statement2);
 
 			if(emitOn(prog, vars, condition,TYPES[Integer])) return 1; // compile condition
 
@@ -1035,10 +1035,10 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Loop:{
 			printTYPE(_Looop_);
-			oop initialization = get(ast, Loop,initialization);
-			oop condition      = get(ast, Loop,condition);
-			oop iteration      = get(ast, Loop,iteration);
-			oop statement      = get(ast, Loop,statement);
+			node initialization = get(ast, Loop,initialization);
+			node condition      = get(ast, Loop,condition);
+			node iteration      = get(ast, Loop,iteration);
+			node statement      = get(ast, Loop,statement);
 			//NEXT-TODO
 			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
@@ -1069,7 +1069,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Return:{
 			printTYPE(_Return_);
-			oop value = get(ast, Return,value);
+			node value = get(ast, Return,value);
 			if (value != false) {
 				if(emitOn(prog, vars, value, type)) return 1; // compile return value
 			} else {
@@ -1080,7 +1080,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Block:{
 			printTYPE(_Block_);
-			oop *statements = ast->Block.statements;
+			node *statements = ast->Block.statements;
 			int nStatements = ast->Block.size;
 			for (int i = 0;  i < nStatements;  ++i) {
 				if(emitOn(prog, vars, statements[i], type)) return 1; // compile each statement
@@ -1089,7 +1089,7 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Transition:{
 			printTYPE(_Transition_);
-			oop id = get(ast, Transition,id);
+			node id = get(ast, Transition,id);
 			emitII(prog, iTRANSITION, 0);
 			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
 			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
@@ -1097,17 +1097,17 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case State:{
 			printTYPE(_State_);
-			oop id = get(ast, State,id);
-			oop params = get(ast, State,parameters);
-			oop events = get(ast, State,events);
+			node id = get(ast, State,id);
+			node params = get(ast, State,parameters);
+			node events = get(ast, State,events);
 			dprintf("State: %s\n", get(id, Symbol,name));
 
 			// compile events  
-			oop *eventList = events->Block.statements;
+			node *eventList = events->Block.statements;
 			int nElements = 0;
 			int elements[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
 			int nEventHandlers = 0;
-			oop preid = false;
+			node preid = false;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
 			get(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
@@ -1153,15 +1153,15 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
 				if(elements[i] == 0){ ehi++;continue;} // skip empty events
-				oop id = get(eventList[i], Event,id);
+				node id = get(eventList[i], Event,id);
 				printlnObject(id,1);
-				oop eh = get(id,Symbol,value);
+				node eh = get(id,Symbol,value);
 
 				int eventID = eh->EventH.id; // get event ID
 				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
 				for(int j = 0; j < elements[ehi]; ++j) {
-					oop event = eventList[i++];
-					oop posPair = get(event, Event,block);
+					node event = eventList[i++];
+					node posPair = get(event, Event,block);
 					printlnObject(get(event,Event,id),1);
 					emitIII(prog, iSETPROCESS ,Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
 				}
@@ -1183,11 +1183,11 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 		}
 		case Event:{
 			printTYPE(_Event_);
-			oop id = get(ast, Event,id);
-			oop params = get(ast, Event,parameters);
-			oop block = get(ast, Event,block);
+			node id = get(ast, Event,id);
+			node params = get(ast, Event,parameters);
+			node block = get(ast, Event,block);
 
-			oop eh = get(id,Symbol,value);
+			node eh = get(id,Symbol,value);
 			if(getType(eh) != EventH) {
 				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, get(id, Symbol,name));
 				reportError(DEVELOPER, get(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
@@ -1230,8 +1230,8 @@ int emitOn(ent prog,oop vars, oop ast, oop type)
 
 			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Array, size); // store number of local variables
 			get(vars, EmitContext, local_vars) = NULL; // clear local variables
-			GC_PUSH(oop,apos, newInteger(aPos));
-			GC_PUSH(oop,cpos,newInteger(cPos));
+			GC_PUSH(node,apos, newInteger(aPos));
+			GC_PUSH(node,cpos,newInteger(cPos));
 			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
 			GC_POP(cpos);
 			GC_POP(apos);
@@ -1444,7 +1444,7 @@ ent compile()
 #if DEBUG
 int roots = gc_ctx.nroots;
 #endif 
-	GC_PUSH(oop, vars, newEmitContext()); // If something goes wrong in the web parser, move to before changing GC roots
+	GC_PUSH(node, vars, newEmitContext()); // If something goes wrong in the web parser, move to before changing GC roots
 	// compile the AST into the program code
 	int line = 1;
 	assert(getType(vars) == EmitContext);
@@ -1514,7 +1514,7 @@ void collectEmpty(void){
 
 
 
-void markObject(oop obj){
+void markObject(node obj){
 	switch(getType(obj)){
 case Integer :{return;}
 case String :{

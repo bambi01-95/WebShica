@@ -16,21 +16,21 @@
 
 
 
-oop nil   = 0;
-oop false = 0;
-oop true  = 0;
-oop entryEH = NULL;
-oop exitEH  = NULL;
+node nil   = 0;
+node false = 0;
+node true  = 0;
+node entryEH = NULL;
+node exitEH  = NULL;
 
 
-int getType(oop o)
+int getType(node o)
 {
     if ((((intptr_t)o) & TAGMASK) == TAG_INT_OOP) return Integer;
     if ((((intptr_t)o) & TAGMASK) == TAG_FLT_OOP) return Float;
     return o->_type;
 }
 
-oop _check(oop node, enum Type type, char *file, int line)
+node _check(node node, enum Type type, char *file, int line)
 {
     if (getType(node) != type) {
 	fprintf(stderr, "\n%s:%d: expected type %d got type %d\n", file, line, type, getType(node));
@@ -45,70 +45,70 @@ oop _check(oop node, enum Type type, char *file, int line)
 
 int nobj = 0;
 
-static oop _newObject(size_t size, enum Type type)
+static node _newObject(size_t size, enum Type type)
 {
     nobj++;
-    oop node = calloc(1, size);
+    node node = calloc(1, size);
     node->_type = type;
     return node;
 }
 
 #define newObject(TYPE)	_newObject(sizeof(struct TYPE), TYPE)
 
-oop newUndefine()
+node newUndefine()
 {
     return newAtomicObject(Undefined);
 }
 
-oop newInteger(int value)
+node newInteger(int value)
 {
-    return (oop)(((intptr_t)value << TAGBITS) | TAG_INT_OOP);
+    return (node)(((intptr_t)value << TAGBITS) | TAG_INT_OOP);
 }
 
-int Integer_value(oop obj)
+int Integer_value(node obj)
 {
     assert(Integer == getType(obj));
     return (intptr_t)obj >> TAGBITS;
 }
 
-oop newFloat(char* value)
+node newFloat(char* value)
 {
 	double d = atof(value);
     union { double d;  intptr_t i; } u = { .d = d };
-    return (oop)(((intptr_t)u.i & ~TAGMASK) | TAG_FLT_OOP);
+    return (node)(((intptr_t)u.i & ~TAGMASK) | TAG_FLT_OOP);
 }
 
-double Float_value(oop obj)
+double Float_value(node obj)
 {
     assert(Float == getType(obj));
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
 }
 
-oop newString(char *value)
+node newString(char *value)
 {
 	gc_pushRoot((void*)&value);
-	GC_PUSH(oop, str, newObject(String));
+	GC_PUSH(node, str, newObject(String));
 	str->String.value = strdup(value);
 	GC_POP(str);
 	gc_popRoots(1);
 	return str;
 }
 
-oop newSymbol(char *name)
+node newSymbol(char *name)
 {
 	gc_pushRoot((void*)&name);
-    GC_PUSH(oop, sym, newObject(Symbol));
+    GC_PUSH(node, sym, newObject(Symbol));
     sym->Symbol.name  = strdup(name);
     sym->Symbol.value = false;
 	gc_popRoots(2);
     return sym;
 }
 
-static oop *symbols = 0;
+static node *symbols = 0;
 static int nsymbols = 0;
 
-oop intern(char *name)
+node intern(char *name)
 {
     // binary search for existing symbol
     int lo = 0, hi = nsymbols - 1;
@@ -143,41 +143,41 @@ void collectSymbols(void)
 		gc_markOnly(symbols); // mark the symbols array itself
 		for (int i = 0;  i < nsymbols;  ++i)
 		{
-			oop sym = symbols[i];
+			node sym = symbols[i];
 			if (sym == NULL) continue; // skip null symbols
 			gc_mark(sym); // mark the symbol
 		}
 	}
 }
 
-oop newPair(oop a, oop b)
+node newPair(node a, node b)
 {
 	gc_pushRoot((void*)&a);
 	gc_pushRoot((void*)&b);	
-    oop obj = newObject(Pair);
+    node obj = newObject(Pair);
     obj->Pair.a = a;
     obj->Pair.b = b;
 	gc_popRoots(2);
     return obj;
 }
 
-oop newArgs(oop value, oop next)
+node newArgs(node value, node next)
 {
 	gc_pushRoot((void*)&value);
 	gc_pushRoot((void*)&next);	
-	oop obj = newObject(Args);
+	node obj = newObject(Args);
 	obj->Args.value = value;
 	obj->Args.next  = next;
 	gc_popRoots(2);
 	return obj;
 }
 
-oop newEparams(oop type, oop id, oop cond, oop next)
+node newEparams(node type, node id, node cond, node next)
 {
 	gc_pushRoot((void*)&id);	
 	gc_pushRoot((void*)&cond);	
 	gc_pushRoot((void*)&next);	
-	oop obj = newObject(Eparams);
+	node obj = newObject(Eparams);
 	obj->Eparams.type = type;
 	obj->Eparams.id   = id;
 	obj->Eparams.cond = cond;
@@ -186,12 +186,12 @@ oop newEparams(oop type, oop id, oop cond, oop next)
 	return obj;
 }
 
-oop newParams(oop type, oop id, oop next)
+node newParams(node type, node id, node next)
 {
 	gc_pushRoot((void*)&type);
 	gc_pushRoot((void*)&id);	
 	gc_pushRoot((void*)&next);	
-	oop obj = newObject(Params);
+	node obj = newObject(Params);
 	obj->Params.type = type;
 	obj->Params.id   = id;
 	obj->Params.next = next;
@@ -199,11 +199,11 @@ oop newParams(oop type, oop id, oop next)
 	return obj;
 }
 
-oop newArray(int size)
+node newArray(int size)
 {
-    GC_PUSH(oop, obj, newObject(Array));
+    GC_PUSH(node, obj, newObject(Array));
     if (size) {
-		obj->Array.elements = calloc(size, sizeof(oop));
+		obj->Array.elements = calloc(size, sizeof(node));
 		obj->Array.size     = size;
 		obj->Array.capacity = size;
 		for (int i = 0;  i < size;  ++i)
@@ -213,12 +213,12 @@ oop newArray(int size)
     return obj;
 }
 
-oop Array_grow(oop array)
+node Array_grow(node array)
 {
 	gc_pushRoot((void*)&array);
     int size  = get(array, Array,size);
     int cap   = get(array, Array,capacity);
-    oop *elts = get(array, Array,elements);
+    node *elts = get(array, Array,elements);
     while (size >= cap) {
 		cap = cap ? cap * 2 : 4;
 		elts = realloc(elts, sizeof(*elts) * cap);
@@ -229,7 +229,7 @@ oop Array_grow(oop array)
     return array;
 }
 
-oop Array_append(oop array, oop element)
+node Array_append(node array, node element)
 {
     int size = get(array, Array,size);
     if (size >= get(array, Array,capacity)){ 
@@ -243,42 +243,42 @@ oop Array_append(oop array, oop element)
     return element;
 }
 
-oop Array_last(oop array)
+node Array_last(node array)
 {
     int size = get(array, Array,size);
     if (size == 0) fatal("last: array is empty");
     return get(array, Array,elements)[size-1];
 }
 
-oop Array_pop(oop array)
+node Array_pop(node array)
 {
     int size = get(array, Array,size);
     if (size == 0) fatal("pop: array is empty");
-    oop element = get(array, Array,elements)[--size];
+    node element = get(array, Array,elements)[--size];
     get(array, Array,size) = size;
     return element;
 }
 
-oop newClosure()
+node newClosure()
 {
-    oop node = gc_beAtomic(newObject(Closure));
+    node node = gc_beAtomic(newObject(Closure));
     node->Closure.nArgs = 0;
     node->Closure.pos   = 0;
     return node;
 }
 
-oop newStdFunc(int index)
+node newStdFunc(int index)
 {
-	oop node = newObject(StdFunc);
+	node node = newObject(StdFunc);
 	node->StdFunc.index = index;
 	return node;
 }
 
-oop newUserFunc(oop parameters, oop body)
+node newUserFunc(node parameters, node body)
 {
 	gc_pushRoot((void*)&parameters);
 	gc_pushRoot((void*)&body);
-    oop node = newObject(UserFunc);
+    node node = newObject(UserFunc);
     node->UserFunc.parameters = parameters;
     node->UserFunc.body       = body;
     node->UserFunc.code       = nil;
@@ -286,11 +286,11 @@ oop newUserFunc(oop parameters, oop body)
     return node;
 }
 
-oop newBinop(enum binop op, oop lhs, oop rhs)
+node newBinop(enum binop op, node lhs, node rhs)
 {
 	gc_pushRoot((void*)&lhs);
 	gc_pushRoot((void*)&rhs);
-    oop node = newObject(Binop);
+    node node = newObject(Binop);
     node->Binop.op  = op;
     node->Binop.lhs = lhs;
     node->Binop.rhs = rhs;
@@ -298,20 +298,20 @@ oop newBinop(enum binop op, oop lhs, oop rhs)
     return node;
 }
 
-oop newUnyop(enum unyop op, oop rhs)
+node newUnyop(enum unyop op, node rhs)
 {
 	gc_pushRoot((void*)&rhs);
-    oop node = newObject(Unyop);
+    node node = newObject(Unyop);
     node->Unyop.op  = op;
     node->Unyop.rhs = rhs;
 	gc_popRoots(1);
     return node;
 }
 
-oop newGetVar(oop id,int line)
+node newGetVar(node id,int line)
 {
 	gc_pushRoot((void*)&id);
-    oop node = newObject(GetVar);
+    node node = newObject(GetVar);
     node->GetVar.id = id;
 	node->GetVar.line = line;
 	gc_popRoots(1);
@@ -319,10 +319,10 @@ oop newGetVar(oop id,int line)
 }
 
 
-oop newSetVar(oop type, oop id, oop rhs, ScopeClass scope, int line)
+node newSetVar(node type, node id, node rhs, ScopeClass scope, int line)
 {
 	gc_pushRoot((void*)&id);
-    oop node = newObject(SetVar);
+    node node = newObject(SetVar);
 	node->SetVar.type = type;
     node->SetVar.id  = id;
     node->SetVar.rhs = rhs;
@@ -332,23 +332,23 @@ oop newSetVar(oop type, oop id, oop rhs, ScopeClass scope, int line)
     return node;
 }
 
-oop newGetArray(oop array, oop index)
+node newGetArray(node array, node index)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
-    oop node = newObject(GetArray);
+    node node = newObject(GetArray);
     node->GetArray.array = array;
     node->GetArray.index = index;
 	gc_popRoots(2);
     return node;
 }
 
-oop newSetArray(oop type, oop array, oop index, oop value, ScopeClass scope)
+node newSetArray(node type, node array, node index, node value, ScopeClass scope)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
 	gc_pushRoot((void*)&value);
-    oop node = newObject(SetArray);
+    node node = newObject(SetArray);
 	node->SetArray.type = type;
     node->SetArray.array = array;
     node->SetArray.index = index;
@@ -358,11 +358,11 @@ oop newSetArray(oop type, oop array, oop index, oop value, ScopeClass scope)
     return node;
 }
 
-oop newCall(oop arguments, oop function, int line)
+node newCall(node arguments, node function, int line)
 {
 	gc_pushRoot((void*)&arguments);
 	gc_pushRoot((void*)&function);
-    oop node = newObject(Call);
+    node node = newObject(Call);
     node->Call.arguments = arguments;
     node->Call.function  = function;
 	node->Call.line      = line;
@@ -370,49 +370,49 @@ oop newCall(oop arguments, oop function, int line)
     return node;
 }
 
-oop newReturn(oop value)
+node newReturn(node value)
 {
 	gc_pushRoot((void*)&value);
-    oop node = newObject(Return);
+    node node = newObject(Return);
     node->Return.value = value;
 	gc_popRoots(1);
     return node;
 }
 
-oop newBreak(void)
+node newBreak(void)
 {
     return newObject(Break);
 }
 
-oop newContinue(void)
+node newContinue(void)
 {
     return newObject(Continue);
 }
-oop newTransition(oop id)
+node newTransition(node id)
 {
 	gc_pushRoot((void*)&id);
-	oop node = newObject(Transition);
+	node node = newObject(Transition);
 	node->Transition.id = id;
 	gc_popRoots(1);
 	return node;
 }
 
-oop newPrint(oop arguments, int line)
+node newPrint(node arguments, int line)
 {
 	gc_pushRoot((void*)&arguments);
-    oop node = newObject(Print);
+    node node = newObject(Print);
     node->Print.arguments = arguments;
 	node->Print.line      = line;
 	gc_popRoots(1);
     return node;
 }
 
-oop newIf(oop condition, oop s1, oop s2)
+node newIf(node condition, node s1, node s2)
 {
 	gc_pushRoot((void*)&condition);
 	gc_pushRoot((void*)&s1);
 	gc_pushRoot((void*)&s2);
-    oop node = newObject(If);
+    node node = newObject(If);
     node->If.condition = condition;
     node->If.statement1 = s1;
     node->If.statement2 = s2;
@@ -420,13 +420,13 @@ oop newIf(oop condition, oop s1, oop s2)
     return node;
 }
 
-oop newLoop(oop init,oop cond,oop iterate, oop s)
+node newLoop(node init,node cond,node iterate, node s)
 {
 	gc_pushRoot((void*)&init);
 	gc_pushRoot((void*)&cond);
 	gc_pushRoot((void*)&iterate);
 	gc_pushRoot((void*)&s);
-    oop node = newObject(Loop);
+    node node = newObject(Loop);
 	node->Loop.initialization = init;
     node->Loop.condition = cond;
 	node->Loop.iteration = iterate;
@@ -435,22 +435,22 @@ oop newLoop(oop init,oop cond,oop iterate, oop s)
     return node;
 }
 
-oop newBlock(void)
+node newBlock(void)
 {
-    oop node = newObject(Block);
+    node node = newObject(Block);
     node->Block.statements = 0;
     node->Block.size = 0;
     return node;
 }
 
 
-void Block_append(oop b, oop s)
+void Block_append(node b, node s)
 {
 	gc_pushRoot((void*)&b);
 	gc_pushRoot((void*)&s);
-    oop *ss = get(b, Block,statements);
+    node *ss = get(b, Block,statements);
     int  sz = get(b, Block,size);
-    ss = realloc(ss, sizeof(oop) * (sz + 1));
+    ss = realloc(ss, sizeof(node) * (sz + 1));
     ss[sz++] = s;
     get(b, Block,statements) = ss;
     get(b, Block,size) = sz;
@@ -458,14 +458,14 @@ void Block_append(oop b, oop s)
 }
 
 //b:block, e:event
-void Event_Block_append(oop b, oop e)
+void Event_Block_append(node b, node e)
 {
 	gc_pushRoot((void*)&b);
 	gc_pushRoot((void*)&e);
 
-    oop *ss = get(b, Block,statements);
+    node *ss = get(b, Block,statements);
     int  sz = get(b, Block,size);
-    ss = realloc(ss, sizeof(oop) * (sz + 1));
+    ss = realloc(ss, sizeof(node) * (sz + 1));
 
 	switch(getType(e)){
 		case Event:{
@@ -493,7 +493,7 @@ void Event_Block_append(oop b, oop e)
 				isInserted = 1;
 			}else{
 				for(int i=sz-1; i>=0; i--){
-					oop ele = ss[i];
+					node ele = ss[i];
 					switch(getType(ele)){
 						case Event:{
 							if(get(ele, Event, id)==get(e, Event, id)){
@@ -537,12 +537,12 @@ void Event_Block_append(oop b, oop e)
 	gc_popRoots(2);
 }
 
-oop newState(oop id, oop parameters, oop events, int line)
+node newState(node id, node parameters, node events, int line)
 {
 	gc_pushRoot((void*)&id);
 	gc_pushRoot((void*)&parameters);
 	gc_pushRoot((void*)&events);
-	oop node = newObject(State);
+	node node = newObject(State);
 	node->State.id         = id;
 	node->State.parameters = parameters;
 	node->State.events     = events;
@@ -551,12 +551,12 @@ oop newState(oop id, oop parameters, oop events, int line)
 	return node;
 }
 
-oop newEvent(oop id, oop parameters, oop block,int line)
+node newEvent(node id, node parameters, node block,int line)
 {
 	gc_pushRoot((void*)&id);
 	gc_pushRoot((void*)&parameters);
 	gc_pushRoot((void*)&block);
-	oop node = newObject(Event);
+	node node = newObject(Event);
 	node->Event.id         = id;
 	node->Event.parameters = parameters;
 	node->Event.block      = block;
@@ -564,18 +564,18 @@ oop newEvent(oop id, oop parameters, oop block,int line)
 	gc_popRoots(3);
 	return node;
 }
-oop newEventH(int id, int nArgs)
+node newEventH(int id, int nArgs)
 {
-	oop node = newObject(EventH);
+	node node = newObject(EventH);
 	node->EventH.id = id;
 	node->EventH.nArgs = nArgs;
 	return node;
 }
 
-oop newVariable(oop type, oop id)
+node newVariable(node type, node id)
 {
 	gc_pushRoot((void*)&id);
-	oop node = newObject(Variable);
+	node node = newObject(Variable);
 	node->Variable.id = id;
 	node->Variable.type = type;
 	gc_popRoots(1);
@@ -584,15 +584,15 @@ oop newVariable(oop type, oop id)
 
 
 //FIXME: report error line number
-struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
+struct RetVarFunc insertVariable(node ctx, node sym, node type)
 {
 	for(int scope = 0; scope < 3; scope++)
 	{
-		oop arr = ctx->EmitContext.global_vars + sizeof(oop) * scope;
+		node arr = ctx->EmitContext.global_vars + sizeof(node) * scope;
 		if(arr == NULL) continue;
 		// linear search for existing variable
 		int nvariables = arr ? arr->Array.size : 0;
-		oop *variables = arr ? arr->Array.elements : 0;
+		node *variables = arr ? arr->Array.elements : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(variables[i]->Variable.type != sym){
@@ -603,7 +603,7 @@ struct RetVarFunc insertVariable(oop ctx, oop sym, oop type)
 			}	
 		}
 	}
-	oop arr = ctx->EmitContext.local_vars; // local variables
+	node arr = ctx->EmitContext.local_vars; // local variables
 	gc_pushRoot((void*)&sym);
 	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
 	arr->Array.elements[arr->Array.size] = newVariable(type, sym);
@@ -616,12 +616,12 @@ IF variable already exists, report error and return NULL
 ELSE append variable to the array and return the appended variable
 */
 //FIXME: report error line number
-struct RetVarFunc appendVariable(oop arr, oop var, oop type)
+struct RetVarFunc appendVariable(node arr, node var, node type)
 {
 	assert(arr != NULL);
 	// linear search for existing variable
 	int nvariables = arr ? arr->Array.size : 0;
-	oop *variables = arr ? arr->Array.elements : 0;
+	node *variables = arr ? arr->Array.elements : 0;
 	for (int i = 0;  i < nvariables;  ++i){
 		if ((variables[i]->Variable.id)== var){
 			reportError(ERROR, 0, "variable %s already exists", get(var, Symbol,name));
@@ -637,15 +637,15 @@ struct RetVarFunc appendVariable(oop arr, oop var, oop type)
 }
 
 //FIXME: report error line number
-struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)//TYPE 
+struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE 
 {
 	assert(ctx != NULL);
 	for(int scope = 0; scope < 3; scope++)
 	{
-		oop arr = ctx->EmitContext.global_vars + sizeof(oop) * scope;
+		node arr = ctx->EmitContext.global_vars + sizeof(node) * scope;
 		if(arr == NULL) continue;
 		int nvariables = arr ? arr->Array.size : 0;
-		oop *variables = arr ? arr->Array.elements : 0;
+		node *variables = arr ? arr->Array.elements : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(type!=NULL && variables[i]->Variable.type != type){
@@ -662,9 +662,9 @@ struct RetVarFunc searchVariable(oop ctx, oop sym, oop type)//TYPE
 	return (struct RetVarFunc){0, -1}; // not found
 }
 
-oop newEmitContext()
+node newEmitContext()
 {
-	GC_PUSH(oop, context, newObject(EmitContext));
+	GC_PUSH(node, context, newObject(EmitContext));
 	context->EmitContext.global_vars = newArray(0);
 	context->EmitContext.state_vars  = NULL;
 	context->EmitContext.local_vars  = NULL;
@@ -674,7 +674,7 @@ oop newEmitContext()
 
 
 
-void printlnObject(oop node, int indent)
+void printlnObject(node node, int indent)
 {
     printf("%*s", indent*2, "");
     switch (getType(node)) {
@@ -827,9 +827,9 @@ void printlnObject(oop node, int indent)
     }
 }
 
-void println(oop obj)	{ printlnObject(obj, 0); }
+void println(node obj)	{ printlnObject(obj, 0); }
 
-void print(oop node)
+void print(node node)
 {
     switch (getType(node)) {
 	case Undefined:	printf("nil");				break;
@@ -858,7 +858,7 @@ int* appendNewInt(int *arr, int size, int value)
 	return arr;
 }
 
-oop TYPES[4] = {
+node TYPES[4] = {
 	MAKE_OOP_FLAG(Undefined),// var | fn
 	MAKE_OOP_FLAG(Integer),// int
 	MAKE_OOP_FLAG(Float),// float

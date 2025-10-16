@@ -13,12 +13,12 @@
 #include <string.h>
 #include "parser.h"
 
-#define YYSTYPE oop
+#define YYSTYPE node
 YYSTYPE result;
 
 #define YY_FREE(C, P) P = NULL
 
-oop parserRetFlags[3] = {
+node parserRetFlags[3] = {
 	MAKE_OOP_FLAG(PARSER_FINISH),
 	MAKE_OOP_FLAG(PARSER_ERROR),
 	MAKE_OOP_FLAG(PARSER_READY),
