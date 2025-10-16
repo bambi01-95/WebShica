@@ -137,7 +137,8 @@ index	= LBRAK e:expr RBRAK		{ $$ = e }
 value	= LPAR lhs:expr  RPAR		{ $$ = lhs }
 	| integer
 	| string 
-	| i:id				{ $$ = newGetVar(i,nlines) }
+	| i:id DOT e:postfix { $$ = newGetField(i, e, nlines); }
+	| i:id		{ $$ = newGetVar(i,nlines); }
 	| array
 
 array	= LBRACE a:mkArray
@@ -198,6 +199,7 @@ PLING	= "!" !"="  -
 
 QUOTE   = "\'"      
 DQUOTE  = "\"" 
+DOT   = "."
 
 STATE = "stt" -
 IF    = "if" -

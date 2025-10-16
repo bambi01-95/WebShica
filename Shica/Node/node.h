@@ -19,7 +19,7 @@ extern node exitEH;
 typedef enum Type {
     /*  0 */ Undefined = 0,
     /*  1 */ Integer, Float, String, EventObject, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
-    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray,
+    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField,
     /* 18 */ Call, Return, Break, Continue,
     /* 22 */ Print, If, Loop, Block,
 	/* 24 */ Transition, State, Event,EventH,
@@ -53,6 +53,7 @@ struct GetVar  	 { type_t _type; int line; node id; };
 struct SetVar  	 { type_t _type; int line; node type; node id; node rhs;int scope;  };
 struct GetArray	 { type_t _type;           node array, index; };
 struct SetArray	 { type_t _type;           node type, array, index, value;int scope; };
+struct GetField  { type_t _type; int line; node id; node field; };
 struct Call 	 { type_t _type; int line; node function, arguments; };
 struct Return 	 { type_t _type;           node value; };
 struct Break 	 { type_t _type;           };
@@ -101,6 +102,7 @@ union Node {
     struct SetVar   SetVar;
     struct GetArray GetArray;
     struct SetArray SetArray;
+    struct GetField GetField;
     struct Call     Call;
     struct Return   Return;
     struct Break    Break;
@@ -180,6 +182,8 @@ node newSetVar(node type, node id, node rhs,ScopeClass scope, int line);
 
 node newGetArray(node array, node index);
 node newSetArray(node type, node array, node index, node value, ScopeClass scope);
+
+node newGetField(node id, node field, int line);
 
 node newCall(node arguments, node function, int line);
 

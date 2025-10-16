@@ -1628,6 +1628,16 @@ case SetArray:
 	}
 	return;
 }
+case GetField:
+{
+	if (obj->GetField.id) {
+		gc_mark(obj->GetField.id);
+	}
+	if (obj->GetField.field) {
+		gc_mark(obj->GetField.field);
+	}
+	return;
+}
 case Call    :
 {
 	if (obj->Call.function) {

@@ -355,6 +355,18 @@ node newSetArray(node type, node array, node index, node value, ScopeClass scope
     return node;
 }
 
+node newGetField(node id, node field, int line)
+{
+	gc_pushRoot((void*)&id);
+	gc_pushRoot((void*)&field);
+	node node = newNode(GetField);
+	node->GetField.id = id;
+	node->GetField.field = field;
+	node->GetField.line = line;
+	gc_popRoots(2);
+	return node;
+}
+
 node newCall(node arguments, node function, int line)
 {
 	gc_pushRoot((void*)&arguments);
