@@ -10,11 +10,11 @@
 #define EVENT_EH 0x00 // Loop Handler
 #define TIMER_EH 0x01 // Timer Handler
 
-int event_handler_init(ent eh);
-int event_handler(ent eh);
+int event_handler_init(oop eh);
+int event_handler(oop eh);
 
-int timer_handler_init(ent eh);
-int timer_handler(ent eh);
+int timer_handler_init(oop eh);
+int timer_handler(oop eh);
 
 
 extern  struct EventTable __EventTable__[];

@@ -171,56 +171,56 @@ int getAllAgentDataSizePtr(){
  */
 
 
-int event_handler(ent eh){
+int event_handler(oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
-		ent thread = eh->EventHandler.threads[0];
-		ent stack = newStack(0);
+		oop thread = eh->EventHandler.threads[0];
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 		return 1;
 	}
 	return 0; // return 0 to indicate no event
 }
-int event_handler_init(ent eh){
+int event_handler_init(oop eh){
 #ifdef DEBUG
 	printf("event_handler_init called\n");
 #endif
 	return 1;
 }
 
-int timer_handler(ent eh)
+int timer_handler(oop eh)
 {
 	int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
 	if (WEB_TIMER-time >=1000) {
 		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
 		eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int timer_handler_init(ent eh){
+int timer_handler_init(oop eh){
 	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
 	eh->EventHandler.data[1] = 0;
 	return 1;
 }
 
-int touch_handler(ent eh)
+int touch_handler(oop eh)
 {
 	int touch = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, newIntVal(touch))); // enqueue a stack with value
 		printf("touch event: %d\n", touch);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
 }
-int collision_handler(ent eh)
+int collision_handler(oop eh)
 {
 	int collision = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue a stack with value
 		printf("collision event: %d\n", collision);
 		return 1; // return 1 to indicate success
@@ -228,11 +228,11 @@ int collision_handler(ent eh)
 	return 0; // return 0 to indicate no event
 }
 
-int self_state_handler(ent eh)
+int self_state_handler(oop eh)
 {
 	int state = 0;
 	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
 		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
@@ -240,12 +240,12 @@ int self_state_handler(ent eh)
 	return 0; // return 0 to indicate no event
 }
 
-int click_handler(ent eh)
+int click_handler(oop eh)
 {
 	printf("triggered click event\n");
 	if (WEB_CLICK_STT[2]==1) {
 		printf("clicked!!!\n");
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
 		pushStack(stack, newIntVal(WEB_CLICK_STT[1])); // y
 		enqueue3(eh, stack); // enqueue the stack
@@ -309,7 +309,7 @@ int compile_eh_init(){
 	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 };
 
-int lib_log(ent stack)
+int lib_log(oop stack)
 {
 	int value = intArray_pop(stack); // get value from stack
 	printf("log: %d\n", value); // print value to console
@@ -317,7 +317,7 @@ int lib_log(ent stack)
 }
 
 // This function sets the x and y coordinates of the agent
-int lib_setxy(ent stack)
+int lib_setxy(oop stack)
 {
 	int y = intArray_pop(stack); // get x coordinate from stack
 	int x = intArray_pop(stack); // get y coordinate from stack
@@ -326,20 +326,20 @@ int lib_setxy(ent stack)
 	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
 	return 0; // return 0 to indicate success
 }
-int lib_setx(ent stack)
+int lib_setx(oop stack)
 {
 	int x = intArray_pop(stack); // get x coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
 	return 0; // return 0 to indicate success
 }
-int lib_sety(ent stack)
+int lib_sety(oop stack)
 {
 	int y = intArray_pop(stack); // get y coordinate from stack
 	AN_AGENT_DATA->y = y; // set y coordinate
 	return 0; // return 0 to indicate success
 }
 
-int lib_setvxy(ent stack)
+int lib_setvxy(oop stack)
 {
 	int vy = intArray_pop(stack); // get y velocity from stack
 	int vx = intArray_pop(stack); // get x velocity from stack
@@ -349,21 +349,21 @@ int lib_setvxy(ent stack)
 	return 0; // return 0 to indicate success
 }
 
-int lib_setvx(ent stack)
+int lib_setvx(oop stack)
 {
 	int vx = intArray_pop(stack); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
 
-int lib_setvy(ent stack)
+int lib_setvy(oop stack)
 {
 	int vy = intArray_pop(stack); // get y velocity from stack
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
 
-int lib_setcolor(ent stack)
+int lib_setcolor(oop stack)
 {
 	int  red = intArray_pop(stack); // get red value from stack
 	int green = intArray_pop(stack); // get green value from stack

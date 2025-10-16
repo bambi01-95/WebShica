@@ -38,9 +38,9 @@ UserFunc Name: should start with a lowwer letter
 
 /* GARBAGE? */
 
-// ent *Agents = NULL;
+// oop *Agents = NULL;
 // int nAgents = 0; // number of agents
-// ent *codes = NULL; // codes for each agent
+// oop *codes = NULL; // codes for each agent
 // int nCodes = 0; // number of codes
 
 /* end of GARBAGE */
@@ -136,7 +136,7 @@ int executor_func_init()
 #define pick(I)  stack->Stack.elements[I]
 
 
-ent execute(ent prog, ent entity, ent agent);
+oop execute(oop prog, oop entity, oop agent);
 #define TAGBITS 2
 enum {
 	TAG_PTR = 0b00, // ordinary pointer (lower 2 bits = 00)
@@ -145,9 +145,9 @@ enum {
 	TAG_FLAG=0b11,
 };
 typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
-#define MAKE_FLAG(f) ((ent)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
+#define MAKE_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
 
-ent retFlags[7] = {
+oop retFlags[7] = {
 	MAKE_FLAG(ERROR_F),
 	MAKE_FLAG(NONE_F),
 	MAKE_FLAG(HALT_F),
@@ -157,14 +157,14 @@ ent retFlags[7] = {
 	MAKE_FLAG(TRANSITION_F),
 };
 
-ent impleBody(ent code, ent eh, ent agent){
+oop impleBody(oop code, oop eh, oop agent){
 	assert(code->kind == IntArray);
 	assert(eh->kind == EventHandler);
 	assert(agent->kind == Agent);
-	ent *threads = eh->EventHandler.threads;
-	ent ret = retFlags[ERROR_F];
+	oop *threads = eh->EventHandler.threads;
+	oop ret = retFlags[ERROR_F];
 	for(int i=0;i<eh->EventHandler.size; ++i){
-		ent thread = threads[i];
+		oop thread = threads[i];
 		if(thread->Thread.inProgress == 1){
 			ret = execute(code,thread, agent);
 		}else if(thread->Thread.queue->IntQue3.size > 0){
@@ -181,8 +181,8 @@ ent impleBody(ent code, ent eh, ent agent){
 
 
 /* =========================================== */
-int runNative(ent code){
-	GC_PUSH(ent, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
+int runNative(oop code){
+	GC_PUSH(oop, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
 	agent = execute(code, agent, agent);
 	dprintf("agent: %d\n", agent->Agent.isActive);
 	while(1){
@@ -191,7 +191,7 @@ int runNative(ent code){
 		}else{
 			for(int i = 0; i< agent->Agent.nEvents; ++i){
 				// get event data
-				ent eh = agent->Agent.eventHandlers[i];
+				oop eh = agent->Agent.eventHandlers[i];
 				EventTable[eh->EventHandler.EventH].eh(eh);
 				if(impleBody(code, eh, agent)==retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
@@ -204,7 +204,7 @@ int runNative(ent code){
 	return 1; // return 1 to indicate success
 }
 
-ent execute(ent prog,ent entity, ent agent)
+oop execute(oop prog,oop entity, oop agent)
 {
 
 	int opstep = 20; // number of operations to execute before returning
@@ -212,7 +212,7 @@ ent execute(ent prog,ent entity, ent agent)
 	int size = prog->IntArray.size;
 	int *pc;
 	int *rbp;
-	ent stack;
+	oop stack;
 	switch(entity->kind) {
 		case Thread:{
 			pc = &entity->Thread.pc; // program counter
@@ -333,7 +333,7 @@ ent execute(ent prog,ent entity, ent agent)
 			if (*rbp == 0) {
 				fatal("return without call");
 			}
-			ent retValue = pop(); // get the return value
+			oop retValue = pop(); // get the return value
 			stack->Stack.size = *rbp+1; // restore the stack size to the base pointer
 			*rbp = (intptr_t)pop(); // restore the base pointer
 			*pc = (intptr_t)pop(); // restore the program counter
@@ -376,7 +376,7 @@ ent execute(ent prog,ent entity, ent agent)
 			printOP(sPUSH);
 			l = fetch();
 			char *str = gc_beAtomic(gc_alloc(l+1));
-			ent obj = newStrVal(str);
+			oop obj = newStrVal(str);
 			memcpy(str, &code[(*pc)], l * sizeof(char));
 			str[l] = '\0';
 			obj->StrVal.value = str;
@@ -389,7 +389,7 @@ ent execute(ent prog,ent entity, ent agent)
 		case iCLEAN:{
 			printOP(iCLEAN);
 			l = fetch(); // number of variables to clean
-			ent retVal = pop(); // get the return value
+			oop retVal = pop(); // get the return value
 			for(int i = 0;  i < l;  ++i) {
 				if (stack->Stack.size == 0) {
 					fatal("stack is empty");
@@ -402,7 +402,7 @@ ent execute(ent prog,ent entity, ent agent)
 		}
 		case aPRINT:{
 			printOP(aPRINT);
-			ent o = pop();
+			oop o = pop();
 			if(o->kind == IntVal){
 				printf("%d\n", IntVal_value(o));
 			}else if(o->kind == FloVal){
@@ -422,14 +422,14 @@ ent execute(ent prog,ent entity, ent agent)
 		}
 		case sPRINT:{
 			printOP(sPRINT);
-			ent obj = pop();
+			oop obj = pop();
 			char *str = StrVal_value(obj);
 			printf("%s", str);
 			continue;
 		}
 	    case fPRINT:{
 			printOP(fPRINT);
-			ent obj = pop();
+			oop obj = pop();
 			printf("%f", FloVal_value(obj));
 			continue;
 		}
@@ -451,7 +451,7 @@ ent execute(ent prog,ent entity, ent agent)
 			printf("ehSize: %d\n", ehSize);
 			assert(ehSize >= 0);
 			entity->Agent.nEvents = ehSize; // set the number of events
-			ent *ehs = entity->Agent.eventHandlers = (ent*)gc_beAtomic(malloc(sizeof(ent*) * ehSize)); //initialize the event handlers
+			oop *ehs = entity->Agent.eventHandlers = (oop*)gc_beAtomic(malloc(sizeof(oop*) * ehSize)); //initialize the event handlers
 			for(int i=0; i<ehSize; ++i){
 				op = fetch();
 				assert(op == iSETEVENT);
@@ -565,7 +565,7 @@ ent execute(ent prog,ent entity, ent agent)
 /* = VARIABLE === */
 
 /* =============== */
-ent compile();
+oop compile();
 
 
 
@@ -652,7 +652,7 @@ void appendS0T1(node name, int pos,int type)
 	return;
 }
 
-void setTransPos(ent prog){
+void setTransPos(oop prog){
 	int *code = prog->IntArray.elements;
 	for (int i = 0;  i < ntransitions;  ++i) {
 		node trans = transitions[i];
@@ -695,20 +695,20 @@ int parseType(node vars, node ast)
 }
 
 
-void emitL (ent array, node object) 	  { intArray_append(array, Integer_value(object)); }
-void emitI (ent array, int i     ) 	  { intArray_append(array, i); }
-void emitII(ent array, int i, int j)      { emitI(array, i); emitI(array, j); }
-void emitIL(ent array, int i, node object) { emitI(array, i); emitL(array, object); }
-void emitIII(ent array, int i, int j, int k)
+void emitL (oop array, node object) 	  { intArray_append(array, Integer_value(object)); }
+void emitI (oop array, int i     ) 	  { intArray_append(array, i); }
+void emitII(oop array, int i, int j)      { emitI(array, i); emitI(array, j); }
+void emitIL(oop array, int i, node object) { emitI(array, i); emitL(array, object); }
+void emitIII(oop array, int i, int j, int k)
 {
 	emitI(array, i);
 	emitI(array, j);
 	emitI(array, k);
 }
 
-void printCode(ent code);
+void printCode(oop code);
 
-int emitOn(ent prog,node vars, node ast, node type)
+int emitOn(oop prog,node vars, node ast, node type)
 {
 	assert(getType(vars) == EmitContext);
 	int ret = 0; /* ret 0 indicates success */
@@ -1244,7 +1244,7 @@ int emitOn(ent prog,node vars, node ast, node type)
 	return 1;
 }
 
-void printCode(ent code){
+void printCode(oop code){
 	for (int i = 0; i < code->IntArray.size; ++i) {
 		int op = code->IntArray.elements[i];
 		const char *inst = "UNKNOWN";
@@ -1436,10 +1436,10 @@ simple:
 }
 
 
-ent compile()
+oop compile()
 {
 	printf("compiling...\n");
-    GC_PUSH(ent, prog, intArray_init()); // create a new program code
+    GC_PUSH(oop, prog, intArray_init()); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
 #if DEBUG
 int roots = gc_ctx.nroots;
@@ -1775,7 +1775,7 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 		gc_markOnly(IrCodeList); // mark the ir code array itself
 		for (int i = 0;  i < nIrCode;  ++i)
 		{
-			ent code = IrCodeList[i];
+			oop code = IrCodeList[i];
 			if (code == NULL) continue; // skip null codes
 			gc_markOnly(code); // mark the code itself
 			// mark the code elements
@@ -1796,7 +1796,7 @@ void collectObjects(void)	// pre-collection funciton to mark all the symbols
 /* ==================================*/
 
 
-void markExecutors(ent ptr)
+void markExecutors(oop ptr)
 {
 	// collect ir code
 	switch(ptr->kind){
@@ -1914,8 +1914,8 @@ void collectExecutors(void)
 // WEB RUN 
 int compile_init();
 int compile_finalize();
-ent webcode  = NULL;
-ent webagent = NULL;
+oop webcode  = NULL;
+oop webagent = NULL;
 gc_context *comctx = NULL; // context for the garbage collector
 gc_context *exectx = NULL; // context for the garbage collector
 
@@ -1936,11 +1936,11 @@ int memory_init(void)
 }
 
 unsigned int maxNumWebCodes = 1; // maximum number of web codes
-ent *webCodes = NULL; // web codes
+oop *webCodes = NULL; // web codes
 int nWebCodes = 0; // number of web codes
 
 unsigned int maxNumWebAgents = 1; // maximum number of web agents
-ent *webAgents = NULL; // web agents
+oop *webAgents = NULL; // web agents
 int nWebAgents = 0; // number of web agents
 
 
@@ -1972,7 +1972,7 @@ void collectWeb(void)
 int initWebCodes(int num)
 {
 	ctx = comctx; // use the context for the garbage collector
-	webCodes = (ent *)gc_beAtomic(malloc(sizeof(ent) * num)); // initialize web codes
+	webCodes = (oop *)gc_beAtomic(malloc(sizeof(oop) * num)); // initialize web codes
 	maxNumWebCodes = num; // set the maximum number of web codes
 	return 0; 
 }
@@ -2085,7 +2085,7 @@ int initWebAgents(int num)
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
-	webAgents = (ent *)gc_beAtomic(malloc(sizeof(ent) * num)); // initialize web agents
+	webAgents = (oop *)gc_beAtomic(malloc(sizeof(oop) * num)); // initialize web agents
 	
 	printf("Initializing web %d agents...\n", num);
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
@@ -2101,9 +2101,9 @@ int initWebAgents(int num)
 		#ifdef DEBUG
 		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
 		#endif
-		GC_PUSH(ent,agent,newAgent(0,0)); // create a new agent
+		GC_PUSH(oop,agent,newAgent(0,0)); // create a new agent
 		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
-		assert(((ent)*ctx->roots[0])->kind == Agent); // check if the root is of type Agent
+		assert(((oop)*ctx->roots[0])->kind == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
@@ -2120,7 +2120,7 @@ int executeWebCodes(void)
 	for(int i = 0; i<nWebAgents ; i++){
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
-		ent agent = (ent)*ctx->roots[0]; // get the agent from the context memory
+		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
 		assert(agent->kind == Agent); // check if the agent is of type Agent
 		if(agent->Agent.isActive == 0){
 			agent = execute(webCodes[i] ,agent , agent);
@@ -2132,7 +2132,7 @@ int executeWebCodes(void)
 			}
 			for(int j = 0; j < agent->Agent.nEvents; ++j){
 				// get event data
-				ent eh = agent->Agent.eventHandlers[j];
+				oop eh = agent->Agent.eventHandlers[j];
 				EventTable[eh->EventHandler.EventH].eh(eh);
 				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
@@ -2212,7 +2212,7 @@ int main(int argc, char **argv)
 	compile_event_init(); // initialize the event system
 	compile_func_init(); // initialize the standard functions
 	// compile code
-	ent code = compile();
+	oop code = compile();
 
 	if(code == NULL){
 		rprintf("Compilation failed.\n");

@@ -3,33 +3,33 @@
 #define LIBRARY_C
 #include "library.h"
 
-int event_handler(ent eh){
+int event_handler(oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
-		ent thread = eh->EventHandler.threads[0];
-		ent stack = newStack(0);
+		oop thread = eh->EventHandler.threads[0];
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 	}
 	return 0; // return 0 to indicate no event
 }
-int event_handler_init(ent eh){
+int event_handler_init(oop eh){
 	return 1;
 }
 
 #include <time.h>
-int timer_handler(ent eh){
+int timer_handler(oop eh){
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
 		eh->EventHandler.data[0] = newIntVal(now);
 		eh->EventHandler.data[1]++;
-		ent stack = newStack(0);
+		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
 }
 
-int timer_handler_init(ent eh){
+int timer_handler_init(oop eh){
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	eh->EventHandler.data[0] = newIntVal(now); //start time
@@ -61,7 +61,7 @@ int compile_eh_init(){
 	EXIT_FUNC=0,   // exit function
 };
 
-int lib_exit(ent stack)
+int lib_exit(oop stack)
 {
 	int status = intArray_pop(stack); // get exit status from stack
 	exit(status); // exit with the given status

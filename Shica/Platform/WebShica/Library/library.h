@@ -61,16 +61,16 @@ int setActiveAgent(int index); // Set the active agent data by index
 #define CLICK_EH		0x05
 
 
-int event_handler_init(ent eh);
-int event_handler(ent eh);
+int event_handler_init(oop eh);
+int event_handler(oop eh);
 
-int timer_handler_init(ent eh);
-int timer_handler(ent eh);
+int timer_handler_init(oop eh);
+int timer_handler(oop eh);
 
-int touch_handler(ent eh);
-int collision_handler(ent eh);
-int self_state_handler(ent eh);
-int click_handler(ent eh);
+int touch_handler(oop eh);
+int collision_handler(oop eh);
+int self_state_handler(oop eh);
+int click_handler(oop eh);
 
 extern  struct EventTable __EventTable__[];
 

@@ -3,8 +3,8 @@
 #include "../Opcode/opcode.h"
 #include "../Error/error.h"
 #include "../GC/gc.h"
-typedef union Entity Entity;
-typedef Entity *ent;
+typedef union Object Object;
+typedef Object *oop;
 
 typedef enum kind{
 	Undeclar = 0,
@@ -41,15 +41,15 @@ struct IntArray{
 struct Stack{
 	kind_t kind;
 	int size, capacity;
-	ent *elements;
+	oop *elements;
 };
 
 struct IntQue3{
 	kind_t kind; // kind of the queue
 	char tail, head,size,nArgs;
-	ent que[3];
+	oop que[3];
 };
-typedef int (*opfunc)(ent q);
+typedef int (*opfunc)(oop q);
 
 struct Thread{
 	kind_t kind;
@@ -58,16 +58,16 @@ struct Thread{
 	int cpos;
 	int rbp; // base pointer
 	int pc; // program counter
-	ent queue;
-	ent stack;
+	oop queue;
+	oop stack;
 };
 
 struct EventHandler{
 	kind_t kind;
 	int size;
 	int EventH;
-	ent *data; // event handler data (stack)
-	ent *threads; // thread that this handler belongs to
+	oop *data; // event handler data (stack)
+	oop *threads; // thread that this handler belongs to
 }; 
 
 struct Agent{
@@ -77,11 +77,11 @@ struct Agent{
 	int nEvents;
 	int pc;
 	int rbp;
-	ent stack;
-	ent *eventHandlers;
+	oop stack;
+	oop *eventHandlers;
 };
 
-union Entity{
+union Object{
 	kind_t kind;
 	struct Agent Agent;
 	struct EventHandler EventHandler;
@@ -94,37 +94,37 @@ union Entity{
 	struct StrVal StrVal;
 };
 
-ent newIntVal(int value);
-int IntVal_value(ent obj);
+oop newIntVal(int value);
+int IntVal_value(oop obj);
 
 
 
-ent newFloVal(double value);
-double FloVal_value(ent obj);
-ent newStrVal(const char *value);
-char* StrVal_value(ent obj);
+oop newFloVal(double value);
+double FloVal_value(oop obj);
+oop newStrVal(const char *value);
+char* StrVal_value(oop obj);
 
-ent intArray_init(void);
-ent newStack(const int initVal);
-ent pushStack(ent stack, ent value);
-ent popStack(ent stack);
-ent lastStack(ent stack);
+oop intArray_init(void);
+oop newStack(const int initVal);
+oop pushStack(oop stack, oop value);
+oop popStack(oop stack);
+oop lastStack(oop stack);
 
-void printStack(ent stack);
-void intArray_push(ent a, int value);
-void intArray_append(ent a, int value);
-int intArray_pop(ent a);
-int intArray_last(ent a);
+void printStack(oop stack);
+void intArray_push(oop a, int value);
+void intArray_append(oop a, int value);
+int intArray_pop(oop a);
+int intArray_last(oop a);
 
 #define IntQue3Size 3
 
-ent newQue3(int nArgs);
-void enqueue3(ent eh, ent value);
-ent dequeue3(ent thread);
+oop newQue3(int nArgs);
+void enqueue3(oop eh, oop value);
+oop dequeue3(oop thread);
 
 struct EventTable{
-	int (*eh)(ent eh); // event handler function
-	int (*init)(ent eh); // initialize function
+	int (*eh)(oop eh); // event handler function
+	int (*init)(oop eh); // initialize function
 	int nArgs; // number of arguments for the event handler
 	char nData; // number of data for the event handler
 };
@@ -132,18 +132,18 @@ struct EventTable{
 extern struct EventTable *EventTable;
 void setEventTable(struct EventTable *tables);
 
-ent newThread(int aPos, int cPos,int ehIndex);
+oop newThread(int aPos, int cPos,int ehIndex);
 
-ent newEventHandler(int ehIndex, int nThreads);
+oop newEventHandler(int ehIndex, int nThreads);
 
-ent newAgent(int id, int nEvents);
+oop newAgent(int id, int nEvents);
 
-extern ent *IrCodeList;
+extern oop *IrCodeList;
 extern int nIrCode; // index of getIrCode
-ent getIrCode(int index);
+oop getIrCode(int index);
 
 struct StdFuncTable{
-	int (*stdfunc)(ent stack); // standard function
+	int (*stdfunc)(oop stack); // standard function
 	int nArgs;
 	int *argTypes;
 	int retType;
@@ -152,6 +152,6 @@ struct StdFuncTable{
 extern struct StdFuncTable *StdFuncTable;
 void setStdFuncTable(struct StdFuncTable *tables);
 
-int printAgent(ent agent);
+int printAgent(oop agent);
 
 #endif // ENTITY_H
