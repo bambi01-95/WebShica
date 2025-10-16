@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../Object/object.h"
+#include "../Node/node.h"
 #include "../GC/gc.h"
 #include "../Error/error.h"
 

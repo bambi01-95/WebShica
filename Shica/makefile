@@ -21,14 +21,14 @@ SRC = main.c \
       ./GC/msgcs/msgcs.c  \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
-	  ./Object/object.c \
+	  ./Node/node.c \
 	  ./Entity/entity.c \
 	  ./Parser/parser.c 
 
 INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
 			   -I ./Opcode \
-			   -I ./Object \
+			   -I ./Node \
 			   -I ./Entity \
 			   -I ./Parser 
 # shica.js

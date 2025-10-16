@@ -26,7 +26,7 @@ UserFunc Name: should start with a lowwer letter
 #include "./GC/gc.h"
 #include "./Error/error.h"
 #include "./Opcode/opcode.h"
-#include "./Object/object.h"
+#include "./Node/node.h"
 #include "./Parser/parser.h"
 #include "./Entity/entity.h"
 
