@@ -25,13 +25,16 @@
 ```text
 +- [0] FIXME / TASK / THINK
 |   |- (***) runtime error??? -> what is happen... <-- forgettting collect main roots. maybe???
-|.  |- (***) display error message!!!
+|.  |- (*--) display error message!!!
 |.  |.  |> current problem: 
-|.  |.  |> Syntax error or something Shica compile error apper,
-|.  |.  |> Web Shica site will be close...
+|.  |.  |> shica compiler doesn't detect whole syntax error maybe,
+|.  |.  |> it display error with error position (line number), but 1 line diff.
 |   |- (**-) learn sepa. heap memory.       
-|   |          |> copy GC. it is good for generation gc  <- IN PROGRESS
-|   |          |> how to sepa. and impl. msgc...
+|   |          |> compose heap memory for compiling, and then use free memory for run time.
+|.  |- (***) current W-Shica's event handler do monitoring event 2 times, so TO BE only onece!
+|.  |- (*--) change Object.* and Entity.* files
+|.  |.        |> Object should be Node, cause it is used in compiler.
+|.  |.        |> Entity shlud be Object or ...
 |.  |- (**-) Shared data (timer, click ) is out of gc_memory range!?
 |   |- (*--) sepa. code
 |
@@ -93,7 +96,9 @@
 |.  |     |(-) copyGC:                                  <-- (----)     
 |.  |     |(-) stdatomic.h: pallarel GC
 |.  |(-) communicaton                      
-|.        |(*) think about witch communication model we use.  <- IN PROGRESS
+|.        |(o) think about witch communication model we use.
+|.  |.    |(*) WebRTC: emmulate server and each agent communcate server to all.
+|   |     |.    build each server for each 'channel'.
 |
 +- [5] C web editor
 |   |(*) web Native (Linux) compiler                       <- IN PROGRESS

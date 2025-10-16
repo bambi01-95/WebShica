@@ -60,8 +60,6 @@ const ShicaWebRTCPage = () => {
     const topicHostDataChannelsRef = useRef<Map<string, Map<number, RTCDataChannel>>>(new Map());
     const userToTopicHostConnectionRef = useRef<Map<number, Map<string, RTCPeerConnection>>>(new Map());
     const userToTopicHostDataChannelRef = useRef<Map<number, Map<string, RTCDataChannel>>>(new Map());
-    
-    const messagesEndRef = useRef<HTMLDivElement>(null);
   
     // STUNサーバー設定
     const iceServers = {
@@ -121,37 +119,6 @@ const ShicaWebRTCPage = () => {
       }
   
       console.log(`🟢 Topic Host for "${topicName}" is now active`);
-    };
-  
-// ユーザーのトピック切り替え : REMOVEME
-    const switchUserTopic = async (uid: number, newTopic: string) => {
-      const session = userSessions.get(uid);
-      if (!session) return;
-
-      const oldTopic = session.currentTopic;
-  
-      // 古いトピックから切断
-      if (session.isConnected && oldTopic) {
-        await disconnectUserFromTopic(uid, oldTopic);
-      }
-  
-      // 新しいトピックのホストを作成（存在しない場合）
-      await initializeTopicHost(newTopic);
-  
-      // ユーザーセッションを更新
-      setUserSessions(prev => 
-        new Map(prev).set(uid, {
-          uid: uid,
-          currentTopic: newTopic,
-          messages: [], // トピック変更時にメッセージをクリア
-          isConnected: false,
-            filename: session.filename,
-            code: session.code,
-            compiled: session.compiled,
-            }
-        ));
-
-      console.log(`🔄 ${uid} switched from "${oldTopic}" to "${newTopic}"`);
     };
   
 // 特定のトピックホストにユーザー接続を作成
@@ -508,7 +475,7 @@ const ShicaWebRTCPage = () => {
       console.log(`🔴 ${uid} disconnected from topic "${topicName}"`);
     };
 
-// ユーザーの追加
+// ユーザーの追加: コードエディタとセッションを初期化
     const addUser = () => {
       if (userSessions.size >= 12) return;
 
@@ -552,6 +519,7 @@ const ShicaWebRTCPage = () => {
       }
     };
 
+    // DEBUG用のコード
 // トピックごとのユーザー数とメッセージ数を取得
     const getTopicStats = () => {
       const topicUsers = new Map<string, number>();
@@ -571,7 +539,6 @@ const ShicaWebRTCPage = () => {
     };
   
     const { topicUsers, topicMessages } = getTopicStats();
-
 
     return <div>Shica WebRTC OptBroadcast Page</div>;
 };
