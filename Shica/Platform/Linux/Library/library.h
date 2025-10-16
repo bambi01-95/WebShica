@@ -1,7 +1,7 @@
 //Linux
 #ifndef LIBRARY_H
 #define LIBRARY_H
-#include "../../../Entity/entity.h"
+#include "../../../Object/object.h"
 #include "../../../Node/node.h"
 /*===============Other =====================*/
 

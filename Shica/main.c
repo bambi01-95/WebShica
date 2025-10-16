@@ -28,7 +28,7 @@ UserFunc Name: should start with a lowwer letter
 #include "./Opcode/opcode.h"
 #include "./Node/node.h"
 #include "./Parser/parser.h"
-#include "./Entity/entity.h"
+#include "./Object/object.h"
 
 #ifdef WEBSHICA
 #include "./Platform/WebShica/Library/library.h"
