@@ -165,3 +165,34 @@ struct e{
     ent eh;
 }
 ```
+
+
+Pattern 1 (User defined type)
+```c
+type Pos = {int x, int y};
+type Agent = {int id, Pos p};
+Pos p1 = {0,0};
+Agent a1 = {1, p1};
+a1.p.x = 11;
+p1.x = 10;
+print(a1.p.x);//-> 10
+```
+get p1
+get  x
+
+|px|
+|py|
+
+|p|
+|p
+
+Pattern 2 (Event Object / Class)
+```c
+var chat = broadcast('channel','password');
+chat.received(str addr, str msg){/*...*/}
+chat.send(msg);
+```
+iload index
+call  func
+get variable
+user define
