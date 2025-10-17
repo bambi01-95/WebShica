@@ -183,6 +183,24 @@ get  x
 |px|
 |py|
 
+# p.x
+getFiled p
+.
+getvar   x
+
+local variable p.
+
+
+offset 0x00
+getvar offset + 0
+
+
+# agent.p.x
+getField agent
+getField p
+getValue x
+
+
 |p|
 |p
 
