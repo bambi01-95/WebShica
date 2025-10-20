@@ -39,6 +39,7 @@ events = LBRACE b:mkBlock
 	  RBRACE			{ $$ = b }
 
 event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
+	  | i:id DOT f:id  p:eparams b:block { $$ = newEvent(newGetField(i, f, nlines), p, b, nlines); }
 
 eparams	= LPAR p:mkNil
 	  ( t:TYPE i:id c:mkFalse (c:eqop)?			{ p = newEparams(t, i, c, p) }
@@ -66,9 +67,9 @@ block   = LBRACE b:mkBlock
 
 mkBlock =                               { $$ = newBlock() }
 
-define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0, nlines); }
-       | t:TYPE i:id ASSIGN x:assignment SEMI { $$ = newSetVar(t,i, x, SCOPE_GLOBAL, nlines) }
-       | t:TYPE v:value i:index ASSIGN x:assignment SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL); }
+define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0, nlines); } #/*func*/
+       | t:TYPE i:id ASSIGN x:eqop SEMI { $$ = newSetVar(t,i, x, SCOPE_GLOBAL, nlines) }
+       | t:TYPE v:value i:index ASSIGN x:eqop SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -214,7 +215,7 @@ TYPE = VAR | INT | FLO | STR | FUNC
 
 FUNC = "fn" - 
 VAR = "var" - { $$ = TYPES[Undefined]; }
-INT = "int" - { $$ = TYPES[Integer]; }
+INT = "int" - { $$ = TYPES[Integer];printf("detected INT type\n"); }
 FLO = "flo" - { $$ = TYPES[Float]; }
 STR = "str" - { $$ = TYPES[String]; }
 
