@@ -31,6 +31,19 @@ void _fatal(const char *file, int line, const char *msg, ...)
 	va_end(ap);
 }
 
+void _stop(const char *file, int line)
+{
+#ifdef WEBSHICA
+    fprintf(stdin, "\nStop called at [%s:%d]\n", file, line);
+    fflush(stdin);
+#else
+    fprintf(stderr, "\nStop called at [%s:%d]\n", file, line);
+    fflush(stderr);
+    exit(0);
+#endif
+    return;
+}
+
 static ErrorList *errorListHeader = NULL; // Global error list header
 
 void initErrorList() {

@@ -10,6 +10,8 @@
 void _fatal(const char *file, int line, const char *msg, ...);
 #define fatal(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
+void _stop(const char *file, int line);
+#define stop() _stop(__FILE__, __LINE__)
 /*
  * it is related we Error Component.
 */
