@@ -41,15 +41,28 @@ int compile_eh_init(){
 	//standard event handler
 	node EH = NULL;
 	EH = intern("eventEH");
-	EH->Symbol.value = newEventH(EVENT_EH,EventTable[EVENT_EH].nArgs); // 1 argument
+	EH->Symbol.value = newEventH(EVENT_EH); // 1 argument
     EH = intern("timerEH");
-    EH->Symbol.value = newEventH(TIMER_EH,EventTable[TIMER_EH].nArgs); // 1 argument
+    EH->Symbol.value = newEventH(TIMER_EH); // 1 argument
 	return 0; // return 0 to indicate success
 }
 
+int timer_sec_handler(oop eh){
+	return 0;
+}
+int timer_min_handler(oop eh){
+	return 0;
+}
+int timer_hour_handler(oop eh){
+	return 0;
+}
+
  struct EventTable __EventTable__[] = {
-	[EVENT_EH] = {event_handler,      event_handler_init, 0, 0},      // EVENT_EH
-	[TIMER_EH] = {timer_handler,      timer_handler_init, 1, 2},      // TIMER_EH
+	[EVENT_EH] = {event_handler,      event_handler_init, 0, NULL, 0},      // EVENT_EH
+	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char []){Integer}, 2},      // TIMER_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_HOUR_EH
 };
 
 
@@ -59,12 +72,23 @@ int compile_eh_init(){
 */
  enum {
 	EXIT_FUNC=0,   // exit function
+	CHAT_SEND_FUNC, // chat send function
+	T_TIMER_RESET_FUNC, // timer reset function
 };
 
 int lib_exit(oop stack)
 {
 	int status = intArray_pop(stack); // get exit status from stack
 	exit(status); // exit with the given status
+	return 0; // return 0 to indicate success
+}
+
+int lib_chat_send(oop stack)
+{
+	oop chat = popStack(stack); // get chat object from stack
+	char *msg = StrVal_value(popStack(stack)); // get message from stack
+	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
+	// chat.
 	return 0; // return 0 to indicate success
 }
 
@@ -81,5 +105,43 @@ int compile_func_init()
 	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
 
 	return 0; // return 0 to indicate success
+}
+/*=============== Event Object Table ===============*/
+enum {
+	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	TIME_EO, // Timer Event Object
+	END_EO, /* DO NOT REMOVE THIS LINE */
+};
+// 
+struct EventObjectTable __EventObjectTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+	[TIME_EO] = {2, 1, (int[]){Integer, String}}, // Timer event object with 2 arguments and 1 function
+};
+
+int compile_eo_init(){
+	node sym = NULL;
+	node func = NULL;
+	node eo = NULL;
+// Broadcast Event Object
+	sym = intern("broadcast");
+	eo = newEventObject(sym, WEB_RTC_BROADCAST_EO);// var chat = broadcast(channel, password);
+	func = newEventH(CHAT_RECEIVED_EH);sym = newSymbol("received");
+	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
+	func = newStdFunc(CHAT_SEND_FUNC);sym = newSymbol("send");
+	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
+// Timer Event Object
+	sym = intern("timer");
+	eo = newEventObject(sym, TIME_EO);// var t = timer(interval, label);
+	func = newEventH(T_TIMER_SEC_EH);sym = newSymbol("sec");
+	putFuncToEo(eo, func, sym, 0);// t.sec(second);
+	func = newEventH(T_TIMER_MIN_EH);sym = newSymbol("min");
+	putFuncToEo(eo, func, sym, 1);// t.min(minute);
+	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hour");
+	putFuncToEo(eo, func, sym, 2);// t.hour(hour);
+	func = newStdFunc(T_TIMER_RESET_FUNC);sym = newSymbol("reset");
+	putFuncToEo(eo, func, sym, 3);// t.reset();
+// Other Event Objects can be added here
+
+	return 0;
 }
 #endif // STDLIB_C

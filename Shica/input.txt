@@ -1,6 +1,1 @@
-str a = "hello world";
-stt s1(){
-    timerEH(int s){
-        print(a);
-    }
-}
+var t = timer();

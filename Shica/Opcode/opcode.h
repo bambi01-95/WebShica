@@ -36,6 +36,7 @@ enum opcode_t {
 	iJUMPIF, // jump if top of stack is true
 	iJUDGE,  //for event condtion
 	iPCALL, iUCALL,iSCALL, // call a function
+    eCALL, // call an event handler and push the context
 	iRETURN, // return from a function
 	iCLEAN,//
 	iTRANSITION,

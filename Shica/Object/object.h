@@ -126,6 +126,7 @@ struct EventTable{
 	int (*eh)(oop eh); // event handler function
 	int (*init)(oop eh); // initialize function
 	int nArgs; // number of arguments for the event handler
+	char *argTypes; // types of arguments for the event handler
 	char nData; // number of data for the event handler
 };
 

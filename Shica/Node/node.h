@@ -45,7 +45,7 @@ struct Params     { type_t _type;           node type, id; node next; };
 struct Tensor    { type_t _type;           int *shape;  int ndim;  node *elements; };
 struct Array  	 { type_t _type;           node *elements;  int size, capacity; };
 struct Closure 	 { type_t _type;           int nArgs; int pos,retType; int *argTypes; };//store user defined function
-struct StdFunc   { type_t _type;           int index;  };
+struct StdFunc   { type_t _type;           int index;  };/*Table*/
 struct UserFunc	 { type_t _type;           node parameters, body, code; };
 struct Binop   	 { type_t _type;           enum binop op;  node lhs, rhs; };
 struct Unyop   	 { type_t _type;           enum unyop op;  node rhs; };
@@ -65,7 +65,7 @@ struct Loop   	 { type_t _type;           node initialization,condition,iteratio
 struct Block   	 { type_t _type;           node *statements;  int size; };
 struct State   	 { type_t _type; int line; node id, parameters, events; };
 struct Event   	 { type_t _type; int line; node id, parameters, block; };
-struct EventH    { type_t _type;           int id; int nArgs; int *argTypes; };
+struct EventH    { type_t _type;           int index; };/*Table*/
 
 /* after leg */
 struct EmitContext{
@@ -145,6 +145,10 @@ double Float_value(node obj);
 node newString(char *value);
 #define String_value(obj) (get(obj, String, value))
 
+node newEventObject(node sym, int index);
+node putFuncToEo(node eo, node func, node symbol, int index);
+
+
 /* Symbol: not string */
 node newSymbol(char *name);
 node intern(char *name);
@@ -205,7 +209,7 @@ node newState(node id, node parameters, node events, int line);
 
 node newEvent(node id, node parameters, node block,int line);
 
-node newEventH(int id, int nArgs);
+node newEventH(int index);
 
 node newVariable(node type, node id);
 
@@ -245,7 +249,7 @@ enum {
 char* appendNewChar(char* arr, int size, char value);
 int* appendNewInt(int* arr, int size, int value);
 
-extern node TYPES[4]; // 0: Undefined, 1: Integer, 2: Float, 3: String
+extern node TYPES[5]; // 0: Undefined, 1: Integer, 2: Float, 3: String, 4: EventObject
 #endif // NODE_H
 
 /*

@@ -199,6 +199,7 @@ int timer_handler(oop eh)
 	}
 	return 0; // return 0 to indicate no event
 }
+
 int timer_handler_init(oop eh){
 	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
 	eh->EventHandler.data[1] = 0;
@@ -262,32 +263,32 @@ int compile_eh_init(){
 	node EH = NULL;
 
 	EH = intern("eventEH");
-	EH->Symbol.value = newEventH(EVENT_EH,EventTable[EVENT_EH].nArgs); // 1 argument
+	EH->Symbol.value = newEventH(EVENT_EH); // 1 argument
 
     EH = intern("timerEH");
-    EH->Symbol.value = newEventH(TIMER_EH,EventTable[TIMER_EH].nArgs); // 1 argument
+    EH->Symbol.value = newEventH(TIMER_EH); // 1 argument
 
     EH = intern("touchEH");
-    EH->Symbol.value = newEventH(TOUCH_EH,EventTable[TOUCH_EH].nArgs); // 1 argument
+    EH->Symbol.value = newEventH(TOUCH_EH); // 1 argument
 
     EH = intern("collisionEH");
-    EH->Symbol.value = newEventH(COLLISION_EH,EventTable[COLLISION_EH].nArgs); // 2 arguments
+    EH->Symbol.value = newEventH(COLLISION_EH); // 2 arguments
 
     EH = intern("selfStateEH");
-    EH->Symbol.value = newEventH(SELF_STATE_EH,EventTable[SELF_STATE_EH].nArgs); // 0 arguments
+    EH->Symbol.value = newEventH(SELF_STATE_EH); // 0 arguments
 
     EH = intern("clickEH");
-    EH->Symbol.value = newEventH(CLICK_EH,EventTable[CLICK_EH].nArgs); // 2
+    EH->Symbol.value = newEventH(CLICK_EH); // 2 arguments
     return 1; // return 1 to indicate success
 }
 
  struct EventTable __EventTable__[] = {
-	[EVENT_EH] = {event_handler,      event_handler_init, 0, 0},      // EVENT_EH
-	[TIMER_EH] = {timer_handler,      timer_handler_init, 1, 2},      // TIMER_EH
-	[TOUCH_EH] = {touch_handler,      event_handler_init, 1, 0},      // TOUCH_EH
-	[COLLISION_EH] = {collision_handler,  event_handler_init, 2, 0},  // COLLISION_EH
-	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0, 0}, // SELF_STATE_EH
-	[CLICK_EH] = {click_handler,      event_handler_init, 2, 0},      // CLICK_EH
+	[EVENT_EH] = {event_handler,      event_handler_init, 0,NULL, 0},      // EVENT_EH
+	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char[]) {Integer}, 2},      // TIMER_EH
+	[TOUCH_EH] = {touch_handler,      event_handler_init, 1,(char[]){Integer}, 0},      // TOUCH_EH
+	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
+	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
+	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
 };
 
 
@@ -426,5 +427,20 @@ enum {
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
 };
+
+int compile_eo_init(){
+	node sym = NULL;
+	node func = NULL;
+	node eo = NULL;
+
+	sym = intern("broadcast");
+	eo = newEventObject(sym, WEB_RTC_BROADCAST_EO);// var chat = broadcast(channel, password);
+	func = newEventH(0);sym = newSymbol("received");
+	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
+	func = newStdFunc(0);sym = newSymbol("send");
+	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
+
+	return 0; // return 0 to indicate success
+}
 
 #endif // SHICA_LIBRARY_C

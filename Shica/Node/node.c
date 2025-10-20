@@ -92,6 +92,42 @@ node newString(char *value)
 	return str;
 }
 
+node newEventObject(node sym, int index)
+{
+	gc_pushRoot((void*)&sym);
+	GC_PUSH(node, eo, newNode(EventObject));
+	eo->EventObject.index = index;
+	eo->EventObject.funcs = malloc(sizeof(node) * 1); // initial size 1
+	sym->Symbol.value = eo;
+	GC_POP(eo);
+	gc_popRoots(1);
+	return eo;
+}
+
+node putFuncToEo(node eo, node func, node symbol, int index)
+{
+	printf("test putFuncToEo\n");
+	//node->EventObject.funcs[index]->Symbol.name -> symbol
+	//node->EventObject.funcs[index]->Symbol.value -> func 
+	assert(getType(eo) == EventObject);
+	assert(getType(symbol) == Symbol);
+	assert(getType(func) == EventH || getType(func) == StdFunc);
+	gc_pushRoot((void*)&eo);
+	gc_pushRoot((void*)&func);
+	gc_pushRoot((void*)&symbol);return 0;
+#if DEBUG
+	for(int i=0; i<index; i++)
+		assert(eo->EventObject.funcs[i] != NULL); // ensure no overwrite
+#endif
+	assert(eo->EventObject.funcs[index] == NULL); // ensure no overwrite
+	get(eo,EventObject,funcs) = (node*)realloc(get(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func, +1 for NULL terminator
+	get(symbol,Symbol,value) = func;
+	get(eo,EventObject,funcs)[index] = symbol;
+	get(eo,EventObject,funcs)[index + 1] = NULL; // NULL terminate the array
+	gc_popRoots(3);
+	return eo;
+}
+
 node newSymbol(char *name)
 {
 	gc_pushRoot((void*)&name);
@@ -573,11 +609,10 @@ node newEvent(node id, node parameters, node block,int line)
 	gc_popRoots(3);
 	return node;
 }
-node newEventH(int id, int nArgs)
+node newEventH(int index)
 {
 	node node = newNode(EventH);
-	node->EventH.id = id;
-	node->EventH.nArgs = nArgs;
+	node->EventH.index = index;
 	return node;
 }
 
@@ -828,7 +863,7 @@ void printlnObject(node node, int indent)
 	    break;
 	}
 	case EventH: {
-	    printf("EventH %d, nArgs: %d\n", get(node, EventH,id), get(node, EventH,nArgs));
+	    printf("EventH %d\n", get(node, EventH,index));
 	    break;
 	}
 	default:
@@ -867,11 +902,12 @@ int* appendNewInt(int *arr, int size, int value)
 	return arr;
 }
 
-node TYPES[4] = {
+node TYPES[5] = {
 	MAKE_OOP_FLAG(Undefined),// var | fn
 	MAKE_OOP_FLAG(Integer),// int
 	MAKE_OOP_FLAG(Float),// float
 	MAKE_OOP_FLAG(String),// string
+	MAKE_OOP_FLAG(EventObject),// event object
 };
 
 #ifdef MSGC
