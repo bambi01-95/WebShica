@@ -646,11 +646,11 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 {
 	for(int scope = 0; scope < 3; scope++)
 	{
-		node arr = ctx->EmitContext.global_vars + sizeof(node) * scope;
-		if(arr == NULL) continue;
+		node *arr = &ctx->EmitContext.global_vars + scope;
+		if(*arr == NULL) continue;
 		// linear search for existing variable
-		int nvariables = arr ? arr->Array.size : 0;
-		node *variables = arr ? arr->Array.elements : 0;
+		int nvariables = *arr ? get(*arr, Array, size) : 0;
+		node *variables = *arr ? get(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(variables[i]->Variable.type != sym){
@@ -699,24 +699,26 @@ struct RetVarFunc appendVariable(node arr, node var, node type, node value)
 struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE 
 {
 	assert(ctx != NULL);
+
 	for(int scope = 0; scope < 3; scope++)
 	{
-		node arr = ctx->EmitContext.global_vars + sizeof(node) * scope;
-		if(arr == NULL) continue;
-		int nvariables = arr ? arr->Array.size : 0;
-		node *variables = arr ? arr->Array.elements : 0;
+		node* arr = &ctx->EmitContext.global_vars + scope;
+		if(*arr == NULL) continue;
+		assert(getType(*arr) == Array);
+
+		int nvariables = *arr ? get(*arr, Array, size) : 0;
+		node *variables = *arr ? get(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(type!=NULL && variables[i]->Variable.type != type){
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
-					printf("variable type mismatch\n");
 					return (struct RetVarFunc){0, -1}; // error
 				}
+				printf("variable type %d\n", GET_OOP_FLAG(variables[i]->Variable.type));
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
 			}	
 		}
 	}
-	printf("variable %s not found\n", get(sym, Symbol,name));
 	reportError(ERROR, 0, "variable %s not found", get(sym, Symbol,name));
 	return (struct RetVarFunc){0, -1, NULL}; // not found
 }
@@ -816,6 +818,11 @@ void printlnObject(node node, int indent)
 	    printlnObject(get(node, SetArray,array), indent+1);
 	    printlnObject(get(node, SetArray,index), indent+1);
 	    printlnObject(get(node, SetArray,value), indent+1);
+	    break;
+	}
+	case GetField: {
+	    printf("GetField %s\n", get(get(node, GetField,field), Symbol,name));
+	    printlnObject(get(node, GetField,id), indent+1);
 	    break;
 	}
 	case Call: {

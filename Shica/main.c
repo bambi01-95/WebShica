@@ -696,8 +696,7 @@ int parseType(node vars, node ast)
 		case GetVar:{
 			struct RetVarFunc var = searchVariable(vars, get(ast, GetVar,id), NULL);
 			if(var.index == -1)return -1; // variable not found
-			node type = get(vars, EmitContext, global_vars)->Array.elements[var.index]->Variable.type;
-			return GET_OOP_FLAG(type);
+			return GET_OOP_FLAG(var.variable->Variable.type);
 		}
 		default:
 			reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));
@@ -1097,11 +1096,12 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Print:{
 			printTYPE(_Print_);
 			node args = get(ast, Print,arguments);
+			node local_vars = get(vars, EmitContext, local_vars);
 			int nArgs = 0;
 			while (args != nil) {
-				printf("compiling print argument %d\n", nArgs+1);
 				node value = get(args, Args, value);
 				int argType = parseType(vars, value);
+				printf(" argType: %d\n", argType);
 				if(argType == -1) return 1; // type error
 				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
 				switch(argType){
@@ -1296,7 +1296,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Event:{
 			printTYPE(_Event_);
 			node id = get(ast, Event,id);
-			if(getType(id) == GetField)//chat.received()
+			//chat.received()
+			if(getType(id) == GetField)
 			{
 				node parent = get(id, GetField, id); // get the variable from the GetField
 				struct RetVarFunc var = searchVariable(vars, parent, type);
@@ -1310,8 +1311,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 				char* fieldName = get(get(id, GetField, field),Symbol,name);
 				id = NULL;
 				for(int i = 0; i < eo.nFuncs; ++i){
-					if(funcs[i] == NULL) printf("funcs[%d] is NULL\n", i);
-					else printf("funcs[%d]: %s\n", i, get(funcs[i], Symbol,name));
 					if(strcmp(get(funcs[i], Symbol,name), fieldName) == 0){
 						id = funcs[i];
 						break;
@@ -1323,8 +1322,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
 			}
-			node params = get(ast, Event,parameters);
-			node block = get(ast, Event,block);
+			node params = get(ast, Event, parameters);
+			node block = get(ast, Event, block);
 			node eh = get(id,Symbol,value);
 			if(getType(eh) != EventH) {
 				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, get(id, Symbol,name));
@@ -1338,6 +1337,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
+				printf("event parameter %d: %s\n", paramSize+1, get(get(params, Eparams, id), Symbol,name));
 				appendVariable(
 					get(vars, EmitContext, local_vars), 
 					get(params, Eparams, id), 
@@ -1362,7 +1362,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int aPos = prog->IntArray.size; // remember the position of the event handler
 			emitII(prog, iMKSPACE, 0); // reserve space for local variables
 			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
-
 
 			if(emitOn(prog, vars, block, type))return 1; // compile block
 			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
