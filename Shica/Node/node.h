@@ -78,6 +78,7 @@ struct Variable{
     type_t _type;
     node type; // type of variable (for future use)
     node id; // symbol
+    node value;// EventObject or Types
 };
 
 union Node {
@@ -212,13 +213,15 @@ node newEvent(node id, node parameters, node block,int line);
 node newEventH(int index);
 
 node newVariable(node type, node id);
+node newVariableWithValue(node type, node id, node value);
 
 struct RetVarFunc{
 	ScopeClass scope; // G: global, S: state, L: local
 	int index; // index of the variable
+    node variable;// variable node
 };
 struct RetVarFunc insertVariable(node ctx, node sym, node type);
-struct RetVarFunc appendVariable(node ctx, node sym, node type);
+struct RetVarFunc appendVariable(node ctx, node sym, node type, node value);
 struct RetVarFunc searchVariable(node ctx, node sym, node type);
 #define discardVariables(V,X) V->Array.size = X
 

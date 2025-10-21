@@ -64,7 +64,7 @@ cc:
 	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 input:
-	./$(NATIVEOUT)  ./input.txt
+	./$(NATIVEOUT) < ./input.txt -c
 
 # build vm.js
 web: $(WASMOUT)

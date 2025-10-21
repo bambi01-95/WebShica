@@ -106,7 +106,6 @@ node newEventObject(node sym, int index)
 
 node putFuncToEo(node eo, node func, node symbol, int index)
 {
-	printf("test putFuncToEo\n");
 	//node->EventObject.funcs[index]->Symbol.name -> symbol
 	//node->EventObject.funcs[index]->Symbol.value -> func 
 	assert(getType(eo) == EventObject);
@@ -114,16 +113,18 @@ node putFuncToEo(node eo, node func, node symbol, int index)
 	assert(getType(func) == EventH || getType(func) == StdFunc);
 	gc_pushRoot((void*)&eo);
 	gc_pushRoot((void*)&func);
-	gc_pushRoot((void*)&symbol);return 0;
+	gc_pushRoot((void*)&symbol);
 #if DEBUG
 	for(int i=0; i<index; i++)
 		assert(eo->EventObject.funcs[i] != NULL); // ensure no overwrite
 #endif
 	assert(eo->EventObject.funcs[index] == NULL); // ensure no overwrite
-	get(eo,EventObject,funcs) = (node*)realloc(get(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func, +1 for NULL terminator
+	printf("Putting function %s at index %d of EventObject\n", get(symbol,Symbol,name), index);
+	get(eo,EventObject,funcs) = (node*)realloc(get(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func
 	get(symbol,Symbol,value) = func;
 	get(eo,EventObject,funcs)[index] = symbol;
-	get(eo,EventObject,funcs)[index + 1] = NULL; // NULL terminate the array
+	get(eo,EventObject,funcs)[index + 1] = NULL;
+	//remove
 	gc_popRoots(3);
 	return eo;
 }
@@ -622,7 +623,20 @@ node newVariable(node type, node id)
 	node node = newNode(Variable);
 	node->Variable.id = id;
 	node->Variable.type = type;
+	node->Variable.value = NULL;
 	gc_popRoots(1);
+	return node;
+}
+
+node newVariableWithValue(node type, node id, node value)
+{
+	gc_pushRoot((void*)&id);
+	gc_pushRoot((void*)&value);
+	node node = newNode(Variable);
+	node->Variable.id = id;
+	node->Variable.type = type;
+	node->Variable.value = value;
+	gc_popRoots(2);
 	return node;
 }
 
@@ -643,7 +657,7 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name)); 
 					return (struct RetVarFunc){0, -1}; // error
 				}
-				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
+				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
 			}	
 		}
 	}
@@ -652,7 +666,7 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
 	arr->Array.elements[arr->Array.size] = newVariable(type, sym);
 	gc_popRoots(1);
-	return (struct RetVarFunc){SCOPE_LOCAL, arr->Array.size++};
+	return (struct RetVarFunc){SCOPE_LOCAL, arr->Array.size++, arr->Array.elements[arr->Array.size-1]};
 }
 
 /*
@@ -660,7 +674,7 @@ IF variable already exists, report error and return NULL
 ELSE append variable to the array and return the appended variable
 */
 //FIXME: report error line number
-struct RetVarFunc appendVariable(node arr, node var, node type)
+struct RetVarFunc appendVariable(node arr, node var, node type, node value)
 {
 	assert(arr != NULL);
 	// linear search for existing variable
@@ -669,15 +683,16 @@ struct RetVarFunc appendVariable(node arr, node var, node type)
 	for (int i = 0;  i < nvariables;  ++i){
 		if ((variables[i]->Variable.id)== var){
 			reportError(ERROR, 0, "variable %s already exists", get(var, Symbol,name));
-			return (struct RetVarFunc){0, -1}; // error
+			return (struct RetVarFunc){0, -1, NULL}; // error
 		}
 	}
 	gc_pushRoot((void*)&arr);
 	gc_pushRoot((void*)&var);
+	gc_pushRoot((void*)&value);
 	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
-	arr->Array.elements[arr->Array.size] = newVariable(type, var);
-	gc_popRoots(2);
-	return (struct RetVarFunc){0, arr->Array.size++};
+	arr->Array.elements[arr->Array.size] = value ? newVariableWithValue(type, var, value) : newVariable(type, var);
+	gc_popRoots(3);
+	return (struct RetVarFunc){0, arr->Array.size++, arr->Array.elements[arr->Array.size-1]};
 }
 
 //FIXME: report error line number
@@ -697,13 +712,13 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE
 					printf("variable type mismatch\n");
 					return (struct RetVarFunc){0, -1}; // error
 				}
-				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i};
+				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
 			}	
 		}
 	}
 	printf("variable %s not found\n", get(sym, Symbol,name));
 	reportError(ERROR, 0, "variable %s not found", get(sym, Symbol,name));
-	return (struct RetVarFunc){0, -1}; // not found
+	return (struct RetVarFunc){0, -1, NULL}; // not found
 }
 
 node newEmitContext()

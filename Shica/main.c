@@ -76,7 +76,6 @@ void rprintf(char *msg, ...)
 	printf("\x1b[0m");
 	va_end(ap);
 }
-#define stop() printf("%s line %d\n", __FILE__, __LINE__); fflush(stdout);
 
 
 
@@ -85,9 +84,9 @@ void rprintf(char *msg, ...)
 int compile_event_init(){
 	//lsl event handler
 	entryEH = intern("entryEH");
-	entryEH->Symbol.value = newEventH(0,0); // 0 argument
+	entryEH->Symbol.value = newEventH(0); // 0 argument
 	exitEH = intern("exitEH");
-	exitEH->Symbol.value =  newEventH(0,0); // 0 argument
+	exitEH->Symbol.value =  newEventH(0); // 0 argument
 	//standard event handler
 	setEventTable(__EventTable__);
 	setStdFuncTable(__StdFuncTable__);
@@ -454,6 +453,20 @@ oop execute(oop prog,oop entity, oop agent)
 			oop *ehs = entity->Agent.eventHandlers = (oop*)gc_beAtomic(malloc(sizeof(oop*) * ehSize)); //initialize the event handlers
 			for(int i=0; i<ehSize; ++i){
 				op = fetch();
+				/*
+				oop eo = NULL;
+				switch(op){
+					case GLOBAL:{
+						op = fetch();
+						break;
+					}
+					case STT:{
+						op = fetch();
+						break;
+					}
+				}
+				newEventHandler(eventId, nThreads, eo);
+			*/
 				assert(op == iSETEVENT);
 				printOP(iSETEVENT);
 				int eventID = fetch(); // get the event ID
@@ -819,7 +832,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					while(params != nil){
 						node sym = get(params, Params, id);
 						node type = get(params, Params, type);
-						struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars), sym, type); // insert parameter into local variables
+						struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars), sym, type, NULL); // insert parameter into local variables
 						if(var.index == -1){
 							GC_POP(argTypes);
 							GC_POP(closure);
@@ -846,6 +859,69 @@ int emitOn(oop prog,node vars, node ast, node type)
 					get(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
 				}
+				case Call:{
+					printTYPE(_Call_);
+
+					node func = get(rhs, Call, function)->GetVar.id->Symbol.value;
+
+					if(func == false){
+						reportError(ERROR, get(ast,SetVar,line), "variable %s is not defined", get(rhs, Call,function)->GetVar.id->Symbol.name);
+						return 1;
+					}
+					switch(getType(func)){
+						case EventObject:{//var t = timer();
+							printTYPE(__EventObject__);
+							node args = get(rhs, Call, arguments);
+							int index = get(func, EventObject, index); // get the index of the event object
+							struct EventObjectTable eo = EventObjectTable[index];
+							node* funcs = get(func, EventObject, funcs);
+							for(int i = 0; i < eo.nFuncs; i++){
+								if(funcs[i] == NULL)printf("index %d function %d is NULL\n", index, i);
+							}
+							int argsCount = 0;
+							while(args != nil){
+								if(argsCount >= eo.nArgs){
+									reportError(ERROR, get(ast,Call,line), "event object %s expects %d arguments, but got more", get(sym, Symbol,name), eo.nArgs);
+									return 1;
+								}
+								node arg = get(args, Args, value);
+								if(emitOn(prog, vars, arg, TYPES[eo.argTypes[argsCount]]))return 1; // compile argument
+								args = get(args, Args, next);
+								argsCount++;
+							}
+							if(eo.nArgs != argsCount){
+								reportError(ERROR, get(ast,Call,line), "event object %s expects %d arguments, but got %d", get(sym, Symbol,name), eo.nArgs, argsCount);
+								return 1;
+							}
+							//initialize the event handler opcode
+							emitII(prog, eCALL, index); // call the event object and push it to top of the stack
+							printf("defining event object variable %s index \n", get(sym, Symbol,name));
+							switch(get(ast, SetVar,scope)) {
+								case SCOPE_LOCAL:{
+									reportError(ERROR, get(ast,SetVar,line), "cannot define event object %s as local variable", get(sym, Symbol,name));
+									return 1;
+								}
+								case SCOPE_STATE_LOCAL:{
+									struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType, func);
+									emitII(prog, iSETSTATEVAR, var.index);
+									return 0;
+								}
+								case SCOPE_GLOBAL:{
+									struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType, func);
+									emitII(prog, iSETGLOBALVAR, var.index);
+									return 0;
+								}
+							}
+							reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+							return 1;
+						}
+						default:{
+							fatal("file %s line %d emitOn: unknown Call type %d", __FILE__, __LINE__, getType(func));
+							reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+							return 1;
+						}
+					}
+				}
 				case Integer:
 				case String:
 				case GetVar:
@@ -864,14 +940,14 @@ int emitOn(oop prog,node vars, node ast, node type)
 						case SCOPE_STATE_LOCAL:{
 							printf("defining state variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType);
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType, NULL);
 							emitII(prog, iSETSTATEVAR, var.index);
 							return 0;
 						}
 						case SCOPE_GLOBAL:{
 							printf("defining global variable %s\n", get(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType);
+							struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType, NULL);
 							emitII(prog, iSETGLOBALVAR, var.index);
 							return 0;
 						}
@@ -890,6 +966,37 @@ int emitOn(oop prog,node vars, node ast, node type)
 			reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 			return 0;
 		}
+		case GetField:{
+			printTYPE(_GetField_);
+			// search variable table
+			node id = get(ast, GetField, id);
+			node field = get(ast, GetField, field);
+
+			// node var = findVariable(vars, id);
+
+			/* Event Object: chat.send(msg); chat.remove();
+			int index = get(var,Variable,index);
+			if(index == -1){
+				reportError(ERROR, get(ast,GetField,line), "variable %s not found", get(id, Symbol,name));
+				return 1;
+			}
+			// seach eo[index] have the field
+			// if so, push the eo index and compile the field
+			// else, error
+			*/
+
+			// Type: pos.x, agent.pos.y
+			/*
+			emitOn(prog, Global_field, id);
+			emitOn(prog, State_field, id);
+			emitOn(prog, Local_field, id);
+			*/
+
+
+			fatal("file %s line %d emitOn: GetField is not supported yet", __FILE__, __LINE__);
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+			return 1;
+		}
 		case Call:{
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
@@ -900,12 +1007,17 @@ int emitOn(oop prog,node vars, node ast, node type)
 			node func = get(id, Symbol, value); // get the function from the variable;
 
 			switch(getType(func)){
+				case EventObject:{
+					reportError(DEVELOPER, get(ast,Call,line), "event object call is not supported yet");
+					return -1;
+				}
 				case EventH:{// event handler
 					printTYPE(_EventH_);
-					int index = get(func, EventH,id);// get the index of the event handler
-					int nArgs = get(func, EventH,nArgs);
-					int *argTypes = get(func, EventH, argTypes);
-					
+					int index = get(func, EventH,index);// get the index of the event handler
+					struct EventTable eh = EventTable[index];
+					int nArgs = eh.nArgs;
+					char *argTypes = eh.argTypes;
+
 					int argsCount = 0;
 					while(args != nil){
 						node arg = get(args, Eparams, id);
@@ -1157,7 +1269,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				printlnObject(id,1);
 				node eh = get(id,Symbol,value);
 
-				int eventID = eh->EventH.id; // get event ID
+				int eventID = eh->EventH.index; // get event ID
 				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
 				for(int j = 0; j < elements[ehi]; ++j) {
 					node event = eventList[i++];
@@ -1184,9 +1296,35 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Event:{
 			printTYPE(_Event_);
 			node id = get(ast, Event,id);
+			if(getType(id) == GetField)//chat.received()
+			{
+				node parent = get(id, GetField, id); // get the variable from the GetField
+				struct RetVarFunc var = searchVariable(vars, parent, type);
+				if(var.index == -1){
+					reportError(ERROR, get(ast,Event,line), "variable %s is not defined", get(parent, Symbol,name));
+					return 1;
+				}
+				int parentIndex = get(var.variable->Variable.value, EventObject, index);
+				node* funcs = get(var.variable->Variable.value, EventObject, funcs);
+				struct EventObjectTable eo = EventObjectTable[parentIndex];
+				char* fieldName = get(get(id, GetField, field),Symbol,name);
+				id = NULL;
+				for(int i = 0; i < eo.nFuncs; ++i){
+					if(funcs[i] == NULL) printf("funcs[%d] is NULL\n", i);
+					else printf("funcs[%d]: %s\n", i, get(funcs[i], Symbol,name));
+					if(strcmp(get(funcs[i], Symbol,name), fieldName) == 0){
+						id = funcs[i];
+						break;
+					}
+				}
+				if(id == NULL){
+					reportError(ERROR, get(ast,Event,line), "event object %s has no event %s", get(parent, Symbol,name), fieldName);
+					return 1;
+				}
+				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
+			}
 			node params = get(ast, Event,parameters);
 			node block = get(ast, Event,block);
-
 			node eh = get(id,Symbol,value);
 			if(getType(eh) != EventH) {
 				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, get(id, Symbol,name));
@@ -1195,7 +1333,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			}
 
 			get(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
-			int nArgs = eh->EventH.nArgs;
+			int nArgs = EventTable[eh->EventH.index].nArgs;
 			int paramSize =0;
 			int cPos      = 0;
 
@@ -1203,7 +1341,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 				appendVariable(
 					get(vars, EmitContext, local_vars), 
 					get(params, Eparams, id), 
-					get(params, Eparams, type)); // add parameter to local variables
+					get(params, Eparams, type),
+					NULL); // add parameter to local variables
 				if(get(params, Eparams, cond) != false){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, get(params, Eparams, cond), get(params, Eparams, type))) return 1; // compile condition if exists
@@ -1232,6 +1371,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			get(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(node,apos, newInteger(aPos));
 			GC_PUSH(node,cpos,newInteger(cPos));
+/* BE CAREFUL */
 			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
 			GC_POP(cpos);
 			GC_POP(apos);
@@ -1396,6 +1536,12 @@ simple:
 				int pos = code->IntArray.elements[++i];
 				int nArgs = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, pos, (i+1)+pos, nArgs);
+				break;
+			}
+			case eCALL:{
+				inst = "eCall";
+				int index = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, index);
 				break;
 			}
 			case iTRANSITION: {
@@ -2025,6 +2171,8 @@ int compile_init()
 	compile_event_init(); // initialize the event system
 	printf("compile_func_init\n");
 	compile_func_init(); // initialize the standard functions
+	printf("compile_eo_init\n");
+	compile_eo_init(); // initialize the eo system
 	printf("compile_init done\n");
 	return 1;
 }
@@ -2221,6 +2369,8 @@ int main(int argc, char **argv)
 	rprintf("Compiling code:\n");
 	compile_event_init(); // initialize the event system
 	compile_func_init(); // initialize the standard functions
+	compile_eo_init(); // initialize the eo functions
+
 	// compile code
 	oop code = compile();
 

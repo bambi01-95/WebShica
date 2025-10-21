@@ -115,10 +115,11 @@ enum {
 // 
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
-	[TIME_EO] = {2, 1, (int[]){Integer, String}}, // Timer event object with 2 arguments and 1 function
+	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
 };
 
 int compile_eo_init(){
+	setEventObjectTable(__EventObjectTable__);
 	node sym = NULL;
 	node func = NULL;
 	node eo = NULL;

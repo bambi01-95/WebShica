@@ -1,1 +1,7 @@
-var t = timer();
+var t = timer();//event object
+
+stt s(){
+    t.sec(int sec){
+        print(sec);
+    }
+}
