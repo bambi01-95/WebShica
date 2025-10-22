@@ -319,6 +319,12 @@ void setStdFuncTable(struct StdFuncTable *table)
 	StdFuncTable = table;
 }
 
+eo_func_t *EventObjectFuncTable = NULL;
+void setEventObjectFuncTable(eo_func_t *tables)
+{
+	EventObjectFuncTable = tables;
+}
+
 struct EventObjectTable *EventObjectTable = NULL;
 void setEventObjectTable(struct EventObjectTable *table)
 {

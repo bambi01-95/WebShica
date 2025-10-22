@@ -14,6 +14,11 @@ int event_handler(oop eh){
 int event_handler_init(oop eh){
 	return 1;
 }
+int event_object_handler_init(oop eh){
+	printf("event_object_handler_init\n");
+	printf("ARE YOU SEEING THIS???\n");
+	return 1;
+}
 
 #include <time.h>
 int timer_handler(oop eh){
@@ -48,6 +53,20 @@ int compile_eh_init(){
 }
 
 int timer_sec_handler(oop eh){
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	oop* fields = instance->Instance.fields;
+	int interval = IntVal_value(fields[0]);
+	int pre = IntVal_value(fields[1]);
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	if(now - pre >= interval){
+		fields[1] = newIntVal(now);
+		fields[2] = newIntVal(IntVal_value(fields[2]) + 1); // increment count
+		oop stack = newStack(0);
+		enqueue3(eh, pushStack(stack, fields[2])); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
+	}
 	return 0;
 }
 int timer_min_handler(oop eh){
@@ -60,9 +79,9 @@ int timer_hour_handler(oop eh){
  struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0, NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char []){Integer}, 2},      // TIMER_EH
-	[T_TIMER_SEC_EH] = {timer_sec_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_SEC_EH
-	[T_TIMER_MIN_EH] = {timer_min_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_MIN_EH
-	[T_TIMER_HOUR_EH] = {timer_hour_handler,      timer_handler_init, 1,(char []){Integer}, 0},      // T_TIMER_HOUR_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
 };
 
 
@@ -122,7 +141,25 @@ enum {
 	TIME_EO, // Timer Event Object
 	END_EO, /* DO NOT REMOVE THIS LINE */
 };
-// 
+
+oop web_rtc_broadcast_eo(oop stack){
+	return 0;
+}
+oop time_eo(oop stack){
+	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
+	getInstanceField(instance, 0) = newIntVal(0); // interval
+	getInstanceField(instance, 1) = newIntVal(0); // count
+	time_t t = time(NULL);
+	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // label
+	GC_POP(instance);
+	return instance;
+}
+
+eo_func_t __EventObjectFuncTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = web_rtc_broadcast_eo,
+	[TIME_EO] = time_eo,
+};
+
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
 	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions

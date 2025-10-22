@@ -112,6 +112,7 @@ int executor_func_init()
 {
 	// Initialize the function handler for the executor
 	setStdFuncTable(__StdFuncTable__);
+	setEventObjectFuncTable(__EventObjectFuncTable__);
 	return 1;
 }
 
@@ -380,7 +381,9 @@ oop execute(oop prog,oop entity, oop agent)
 			continue;
 		}
 		case eCALL:{
-
+			printOP(eCALL);
+			l = fetch(); // get index of Function for initializing EO.
+			push(EventObjectFuncTable[l](stack));
 			continue;
 		}
 		case iPUSH:{
@@ -471,27 +474,37 @@ oop execute(oop prog,oop entity, oop agent)
 			oop *ehs = entity->Agent.eventHandlers = (oop*)gc_beAtomic(malloc(sizeof(oop*) * ehSize)); //initialize the event handlers
 			for(int i=0; i<ehSize; ++i){
 				op = fetch();
-				/*
-				oop eo = NULL;
+				printf("op: %d\n", op);
+				oop eoEhData = NULL;
 				switch(op){
-					case GLOBAL:{
+					case iGETGLOBALVAR:{
+						l = fetch();
+						eoEhData = agent->Agent.stack->Stack.elements[l];
 						op = fetch();
 						break;
 					}
-					case STT:{
+					case iGETSTATEVAR:{
+						l = fetch();
+						eoEhData = agent->Agent.stack->Stack.elements[agent->Agent.rbp + l];
 						op = fetch();
 						break;
+					}
+					default:{
+						reportError(DEVELOPER, 0, "iSETSTATE: unknown opcode %d for event handler initialization", op);
+						return retFlags[ERROR_F]; // return ERROR_F to indicate error
 					}
 				}
-				newEventHandler(eventId, nThreads, eo);
-			*/
 				assert(op == iSETEVENT);
 				printOP(iSETEVENT);
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
 				printf("eventID: %d, nThreads: %d\n", eventID, nThreads);
 				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler <------ ERROR: FIX HERE
-				EventTable[eventID].init(ehs[i]);
+				if(eoEhData == NULL){
+					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
+				}else{
+					ehs[i]->EventHandler.data[0]/*event object eh data[0] should be hold instance data*/ = eoEhData;
+				}
 				for(int j=0; j<nThreads; ++j){
 					op = fetch();
 					assert(op == iSETPROCESS);

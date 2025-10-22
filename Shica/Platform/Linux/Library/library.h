@@ -24,6 +24,10 @@ int timer_handler(oop eh);
 extern  struct EventTable __EventTable__[];
 int compile_eh_init();
 int executor_event_init();
+
+/*===============EVENT OBJECT==============*/
+extern  eo_func_t __EventObjectFuncTable__[];
+
 /*===============STANDARD LIBRARY==============*/
 extern  struct StdFuncTable __StdFuncTable__[];
 int compile_func_init();

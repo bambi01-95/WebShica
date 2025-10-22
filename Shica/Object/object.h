@@ -27,10 +27,12 @@ typedef enum kind{
 } kind_t;
 
 struct Instance{
+	kind_t kind;
 	oop *fields;
 };
 
 struct Any{
+	kind_t kind;
 	int8_t markbit;
 	int8_t nData;
 	void **data;
@@ -109,6 +111,8 @@ union Object{
 	struct IntVal IntVal;
 	struct FloVal FloVal;
 	struct StrVal StrVal;
+	struct Instance Instance;
+	struct Any Any;
 };
 
 oop newIntVal(int value);
@@ -155,6 +159,10 @@ oop newThread(int aPos, int cPos,int ehIndex);
 oop newEventHandler(int ehIndex, int nThreads);
 
 oop newAgent(int id, int nEvents);
+
+typedef oop (*eo_func_t)(oop stack);
+extern eo_func_t *EventObjectFuncTable;
+void setEventObjectFuncTable(eo_func_t *tables);
 
 oop newInstance(int nFeilds);
 #define getInstanceField(obj, index) (((obj)->Instance.fields)[index])
