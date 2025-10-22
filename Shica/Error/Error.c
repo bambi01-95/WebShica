@@ -50,7 +50,7 @@ void initErrorList() {
     errorListHeader = NULL; // Initialize the error list to NULL
 }
 
-void reportError(const int type, const int line, const char * fmt, ...) {
+void _reportError(const int type, const int line, const char * fmt, ...) {
     ErrorList* e = malloc(sizeof(ErrorList));
     e->line = line;
     assert(type < ERROR_UNSUPPORTED); // Ensure type is valid

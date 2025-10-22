@@ -35,7 +35,15 @@ typedef struct ErrorList {
 
 void initErrorList();
 
-void reportError(const int type, const int line, const char * fmt, ...);
+void _reportError(const int type, const int line, const char * fmt, ...);
+
+#ifdef NDEBUG
+#define reportError(TYPE, LINE, FMT, ...) _reportError(TYPE, LINE, FMT, ##__VA_ARGS__)
+#else
+#define reportError(TYPE, LINE, FMT, ...) _reportError(TYPE, LINE, FMT, ##__VA_ARGS__); \
+    fprintf(stderr, "[Debug] Reported error at %s:%d\n", __FILE__, __LINE__);
+#endif
+
 
 void printErrorList();
 void freeErrorList();
