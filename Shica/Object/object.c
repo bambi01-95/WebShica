@@ -280,6 +280,31 @@ oop newAgent(int id, int nEvents)
 	return agent;
 }
 
+oop newInstance(int nFeilds)
+{
+	GC_PUSH(oop, instance, newEntity(Instance));
+	instance->Instance.fields = (oop*)gc_beAtomic(gc_alloc(sizeof(oop) * nFeilds));
+	for(int i=0; i<nFeilds; i++){
+		instance->Instance.fields[i] = NULL;
+	}
+	GC_POP(instance);
+	return instance;
+}
+
+oop newAny(int markbit, int nData)
+{
+	GC_PUSH(oop, any, newEntity(Any));
+	any->Any.markbit = markbit;
+	any->Any.nData = nData;
+	if(nData > 0){
+		any->Any.data = (void**)gc_beAtomic(gc_alloc(sizeof(void*) * nData));
+	}else{
+		any->Any.data = NULL;
+	}
+	GC_POP(any);
+	return any;
+}
+
 
 
 struct EventTable *EventTable = NULL;

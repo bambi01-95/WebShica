@@ -3,6 +3,11 @@
 #include "../Opcode/opcode.h"
 #include "../Error/error.h"
 #include "../GC/gc.h"
+#include <stdint.h>
+/*
+int32_t: 4 bytes -> int: 4 bytes
+int64_t: 8 bytes -> long long: 8 bytes
+*/
 typedef union Object Object;
 typedef Object *oop;
 
@@ -17,7 +22,19 @@ typedef enum kind{
 	Thread,
 	EventHandler,
 	Agent,
+	Instance,
+	Any,
 } kind_t;
+
+struct Instance{
+	oop *fields;
+};
+
+struct Any{
+	int8_t markbit;
+	int8_t nData;
+	void **data;
+};
 
 struct IntVal{
 	kind_t kind; // kind of the integer
@@ -139,6 +156,12 @@ oop newEventHandler(int ehIndex, int nThreads);
 
 oop newAgent(int id, int nEvents);
 
+oop newInstance(int nFeilds);
+#define getInstanceField(obj, index) (((obj)->Instance.fields)[index])
+
+oop newAny(int markbit, int nData);
+#define getAnyData(T, obj, index) ((T)((obj)->Any.data[index]))
+
 extern oop *IrCodeList;
 extern int nIrCode; // index of getIrCode
 oop getIrCode(int index);
@@ -162,7 +185,6 @@ struct EventObjectTable{
 };
 extern struct EventObjectTable *EventObjectTable;
 void setEventObjectTable(struct EventObjectTable *tables);
-
 
 int printAgent(oop agent);
 
