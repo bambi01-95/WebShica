@@ -709,7 +709,7 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE
 		node *variables = *arr ? get(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
-				if(type!=NULL && variables[i]->Variable.type != type){
+				if(type!=NULL && type!=TYPES[Undefined] && variables[i]->Variable.type != type){
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
 					return (struct RetVarFunc){0, -1}; // error
 				}

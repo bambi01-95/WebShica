@@ -8,7 +8,7 @@
 
 union Node;
 typedef union Node Node;
-typedef Node *node; // ordinary object pointer
+typedef Node *node;                 // ordinary object pointer 
 
 extern node nil;
 extern node false;

@@ -92,9 +92,19 @@ int lib_chat_send(oop stack)
 	return 0; // return 0 to indicate success
 }
 
+int lib_timer_reset(oop stack)
+{
+	oop chat = popStack(stack); // get timer object from stack
+	oop initVal = popStack(stack); // get initial value from stack (IntVal)
+	chat->EventHandler.data[0] = initVal; // reset the timer to initial value
+	return 0;
+}
+
  struct StdFuncTable __StdFuncTable__[] =
 {
 	{lib_exit, 1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
+	{lib_chat_send, 2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
+	{lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 };
 
 
@@ -140,7 +150,7 @@ int compile_eo_init(){
 	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hour");
 	putFuncToEo(eo, func, sym, 2);// t.hour(hour);
 	func = newStdFunc(T_TIMER_RESET_FUNC);sym = newSymbol("reset");
-	putFuncToEo(eo, func, sym, 3);// t.reset();
+	putFuncToEo(eo, func, sym, 3);// t.x();
 // Other Event Objects can be added here
 
 	return 0;

@@ -25,7 +25,8 @@
     "limits": "c",
     "locale": "c",
     "optional": "c",
-    "ratio": "c"
+    "ratio": "c",
+    "typeinfo": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

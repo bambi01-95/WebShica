@@ -967,10 +967,43 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case GetField:{
 			printTYPE(_GetField_);
 			// search variable table
-			node id = get(ast, GetField, id);
-			node field = get(ast, GetField, field);
+			const node id = get(ast, GetField, id);
+			const node field = get(ast, GetField, field);
 
-			// node var = findVariable(vars, id);
+			struct RetVarFunc var = searchVariable(vars, id, type);
+			if(var.index == -1)return 1; // variable not found
+			const node value = get(var.variable,Variable,value);
+			switch(getType(value))
+			{
+				case EventObject:{//readme: dev/common/eo.md: eo.func()
+					int eoIndex = get(value, EventObject,index);
+					const node * const funcs = get(value, EventObject,funcs);
+					//search field in eo.funcs
+					int fieldIndex = 0;
+					char* funcName = get(get(field, Call, function), GetVar, id)->Symbol.name;//Stopied at this line
+					while(funcs[fieldIndex] != nil){
+						if(strcmp(funcs[fieldIndex]->Symbol.name, funcName) == 0){
+							emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object
+							//chat.send(msg);
+							field->Call.function = funcs[fieldIndex];
+							emitOn(prog, vars, field, type);
+							return 0;
+						}
+						fieldIndex++;
+					}
+					reportError(ERROR, get(ast,GetField,line), "event object %s has no field %s", get(id, Symbol,name), get(field, Symbol,name));
+					return 1;
+				}
+				//case UserType:
+				default:{
+					fatal("file %s line %d emitOn: GetField is not supported for type %d yet", __FILE__, __LINE__, getType(value));
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					return 1;
+				}
+			}
+
+			stop();
+
 
 			/* Event Object: chat.send(msg); chat.remove();
 			int index = get(var,Variable,index);
@@ -999,7 +1032,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
 			node id   = get(ast, Call, function);
-			id = get(id, GetVar, id); // get the variable from the GetVar
+			if(getType(id) == GetVar)id = id->GetVar.id;
 			node args = get(ast, Call,arguments);
 
 			node func = get(id, Symbol, value); // get the function from the variable;

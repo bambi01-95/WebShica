@@ -29,3 +29,13 @@ put i // same
 
 
 
+## eo.func
+
+`case GetField`をみろ笑
+注意点は、`field->Call.function->GetVar.id`を直接変更している点だ。
+将来的に、
+```c
+chat.send().value();
+chat.send().x;
+```
+のような奇妙な文法がないことを前提としている。
