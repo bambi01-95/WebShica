@@ -894,7 +894,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 							}
 							//initialize the event handler opcode
 							emitII(prog, eCALL, index); // call the event object and push it to top of the stack
-							printf("defining event object variable %s index \n", get(sym, Symbol,name));
 							switch(get(ast, SetVar,scope)) {
 								case SCOPE_LOCAL:{
 									reportError(ERROR, get(ast,SetVar,line), "cannot define event object %s as local variable", get(sym, Symbol,name));
@@ -1266,15 +1265,31 @@ int emitOn(oop prog,node vars, node ast, node type)
 			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
 				if(elements[i] == 0){ ehi++;continue;} // skip empty events
 				node id = get(eventList[i], Event,id);
-				printlnObject(id,1);
+
+				if(getType(id) == GetField)//chat.received()
+				{
+					struct RetVarFunc var = searchVariable(vars, get(id, GetField, id), type);
+					if(var.index == -1)return 1; // variable not found
+					emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
+					node *funcs = get(var.variable->Variable.value, EventObject, funcs);
+					char * fieldName = get(get(id, GetField, field),Symbol,name);
+					int _i = 0;
+					while(funcs[_i] != NULL){
+						if(strcmp(get(funcs[_i], Symbol,name), fieldName) == 0){
+							id = funcs[_i];
+							break;
+						}
+						_i++;
+					}
+				}
+
 				node eh = get(id,Symbol,value);
 
-				int eventID = eh->EventH.index; // get event ID
+				int eventID = get(eh, EventH, index); // get event ID
 				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
 				for(int j = 0; j < elements[ehi]; ++j) {
 					node event = eventList[i++];
 					node posPair = get(event, Event,block);
-					printlnObject(get(event,Event,id),1);
 					emitIII(prog, iSETPROCESS ,Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
 				}
 				ehi++; // increment event handler index
@@ -1337,7 +1352,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
-				printf("event parameter %d: %s\n", paramSize+1, get(get(params, Eparams, id), Symbol,name));
 				appendVariable(
 					get(vars, EmitContext, local_vars), 
 					get(params, Eparams, id), 
@@ -1597,7 +1611,6 @@ int roots = gc_ctx.nroots;
 		if (ISTAG_FLAG(result)) {
 			break;
 		}
-		printf("test line %d: result flag %d\n", __LINE__, ISTAG_FLAG(result));
 		printf("compiling statement %d\n", line);
 		if(emitOn(prog, vars, result, NULL))return NULL;
 		result = parserRetFlags[PARSER_READY];

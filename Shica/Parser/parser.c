@@ -413,7 +413,7 @@ YY_ACTION(void) yy_1_INT(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_1_INT\n"));
   {
 #line 218
-   __ = TYPES[Integer];printf("detected INT type\n"); ;
+   __ = TYPES[Integer]; ;
   }
 #undef yythunkpos
 #undef yypos

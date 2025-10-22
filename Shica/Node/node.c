@@ -119,7 +119,6 @@ node putFuncToEo(node eo, node func, node symbol, int index)
 		assert(eo->EventObject.funcs[i] != NULL); // ensure no overwrite
 #endif
 	assert(eo->EventObject.funcs[index] == NULL); // ensure no overwrite
-	printf("Putting function %s at index %d of EventObject\n", get(symbol,Symbol,name), index);
 	get(eo,EventObject,funcs) = (node*)realloc(get(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func
 	get(symbol,Symbol,value) = func;
 	get(eo,EventObject,funcs)[index] = symbol;
@@ -714,7 +713,6 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE
 					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
 					return (struct RetVarFunc){0, -1}; // error
 				}
-				printf("variable type %d\n", GET_OOP_FLAG(variables[i]->Variable.type));
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
 			}	
 		}

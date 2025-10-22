@@ -215,7 +215,7 @@ TYPE = VAR | INT | FLO | STR | FUNC
 
 FUNC = "fn" - 
 VAR = "var" - { $$ = TYPES[Undefined]; }
-INT = "int" - { $$ = TYPES[Integer];printf("detected INT type\n"); }
+INT = "int" - { $$ = TYPES[Integer]; }
 FLO = "flo" - { $$ = TYPES[Float]; }
 STR = "str" - { $$ = TYPES[String]; }
 
