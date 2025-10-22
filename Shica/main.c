@@ -174,6 +174,7 @@ oop impleBody(oop code, oop eh, oop agent){
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;
 		}
+		if(ret == retFlags[ERROR_F]){stop();return ret;}
 	}
 	return ret; // return 1 to indicate success
 }
@@ -183,24 +184,37 @@ oop impleBody(oop code, oop eh, oop agent){
 int runNative(oop code){
 	GC_PUSH(oop, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
 	agent = execute(code, agent, agent);
+	if(agent == retFlags[ERROR_F]){
+		GC_POP(agent);
+		return 1; // return 1 to indicate error
+	}
 	dprintf("agent: %d\n", agent->Agent.isActive);
 	while(1){
 		if(agent->Agent.isActive == 0) {
 			agent = execute(code ,agent , agent);
+			if(agent == retFlags[ERROR_F]){
+				GC_POP(agent);
+				return 1; // return 1 to indicate error
+			}
 		}else{
 			for(int i = 0; i< agent->Agent.nEvents; ++i){
 				// get event data
 				oop eh = agent->Agent.eventHandlers[i];
 				EventTable[eh->EventHandler.EventH].eh(eh);
-				if(impleBody(code, eh, agent)==retFlags[TRANSITION_F]){
+				oop ret = impleBody(code, eh, agent);
+				if(ret == retFlags[TRANSITION_F]){
 					agent->Agent.isActive = 0;
 					break;
+				}
+				if(ret == retFlags[ERROR_F]){
+					GC_POP(agent);
+					return 1; // return 1 to indicate error
 				}
 			}
 		}
 	}
 	GC_POP(agent);
-	return 1; // return 1 to indicate success
+	return 0; // return 0 to indicate success
 }
 
 oop execute(oop prog,oop entity, oop agent)
@@ -363,6 +377,10 @@ oop execute(oop prog,oop entity, oop agent)
 			for (int i = 1;  i <= r;  ++i) {
 				push(pick((*rbp - i -1)));//pc
 			}
+			continue;
+		}
+		case eCALL:{
+
 			continue;
 		}
 		case iPUSH:{
@@ -555,13 +573,17 @@ oop execute(oop prog,oop entity, oop agent)
 			printf("\n");
 			return stack; // return the answer
 		}
-	    default:fatal("illegal instruction %d", op);
+	    default:{
+			reportError(DEVELOPER, 0, "execute: unknown opcode %d at pc %d", op, *pc -1);
+			return retFlags[ERROR_F]; // return ERROR_F to indicate error
+		}
 	}
 	}
+	reportError(DEVELOPER, 0, "execute: reached unreachable code");
+	return retFlags[ERROR_F]; // should never reach here
 # undef fetch
 # undef push
 # undef pop
-    return 0; // should never reach here
 }
 
 
@@ -2324,6 +2346,7 @@ int executeWebCodes(void)
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
+		if(agent==retFlags[Error_F])continue;
 		assert(agent->kind == Agent); // check if the agent is of type Agent
 		if(agent->Agent.isActive == 0){
 			agent = execute(webCodes[i] ,agent , agent);
@@ -2470,7 +2493,15 @@ int main(int argc, char **argv)
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
-	runNative(code);
+	printf("\tExecuting...\n");
+	int ret = runNative(code);
+	printf("\tExecution done.\n");
+
+	if(ret){
+		rprintf("Execution error.\n");
+		printErrorList(); // print the error list
+		return 1; // return 1 to indicate failure
+	}
 
 
 	rprintf("Execution finished.\n");
