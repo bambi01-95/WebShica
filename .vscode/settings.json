@@ -26,7 +26,8 @@
     "locale": "c",
     "optional": "c",
     "ratio": "c",
-    "typeinfo": "c"
+    "typeinfo": "c",
+    "node.h": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

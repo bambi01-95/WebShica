@@ -175,7 +175,7 @@ oop impleBody(oop code, oop eh, oop agent){
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;
 		}
-		if(ret == retFlags[ERROR_F]){stop();return ret;}
+		if(ret == retFlags[ERROR_F]){return ret;}
 	}
 	return ret; // return 1 to indicate success
 }
@@ -282,9 +282,8 @@ oop execute(oop prog,oop entity, oop agent)
 	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
 	    case iGETVAR:{
 			printOP(iGETVAR);
-			printf("pc %d\n", *pc);
 			int symIndex = fetch(); // need to change
-			push(stack->Stack.elements[symIndex + *rbp+1]); // get the variable value
+			push(stack->Stack.elements[symIndex + *rbp +1]); // get the variable value
 			continue;
 		}
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
@@ -436,8 +435,9 @@ oop execute(oop prog,oop entity, oop agent)
 		}
 		case iPRINT:{
 			printOP(iPRINT);
-			int val = (intptr_t)pop();
-			printf("%d", val);
+			int val = IntVal_value(pop());
+			printf("%d\n", val);
+			// stop();
 			continue;
 		}
 		case sPRINT:{
@@ -559,8 +559,8 @@ oop execute(oop prog,oop entity, oop agent)
 					continue;
 				}
 				default:{
-					fatal("execute: unknown entity kind %d", entity->kind);
-					return NULL; // should never reach here
+					reportError(DEVELOPER, 0, "iEOE: unknown entity kind %d", entity->kind);
+					return retFlags[ERROR_F]; // should never reach here
 				}
 			}
 			continue;

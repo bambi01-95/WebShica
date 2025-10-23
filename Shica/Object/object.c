@@ -209,7 +209,7 @@ void enqueue3(const oop eh,const oop newStack)//value should be stack
 			q->IntQue3.size = IntQue3Size; // reset size to max
 			//exit(1);
 		}
-		q->IntQue3.que[q->IntQue3.tail] = dupStack(newStack);
+		q->IntQue3.que[q->IntQue3.tail] = i==0 ? newStack : dupStack(newStack);
 		q->IntQue3.tail = (q->IntQue3.tail + 1) % IntQue3Size;
 		q->IntQue3.size++;
 	}
@@ -221,9 +221,7 @@ oop dequeue3(oop thread)
 	if (q->IntQue3.size == 0) {
 		return NULL; // queue is empty
 	}
-	oop stack = thread->Thread.stack =  newStack(0);
-	oop x = q->IntQue3.que[q->IntQue3.head];
-	pushStack(stack, x);
+	oop stack = thread->Thread.stack =  q->IntQue3.que[q->IntQue3.head];
 
 	q->IntQue3.head = (q->IntQue3.head + 1) % IntQue3Size;
 	q->IntQue3.size--;

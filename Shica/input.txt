@@ -2,7 +2,7 @@ var t = timer();//event object
 
 stt s(){
     t.sec(int sec){
-        t.reset(0);
+        t.reset(3);
         print(sec);
     }
 }

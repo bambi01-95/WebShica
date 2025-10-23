@@ -57,14 +57,15 @@ int timer_sec_handler(oop eh){
 	assert(instance->kind == Instance);
 	oop* fields = instance->Instance.fields;
 	int interval = IntVal_value(fields[0]);
-	int pre = IntVal_value(fields[1]);
+	int pre = IntVal_value(fields[2]);
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	if(now - pre >= interval){
-		fields[1] = newIntVal(now);
-		fields[2] = newIntVal(IntVal_value(fields[2]) + 1); // increment count
+		fields[2] = newIntVal(now);
+		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
+		printf("count : %d\n", IntVal_value(fields[1]));
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, fields[2])); // enqueue a stack with value
+		enqueue3(eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0;
@@ -113,9 +114,10 @@ int lib_chat_send(oop stack)
 
 int lib_timer_reset(oop stack)
 {
-	oop chat = popStack(stack); // get timer object from stack
 	oop initVal = popStack(stack); // get initial value from stack (IntVal)
-	chat->EventHandler.data[0] = initVal; // reset the timer to initial value
+	oop instance = popStack(stack); // get timer object from stack
+	assert(instance->kind == Instance);
+	instance->Instance.fields[0] = initVal; // reset the timer to initial value
 	return 0;
 }
 

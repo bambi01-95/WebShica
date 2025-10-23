@@ -1,5 +1,16 @@
 # Shica -Web-
 
+
+
+- eo.func -> enqueueに問題あり？
+
+
+
+
+
+
+
+
 ## WEB Shica TO DO LIST
 
 1. same page communication.
