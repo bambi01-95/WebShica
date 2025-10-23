@@ -26,6 +26,11 @@ typedef enum kind{
 	Any,
 } kind_t;
 
+kind_t getKind(oop o);
+oop _checkObject(oop obj, kind_t type, char *file, int line);
+#define getObj(PTR, KIND, FIELD)	(_checkObject((PTR), KIND, __FILE__, __LINE__)->KIND.FIELD)
+
+
 struct Instance{
 	kind_t kind;
 	oop *fields;
@@ -85,7 +90,7 @@ struct EventHandler{
 	kind_t kind;
 	int size;
 	int EventH;
-	oop *data; // event handler data (stack)
+	oop *data; // event handler data (stack / instance)
 	oop *threads; // thread that this handler belongs to
 }; 
 
@@ -93,7 +98,7 @@ struct Agent{
 	kind_t kind;
 	int id;
 	int isActive;
-	int nEvents;
+	int nEvents;//FIXME: rename nEH
 	int pc;
 	int rbp;
 	oop stack;
@@ -195,5 +200,6 @@ extern struct EventObjectTable *EventObjectTable;
 void setEventObjectTable(struct EventObjectTable *tables);
 
 int printAgent(oop agent);
+void printObj(oop obj, int indent);
 
 #endif // OBJECT_H

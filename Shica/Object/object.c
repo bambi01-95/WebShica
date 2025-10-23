@@ -22,7 +22,24 @@ static oop _newEntity(size_t size, kind_t kind)
 	e->kind = kind;
 	return e;
 }
+
+kind_t getKind(oop o)
+{
+    if ((((intptr_t)o) & TAGBITS) == TAG_INT_ENT) return IntVal;
+    if ((((intptr_t)o) & TAGBITS) == TAG_FLT_ENT) return FloVal;
+    return o->kind;
+}
+
 #define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
+
+oop _checkObject(oop obj, kind_t kind, char *file, int line){
+    if (getKind(obj) != kind) {
+		fprintf(stderr, "\n%s:%d: expected kind %d got kind %d\n", file, line, kind, getKind(obj));
+		exit(1);
+    }
+    return obj;
+}
+
 
 oop newIntVal(int value)
 {
@@ -174,9 +191,16 @@ oop newQue3(int nArgs)
 	return q;
 }
 
-void enqueue3(oop eh, oop value)//value should be stack
+//FIXME
+oop dupStack(oop stack)
+{
+	return stack;
+}
+
+void enqueue3(const oop eh,const oop newStack)//value should be stack
 {
 	oop *threads = eh->EventHandler.threads;
+
 
 	for (int i = 0; i < eh->EventHandler.size; ++i) {
 		oop q = threads[i]->Thread.queue;
@@ -185,8 +209,8 @@ void enqueue3(oop eh, oop value)//value should be stack
 			q->IntQue3.size = IntQue3Size; // reset size to max
 			//exit(1);
 		}
-		q->IntQue3.que[q->IntQue3.tail] = value;
-		q->IntQue3.tail = (q->IntQue3.tail + 1) % 3;
+		q->IntQue3.que[q->IntQue3.tail] = dupStack(newStack);
+		q->IntQue3.tail = (q->IntQue3.tail + 1) % IntQue3Size;
 		q->IntQue3.size++;
 	}
 }
@@ -201,7 +225,7 @@ oop dequeue3(oop thread)
 	oop x = q->IntQue3.que[q->IntQue3.head];
 	pushStack(stack, x);
 
-	q->IntQue3.head = (q->IntQue3.head + 1) % 3;
+	q->IntQue3.head = (q->IntQue3.head + 1) % IntQue3Size;
 	q->IntQue3.size--;
 	thread->Thread.inProgress = 1; // mark thread as in progress
 	thread->Thread.rbp = 0;
@@ -347,4 +371,82 @@ int printAgent(oop agent)
 	return 1;
 }
 
+
+void printObj(oop obj, int indent)
+{
+	printf("%*s", indent*2, "");
+	switch(getKind(obj))
+	{
+	case Undeclar:{
+		printf("Undeclar\n");
+		break;
+	}
+	case IntVal:{
+		printf("%d\n", IntVal_value(obj));
+		break;
+	}
+	case FloVal:{
+		printf("%f\n", FloVal_value(obj));
+		break;
+	}
+	case StrVal:{
+		printf("%s\n", getObj(obj, StrVal, value));
+		break;
+	}
+	case IntArray:{
+		int size = getObj(obj, IntArray, size);
+		int *ele = getObj(obj, IntArray, elements);
+		for(int i = 0; i<size; i++)printf("%*s%d", indent*2, "", ele[i]);
+		break;
+	}
+	case Stack:{
+		printf("Stack\n");
+		int size = getObj(obj, Stack, size);
+		oop *ele = getObj(obj, Stack, elements);
+		for(int i = 0; i< size; i++)printObj(ele[i],indent + 1);
+		break;
+	}
+	case IntQue3:{
+		printf("IntQue3\n");
+		int pos = obj->IntQue3.head;
+		for(int i = 0; i < obj->IntQue3.size; i++){
+			if(obj->IntQue3.que[pos] != NULL){
+				printObj(obj->IntQue3.que[pos], indent + 1); 
+			}
+			pos = (pos + 1) % IntQue3Size;
+		}
+		break;
+	}
+	case Thread:{
+		printf("Thread\n");
+		printObj(getObj(obj, Thread, stack), indent + 1);
+		printObj(getObj(obj, Thread, queue), indent + 1);
+		break;
+	}
+	case EventHandler:{
+		printf("EventHandler (data doesnot output)\n");
+		int size = getObj(obj, EventHandler, size);
+		oop *threads = getObj(obj, EventHandler, threads);
+		for(int i = 0; i< size; i++)printObj(threads[i], indent + 1);
+		break;
+	}
+	case Agent:{
+		printf("Agent\n");
+		printObj(getObj(obj,Agent,stack), indent + 1);
+		int nEH = getObj(obj, Agent, nEvents);
+		oop* ehs = getObj(obj, Agent, eventHandlers);
+		for(int i = 0; i<nEH; i++)printObj(ehs[i], indent + 1);
+		break;
+	}
+	case Instance:{
+		printf("Instance (no output)\n");
+		break;
+	}
+	case Any:{
+		printf("Any (not supported now)\n");
+		break;
+	}
+	}
+	return;
+}
 #endif // OBJECT_C
