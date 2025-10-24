@@ -63,7 +63,6 @@ int timer_sec_handler(oop eh){
 	if(now - pre >= interval){
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
-		printf("count : %d\n", IntVal_value(fields[1]));
 		oop stack = newStack(0);
 		enqueue3(eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
@@ -116,8 +115,9 @@ int lib_timer_reset(oop stack)
 {
 	oop initVal = popStack(stack); // get initial value from stack (IntVal)
 	oop instance = popStack(stack); // get timer object from stack
+	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
 	assert(instance->kind == Instance);
-	instance->Instance.fields[0] = initVal; // reset the timer to initial value
+	instance->Instance.fields[1] = initVal; // reset the timer to initial value
 	return 0;
 }
 
@@ -148,6 +148,11 @@ oop web_rtc_broadcast_eo(oop stack){
 	return 0;
 }
 oop time_eo(oop stack){
+/*
+0: interval
+1: count 
+2: label (hold time for comparison)
+*/
 	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
 	getInstanceField(instance, 0) = newIntVal(0); // interval
 	getInstanceField(instance, 1) = newIntVal(0); // count

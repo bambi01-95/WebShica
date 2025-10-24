@@ -31,17 +31,7 @@ oop _checkObject(oop obj, kind_t type, char *file, int line);
 #define getObj(PTR, KIND, FIELD)	(_checkObject((PTR), KIND, __FILE__, __LINE__)->KIND.FIELD)
 
 
-struct Instance{
-	kind_t kind;
-	oop *fields;
-};
 
-struct Any{
-	kind_t kind;
-	int8_t markbit;
-	int8_t nData;
-	void **data;
-};
 
 struct IntVal{
 	kind_t kind; // kind of the integer
@@ -103,6 +93,19 @@ struct Agent{
 	int rbp;
 	oop stack;
 	oop *eventHandlers;
+};
+
+struct Instance{
+	kind_t kind;
+	char nFields;
+	oop *fields;
+};
+
+struct Any{
+	kind_t kind;
+	int8_t markbit;
+	int8_t nData;
+	void **data;
 };
 
 union Object{

@@ -305,6 +305,7 @@ oop newAgent(int id, int nEvents)
 oop newInstance(int nFeilds)
 {
 	GC_PUSH(oop, instance, newEntity(Instance));
+	instance->Instance.nFields = nFeilds;
 	instance->Instance.fields = (oop*)gc_beAtomic(gc_alloc(sizeof(oop) * nFeilds));
 	for(int i=0; i<nFeilds; i++){
 		instance->Instance.fields[i] = NULL;

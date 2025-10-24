@@ -158,11 +158,12 @@ oop retFlags[7] = {
 };
 
 oop impleBody(oop code, oop eh, oop agent){
+	printf("\t kind %d\n", code->kind);
 	assert(code->kind == IntArray);
 	assert(eh->kind == EventHandler);
 	assert(agent->kind == Agent);
 	oop *threads = eh->EventHandler.threads;
-	oop ret = retFlags[ERROR_F];
+	oop ret = retFlags[NONE_F];
 	for(int i=0;i<eh->EventHandler.size; ++i){
 		oop thread = threads[i];
 		if(thread->Thread.inProgress == 1){
@@ -175,7 +176,9 @@ oop impleBody(oop code, oop eh, oop agent){
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;
 		}
-		if(ret == retFlags[ERROR_F]){return ret;}
+		if(ret == retFlags[ERROR_F]){
+			return ret;
+		}
 	}
 	return ret; // return 1 to indicate success
 }
@@ -242,8 +245,8 @@ oop execute(oop prog,oop entity, oop agent)
 			break;
 		}
 		default:{
-			fatal("execute: unknown entity kind %d", entity->kind);
-			return NULL; // should never reach here
+			reportError(DEVELOPER, 0, "execute: unknown entity kind %d", entity->kind);
+			return retFlags[ERROR_F]; // should never reach here
 		}
 	}
 
@@ -437,7 +440,6 @@ oop execute(oop prog,oop entity, oop agent)
 			printOP(iPRINT);
 			int val = IntVal_value(pop());
 			printf("%d\n", val);
-			// stop();
 			continue;
 		}
 		case sPRINT:{
@@ -465,16 +467,13 @@ oop execute(oop prog,oop entity, oop agent)
 		}
 		case iSETSTATE:{
 			printOP(iSETSTATE);
-			printf("iSETSTATE should not be called here\n");
 			assert(entity->kind == Agent);
 			int ehSize = fetch(); // get the number of event handlers
-			printf("ehSize: %d\n", ehSize);
 			assert(ehSize >= 0);
 			entity->Agent.nEvents = ehSize; // set the number of events
 			oop *ehs = entity->Agent.eventHandlers = (oop*)gc_beAtomic(malloc(sizeof(oop*) * ehSize)); //initialize the event handlers
 			for(int i=0; i<ehSize; ++i){
 				op = fetch();
-				printf("op: %d\n", op);
 				oop eoEhData = NULL;
 				switch(op){
 					case iGETGLOBALVAR:{
@@ -498,7 +497,6 @@ oop execute(oop prog,oop entity, oop agent)
 				printOP(iSETEVENT);
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
-				printf("eventID: %d, nThreads: %d\n", eventID, nThreads);
 				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler <------ ERROR: FIX HERE
 				if(eoEhData == NULL){
 					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
@@ -511,7 +509,6 @@ oop execute(oop prog,oop entity, oop agent)
 					printOP(iSETPROCESS);
 					l = fetch(); // get the aPos
 					r = fetch(); // get the cPos
-					printf("l: %d, r: %d\n", l, r);
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
@@ -544,7 +541,6 @@ oop execute(oop prog,oop entity, oop agent)
 			int nVariables = fetch();
 			switch(entity->kind){
 				case Thread:{
-					printf("thread finished\n");
 					entity->Thread.inProgress = 0; // set the thread to not in progress
 					entity->Thread.pc += IntVal_value(stack->Stack.elements[0]); // restore the program counter
 					entity->Thread.rbp = 0;
@@ -555,7 +551,6 @@ oop execute(oop prog,oop entity, oop agent)
 					for(int i=0; i<nVariables; i++){
 						pop();
 					}
-					printf("agent %d is inactive\n", entity->Agent.isActive);
 					continue;
 				}
 				default:{
@@ -2054,6 +2049,18 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors IntArray done\n");
 			return;
 		}
+		case Stack:{
+			dprintf("markExecutors Stack\n");
+			int size = ptr->Stack.size;
+			for(int i = 0; i < size; i++){
+				if(ptr->Stack.elements[i] != NULL){	
+					gc_mark(ptr->Stack.elements[i]); 
+				}
+			}
+			gc_markOnly(ptr->Stack.elements); // mark the stack elements
+			dprintf("markExecutors Stack done\n");
+			return;
+		}
 		case IntQue3:{
 			dprintf("markExecutors IntQue3\n");
 			int pos = ptr->IntQue3.head;
@@ -2113,6 +2120,25 @@ void markExecutors(oop ptr)
 			}
 			dprintf("markExecutors Agent done\n");
 			return;
+		}
+		case Instance:{
+			dprintf("markExecutors Instance\n");
+			if(ptr->Instance.fields){
+				int nFields = ptr->Instance.nFields;
+				gc_markOnly(ptr->Instance.fields); // mark the instance fields array
+				for(int i = 0; i < nFields; i++)
+				{
+					if(ptr->Instance.fields[i]){
+						gc_mark(ptr->Instance.fields[i]); // mark the instance fields
+					}
+				}
+			}
+			dprintf("markExecutors Instance done\n");
+			return;
+		}
+		case Any:{
+			printf("Any type is not supported in markExecutors\n");
+			return ;
 		}
 		default:{
 			dprintf("markExecutors ERROR: unknown type %d\n", ptr->kind);

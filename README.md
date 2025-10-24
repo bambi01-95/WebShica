@@ -2,10 +2,10 @@
 
 
 
-- eo.func -> enqueueに問題あり？
-
-
-
+エラー内容：
+    assert(code->kind == IntArray)でエラー　main.c line 162
+エラー原因推測：
+    GCで全てのObjectをカバーできていない可能性
 
 
 
