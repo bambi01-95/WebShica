@@ -1,29 +1,22 @@
 # Shica -Web-
 
 
+## MEMO
+
+### CURRENT TASK
 
 エラー内容：
     assert(code->kind == IntArray)でエラー　main.c line 162
 エラー原因推測：
     GCで全てのObjectをカバーできていない可能性
 
+### NOTICE
+
+- EOの`time.min(int m)`や`time.hour(int h)`は、`timer.sec(int s)`と比較して、毎週期実装する必要がない。
+  そのため、`eo->func()`の実装頻度を落としても良い。  
 
 
 
-
-## WEB Shica TO DO LIST
-
-1. same page communication.
-2. local communication (local dev env)
-3. hosting env. communication.
-
-* execute()内のglobalとローカルの実装
-    * global-varialbe: 全体スタックのstack[0]が基準
-    * local-varialbe: 全体スタックのglobalのMAXから0、つまり、stack[gMax]
-
-* local same page communication.
-
-* (WebRTC clone)[https://webrtc.googlesource.com/src]
 
 ## pub/sub communication
 
@@ -80,16 +73,16 @@
 |.  |(o) error message
 |   |(*) global variable               
 |   |(-) state local variable.             <- IN PROGRES
-|.  |(*) String type                       <- IN PROGRES
-|   |(-) type checking
+|.  |(o) String type
+|   |(*) type checking.                         [type estimation is not done]
 |   |  |> push function into function list.
 |   |  |> When the function is called for the first time, copile it by its argument type.
 |   |  |> This process determines the argument types and the return type.
 |   |  |> Afterwards, the behavior is determined based on the argument types and the return type.
-|   |     |(-) String value
+|   |     |(o) String value
 |   |     |(-) Float value
 |   |(-) event condition
-|   |(-) event definition 
+|   |(*) event definition                 <- local is not yet 
 |   |(-) Pointcut
 |   |[-] Add more feature
 |         |(-) Event variable

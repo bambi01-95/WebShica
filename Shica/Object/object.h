@@ -78,8 +78,9 @@ struct Thread{
 
 struct EventHandler{
 	kind_t kind;
-	int size;
-	int EventH;
+	int size;//number of threads
+	int nData;//number of data
+	int EventH;//index of event handler
 	oop *data; // event handler data (stack / instance)
 	oop *threads; // thread that this handler belongs to
 }; 

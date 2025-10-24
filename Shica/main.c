@@ -158,19 +158,19 @@ oop retFlags[7] = {
 };
 
 oop impleBody(oop code, oop eh, oop agent){
-	printf("\t kind %d\n", code->kind);
-	assert(code->kind == IntArray);
-	assert(eh->kind == EventHandler);
-	assert(agent->kind == Agent);
-	oop *threads = eh->EventHandler.threads;
+	// printf("\t kind %d\n", code->kind);
+	assert(getKind(code) == IntArray);
+	assert(getKind(eh) == EventHandler);
+	assert(getKind(agent) == Agent);
+	oop *threads = getObj(eh, EventHandler, threads);
 	oop ret = retFlags[NONE_F];
-	for(int i=0;i<eh->EventHandler.size; ++i){
+	for(int i=0;i<getObj(eh, EventHandler, size); ++i){
 		oop thread = threads[i];
-		if(thread->Thread.inProgress == 1){
+		if(getObj(thread, Thread, inProgress) == 1){
 			ret = execute(code,thread, agent);
-		}else if(thread->Thread.queue->IntQue3.size > 0){
-			thread->Thread.stack = dequeue3(thread);
-			assert(thread->Thread.stack != NULL);
+		}else if(getObj(thread, Thread, queue)->IntQue3.size > 0){
+			getObj(thread, Thread, stack) = dequeue3(thread);
+			assert(getObj(thread, Thread, stack) != NULL);
 			ret = execute(code, thread, agent);
 		}
 		if(ret == retFlags[TRANSITION_F]){
@@ -192,9 +192,9 @@ int runNative(oop code){
 		GC_POP(agent);
 		return 1; // return 1 to indicate error
 	}
-	dprintf("agent: %d\n", agent->Agent.isActive);
+	dprintf("agent: %d\n", getObj(agent, Agent, isActive));
 	while(1){
-		if(agent->Agent.isActive == 0) {
+		if(getObj(agent, Agent, isActive) == 0) {
 			agent = execute(code ,agent , agent);
 			if(agent == retFlags[ERROR_F]){
 				GC_POP(agent);
@@ -203,11 +203,11 @@ int runNative(oop code){
 		}else{
 			for(int i = 0; i< agent->Agent.nEvents; ++i){
 				// get event data
-				oop eh = agent->Agent.eventHandlers[i];
+				oop eh = getObj(agent,Agent,eventHandlers)[i];
 				EventTable[eh->EventHandler.EventH].eh(eh);
 				oop ret = impleBody(code, eh, agent);
 				if(ret == retFlags[TRANSITION_F]){
-					agent->Agent.isActive = 0;
+					getObj(agent,Agent,isActive) = 0;
 					break;
 				}
 				if(ret == retFlags[ERROR_F]){
@@ -225,27 +225,27 @@ oop execute(oop prog,oop entity, oop agent)
 {
 
 	int opstep = 20; // number of operations to execute before returning
-    int* code = prog->IntArray.elements;
-	int size = prog->IntArray.size;
+    int* code = getObj(prog, IntArray, elements);
+	int size = getObj(prog, IntArray, size);
 	int *pc;
 	int *rbp;
 	oop stack;
 	switch(entity->kind) {
 		case Thread:{
-			pc = &entity->Thread.pc; // program counter
-			rbp = &entity->Thread.rbp; // base pointer
-			stack = entity->Thread.stack; // stack pointer
+			pc = &getObj(entity, Thread, pc);
+			rbp = &getObj(entity, Thread, rbp);
+			stack = getObj(entity, Thread, stack);
 			break;
 		}
 		case Agent:{
-			pc = &entity->Agent.pc; // program counter
-			rbp = &entity->Agent.rbp; // base pointer
-			stack = entity->Agent.stack; // stack pointer
+			pc = &getObj(entity, Agent, pc);
+			rbp = &getObj(entity, Agent, rbp);
+			stack = getObj(entity, Agent, stack);
 			opstep = 100; // number of operations to execute before returning
 			break;
 		}
 		default:{
-			reportError(DEVELOPER, 0, "execute: unknown entity kind %d", entity->kind);
+			reportError(DEVELOPER, 0, "execute: unknown entity kind %d", getKind(entity));
 			return retFlags[ERROR_F]; // should never reach here
 		}
 	}
@@ -267,8 +267,8 @@ oop execute(oop prog,oop entity, oop agent)
 			for (int i = 0;  i < nvars;  ++i) {
 				push(0); // reserve space for local variables
 			}
-			if(entity->kind == Agent){
-				entity->Agent.rbp = nvars;
+			if(getKind(entity) == Agent){
+				getObj(entity, Agent, rbp) = nvars;
 			}
 			continue;
 		}
@@ -292,7 +292,7 @@ oop execute(oop prog,oop entity, oop agent)
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
 			printOP(iGETGLOBALVAR);
 			int symIndex = fetch(); 
-			push(agent->Agent.stack->Stack.elements[symIndex]);
+			push(getObj(getObj(agent, Agent, stack), Stack, elements)[symIndex]);
 			continue;
 		}
 		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
@@ -539,15 +539,15 @@ oop execute(oop prog,oop entity, oop agent)
 		case iEOE:{
 			printOP(iEOE);
 			int nVariables = fetch();
-			switch(entity->kind){
+			switch(getKind(entity)){
 				case Thread:{
-					entity->Thread.inProgress = 0; // set the thread to not in progress
-					entity->Thread.pc += IntVal_value(stack->Stack.elements[0]); // restore the program counter
-					entity->Thread.rbp = 0;
+					getObj(entity, Thread, inProgress) = 0; // set the thread to not in progress
+					getObj(entity, Thread, pc) += IntVal_value(getObj(stack, Stack, elements)[0]); // restore the program counter
+					getObj(entity, Thread, rbp) = 0;
 					return retFlags[EOE_F]; // return EOE_F to indicate end of execution
 				}
 				case Agent:{
-					entity->Agent.isActive = 0; // set the agent to not active
+					getObj(entity, Agent, isActive) = 0; // set the agent to not active
 					for(int i=0; i<nVariables; i++){
 						pop();
 					}
@@ -567,16 +567,16 @@ oop execute(oop prog,oop entity, oop agent)
 			for(int i = 0; i < variablesSize; i++){
 				pop(); // clean the top variablesSize elements from the stack
 			}
-			entity->Agent.isActive = 0;
-			entity->Agent.pc += IntVal_value(pop());
-			entity->Agent.eventHandlers = NULL;//TODO: don't remove this in the future
+			getObj(entity, Agent, isActive) = 0;
+			getObj(entity, Agent, pc) += IntVal_value(pop());
+			getObj(entity, Agent, eventHandlers) = NULL;//TODO: don't remove this in the future
 			continue;
 		}
 	    case iHALT:{
 			printOP(iHALT);
 			pop();//first rbp
-			for(int i = 0;  i < stack->Stack.size;  ++i) {
-				printf("%d ", IntVal_value(stack->Stack.elements[i]));
+			for(int i = 0;  i < getObj(stack, Stack, size);  ++i) {
+				printf("%d ", IntVal_value(getObj(stack, Stack, elements)[i]));
 			}
 			printf("\n");
 			return stack; // return the answer
@@ -2078,11 +2078,9 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors Thread\n");
 			if(ptr->Thread.stack != NULL){
 				gc_mark(ptr->Thread.stack); // mark the thread stack
-				gc_markOnly(ptr->Thread.stack); // mark the thread pc
 			}
 			if(ptr->Thread.queue != NULL){
 				gc_mark(ptr->Thread.queue); // mark the thread queue
-				gc_markOnly(ptr->Thread.queue); // mark the thread queue itself
 			}
 			dprintf("markExecutors Thread done\n");
 			return;
@@ -2091,6 +2089,11 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors EventHandler\n");
 			if(ptr->EventHandler.data){
 				gc_markOnly(ptr->EventHandler.data); // mark the event handler data
+				for(int i = 0; i<ptr->EventHandler.nData; i++){
+					if(ptr->EventHandler.data[i]!=NULL){
+						gc_mark(ptr->EventHandler.data[i]); // mark the event handler data
+					}
+				}
 			}
 			if(ptr->EventHandler.threads != NULL){
 				for(int i = 0; i<ptr->EventHandler.size; i++){
@@ -2125,6 +2128,7 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors Instance\n");
 			if(ptr->Instance.fields){
 				int nFields = ptr->Instance.nFields;
+				printf("markExecutors Instance nFields=%d\n", nFields);
 				gc_markOnly(ptr->Instance.fields); // mark the instance fields array
 				for(int i = 0; i < nFields; i++)
 				{
@@ -2515,6 +2519,7 @@ int main(int argc, char **argv)
 	printCode(code); // print the bytecode
 
 
+
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
 
@@ -2532,6 +2537,7 @@ int main(int argc, char **argv)
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
+	gc_pushRoot(code);
 	printf("\tExecuting...\n");
 	int ret = runNative(code);
 	printf("\tExecution done.\n");
@@ -2541,8 +2547,7 @@ int main(int argc, char **argv)
 		printErrorList(); // print the error list
 		return 1; // return 1 to indicate failure
 	}
-
-
+	
 	rprintf("Execution finished.\n");
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now

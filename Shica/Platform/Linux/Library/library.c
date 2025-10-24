@@ -116,8 +116,10 @@ int lib_timer_reset(oop stack)
 	oop initVal = popStack(stack); // get initial value from stack (IntVal)
 	oop instance = popStack(stack); // get timer object from stack
 	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
-	assert(instance->kind == Instance);
-	instance->Instance.fields[1] = initVal; // reset the timer to initial value
+	assert(getKind(instance) == Instance);
+	assert(getKind(initVal) == IntVal);
+	//DEBUG POINT
+	getObj(instance,Instance,fields)[1] = initVal; // reset the timer to initial value
 	return 0;
 }
 

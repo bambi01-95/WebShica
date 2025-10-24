@@ -27,7 +27,9 @@
     "optional": "c",
     "ratio": "c",
     "typeinfo": "c",
-    "node.h": "c"
+    "node.h": "c",
+    "gc.h": "c",
+    "msgcs.h": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

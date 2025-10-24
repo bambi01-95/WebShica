@@ -48,6 +48,7 @@ oop newIntVal(int value)
 
 int IntVal_value(oop obj)
 {
+	assert(getKind(obj) == IntVal);
     return (intptr_t)obj >> TAGBITS;
 }
 
@@ -58,6 +59,7 @@ oop newFloVal(double value)
 
 double FloVal_value(oop obj)
 {
+	assert(getKind(obj) == FloVal);
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
 }
@@ -78,10 +80,7 @@ oop newStrVal(const char *value)
 
 char* StrVal_value(oop obj)
 {
-	if (obj->kind != StrVal) {
-		fprintf(stderr, "expected StrVal got %d\n", obj->kind);
-		exit(1);
-	}
+	assert(getKind(obj) == StrVal);
 	return obj->StrVal.value;
 }
 
@@ -110,7 +109,7 @@ oop newStack(const int initVal)
 
 oop pushStack(oop stack, oop value)
 {
-	assert(stack->kind == Stack);
+	assert(getKind(stack) == Stack);
 	if (stack->Stack.size >= stack->Stack.capacity) {
 		stack->Stack.capacity = stack->Stack.capacity ? stack->Stack.capacity * 2 : 4;
 		gc_pushRoot((void*)stack);
@@ -122,13 +121,13 @@ oop pushStack(oop stack, oop value)
 }
 oop popStack(oop stack)
 {
-	assert(stack->kind == Stack);
+	assert(getKind(stack) == Stack);
 	if (stack->Stack.size == 0) fatal("pop: stack is empty");
 	return stack->Stack.elements[--stack->Stack.size];
 }
 oop lastStack(oop stack)
 {
-	assert(stack->kind == Stack);
+	assert(getKind(stack) == Stack);
 	if (stack->Stack.size == 0) fatal("last: stack is empty");
 	return stack->Stack.elements[stack->Stack.size - 1];
 }
@@ -137,17 +136,17 @@ oop lastStack(oop stack)
 void printStack(oop stack)
 {
 	printf("Stack: \n");
-	for (int i = 0;  i < stack->IntArray.size;  ++i) {
-		printf("%d %d\n", i, stack->IntArray.elements[i]);
+	for (int i = 0;  i < getObj(stack, Stack, size);  ++i) {
+		printf("%d %d\n", i, IntVal_value(getObj(stack, Stack, elements)[i]));
 	}
 	printf("\n");
 }
 /* !!!! FOR VM !!!! */
 void intArray_push(oop a, int value)
 {
-
-	if (a->IntArray.size >= a->IntArray.capacity) {
-		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity + 10000 : 10000;
+	assert(getKind(a) == IntArray);
+	if (getObj(a, IntArray, size) >= getObj(a, IntArray, capacity)) {
+		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) ? getObj(a, IntArray, capacity) + 10000 : 10000;
 		// printf("intArray_push: size %d >= capacity %d\n", a->size, a->capacity);
 		// printf("              %p\n",a);
 		gc_pushRoot((void*)a);
@@ -160,21 +159,23 @@ void intArray_push(oop a, int value)
 /* !!!! FOR COMPILE !!!! */
 void intArray_append(oop a, int value)
 {
-	if (a->IntArray.size >= a->IntArray.capacity) {
-		a->IntArray.capacity = a->IntArray.capacity ? a->IntArray.capacity * 2 : 4;
-		a->IntArray.elements = realloc(a->IntArray.elements, sizeof(int) * a->IntArray.capacity);
+	assert(getKind(a) == IntArray);
+	if (getObj(a, IntArray, size) >= getObj(a, IntArray, capacity)) {
+		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) ? getObj(a, IntArray, capacity) * 2 : 4;
+		getObj(a, IntArray, elements) = realloc(getObj(a, IntArray, elements), sizeof(int) * getObj(a, IntArray, capacity));
 	}
-	a->IntArray.elements[a->IntArray.size++] = value;
+	getObj(a, IntArray, elements)[getObj(a, IntArray, size)++] = value;
 }
 int intArray_pop(oop a)
 {
-	if (a->IntArray.size == 0) fatal("pop: stack is empty");
-	return a->IntArray.elements[--a->IntArray.size];
+
+	if (getObj(a, IntArray, size) == 0) fatal("pop: stack is empty");
+	return getObj(a, IntArray, elements)[--getObj(a, IntArray, size)];
 }
 int intArray_last(oop a)
 {
-	if (a->IntArray.size == 0) fatal("last: stack is empty");
-	return a->IntArray.elements[a->IntArray.size - 1];
+	if (getObj(a, IntArray, size) == 0) fatal("last: stack is empty");
+	return getObj(a, IntArray, elements)[getObj(a, IntArray, size) - 1];
 }
 
 // IntQue3
@@ -199,19 +200,21 @@ oop dupStack(oop stack)
 
 void enqueue3(const oop eh,const oop newStack)//value should be stack
 {
-	oop *threads = eh->EventHandler.threads;
+	assert(getKind(eh) == EventHandler);
+	assert(getKind(newStack) == Stack);
+	oop *threads = getObj(eh, EventHandler, threads);
 
 
-	for (int i = 0; i < eh->EventHandler.size; ++i) {
-		oop q = threads[i]->Thread.queue;
-		if (q->IntQue3.size >= IntQue3Size) {
+	for (int i = 0; i < getObj(eh, EventHandler, size); ++i) {
+		oop q = getObj(threads[i], Thread, queue);
+		if (getObj(q, IntQue3, size) >= IntQue3Size) {
 			fprintf(stderr, "enqueue3: queue is full\n");//need to fix this
-			q->IntQue3.size = IntQue3Size; // reset size to max
+			getObj(q, IntQue3, size) = IntQue3Size; // reset size to max
 			//exit(1);
 		}
-		q->IntQue3.que[q->IntQue3.tail] = i==0 ? newStack : dupStack(newStack);
-		q->IntQue3.tail = (q->IntQue3.tail + 1) % IntQue3Size;
-		q->IntQue3.size++;
+		getObj(q, IntQue3, que)[getObj(q, IntQue3, tail)] = i==0 ? newStack : dupStack(newStack);
+		getObj(q, IntQue3, tail) = (getObj(q, IntQue3, tail) + 1) % IntQue3Size;
+		getObj(q, IntQue3, size)++;
 	}
 }
 
@@ -251,6 +254,7 @@ oop newEventHandler(int ehIndex, int nThreads)
 	GC_PUSH(oop, eh, newEntity(EventHandler));
 
 	eh->EventHandler.size = nThreads;
+	eh->EventHandler.nData = 1;//1 for instance else, later set by EventTable
 	eh->EventHandler.EventH = ehIndex;
 	eh->EventHandler.data = NULL;
 	eh->EventHandler.threads = NULL;
