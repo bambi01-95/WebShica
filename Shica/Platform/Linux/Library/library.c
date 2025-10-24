@@ -113,13 +113,17 @@ int lib_chat_send(oop stack)
 
 int lib_timer_reset(oop stack)
 {
-	oop initVal = popStack(stack); // get initial value from stack (IntVal)
+	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
 	oop instance = popStack(stack); // get timer object from stack
 	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
 	assert(getKind(instance) == Instance);
 	assert(getKind(initVal) == IntVal);
 	//DEBUG POINT
-	getObj(instance,Instance,fields)[1] = initVal; // reset the timer to initial value
+	getInstanceField(instance, 0) = newIntVal(1); // reset interval to 0
+	getInstanceField(instance, 1) = initVal; // reset the timer to initial value
+	time_t t = time(NULL);
+	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // reset label to current time
+	GC_POP(initVal);
 	return 0;
 }
 

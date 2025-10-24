@@ -1,5 +1,3 @@
-
-
 #ifndef DEBUG //for executer
 #define DEBUG 0
 #endif
@@ -1704,12 +1702,6 @@ int roots = gc_ctx.nroots;
     return prog;
 }
 
-
-
-
-
-
-
 /*====================== MSGC =====================*/
 
 /* ================================================*/
@@ -2109,17 +2101,15 @@ void markExecutors(oop ptr)
 		case Agent:{
 			dprintf("markExecutors Agent\n");
 			if(ptr->Agent.stack){
-				gc_mark(ptr->Agent.stack); // mark the agent stack
-			}
-			if(ptr->Agent.nEvents > 0){
-				for(int i = 0; i < ptr->Agent.nEvents; i++){
-					if(ptr->Agent.eventHandlers[i]){
-						gc_mark(ptr->Agent.eventHandlers[i]); // mark the agent events
-					}
-				}
+				gc_mark(ptr->Agent.stack);
 			}
 			if(ptr->Agent.eventHandlers != NULL){
-				gc_markOnly(ptr->Agent.eventHandlers); // mark the agent event handlers
+				gc_markOnly(ptr->Agent.eventHandlers); 
+				for(int i = 0; i < ptr->Agent.nEvents; i++){
+					if(ptr->Agent.eventHandlers[i]){
+						gc_mark(ptr->Agent.eventHandlers[i]);
+					}
+				}
 			}
 			dprintf("markExecutors Agent done\n");
 			return;
@@ -2167,7 +2157,6 @@ void collectExecutors(void)
 #endif 
 	dprintf("collectExecutors done\n");
 }
-
 
 /*====================== WEBCONNECTION =====================*/
 
@@ -2292,7 +2281,7 @@ int compile_finalize()
 	// garbage collection
 	rprintf("Running garbage collector...\n");
     gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
-	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function for the garbage collector
+	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
 	gc_collect(); // collect garbage
 	return 1; // return 1 to indicate success
 }
