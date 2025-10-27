@@ -104,7 +104,7 @@ int *getWebClickSTTPtr(){
 
 /*==============   AGENT_INFO  ================= */
 
-
+static int CurrentAgentIndex = 0; // Current active agent index
 int *initAnAgentDataPtr(){
 	AN_AGENT_DATA = &anAgentData; // Initialize the agent data pointer
 	AN_AGENT_DATA->x = 50; // x-coordinate
@@ -131,7 +131,7 @@ int setActiveAgent(int index)
 		printf("Error: Index out of range\n");
 		return -1; // Error: index out of range
 	}
-
+	CurrentAgentIndex = index;
 	AN_AGENT_DATA = &allAgentData[index]; // Set the active agent data
 	printf("CAgent %d - x: %d y: %d vx: %d vy: %d\n", index, AN_AGENT_DATA->x, AN_AGENT_DATA->y, AN_AGENT_DATA->vx, AN_AGENT_DATA->vy);
 	return 0; // Success
@@ -255,6 +255,25 @@ int click_handler(oop eh)
 	return 0; // return 0 to indicate no event
 }
 
+int _web_rtc_broadcast_receive_(void *ptr, char* message)//CCCALL
+{
+	oop eh = (oop)ptr;
+	oop stack = newStack(0);
+	pushStack(stack, newStrVal(message)); // message
+	enqueue3(eh, stack); // enqueue the stack
+	return 1;
+}
+
+int web_rtc_broadcast_receive_handler(oop eh)
+{
+	// Placeholder for WebRTC broadcast receive event handling
+	return 0; // return 0 to indicate no event
+}
+
+int web_rtc_broadcast_receive_handler_init(oop eh){
+	eh->EventHandler.data[2] = eh;
+	return 1;
+}
 
 
 int compile_eh_init(){
@@ -289,6 +308,7 @@ int compile_eh_init(){
 	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
+	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, event_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
 };
 
 
@@ -308,6 +328,7 @@ int compile_eh_init(){
 	SETVY_FUNC, // setVY function
 	SETCOLOR_FUNC, // setColor function
 	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
+	WEB_RTC_BROADCAST_SEND_FUNC,
 };
 
 int lib_log(oop stack)
@@ -376,6 +397,20 @@ int lib_setcolor(oop stack)
 	return 0; // return 0 to indicate success
 }
 
+// extern int __lib_web_rtc_broadcast_send__(int index, char* channel, char* msg);// JSCALL
+int lib_web_rtc_broadcast_send(oop stack)
+{
+	char* msg = getObj(popStack(stack), StrVal, value); // get message from stack
+	char* channel = getObj(popStack(stack), StrVal, value); // get channel from stack
+	int index = CurrentAgentIndex;
+	_lib_web_rtc_broadcast_send_(index, channel, msg); // call the WebRTC broadcast send function
+	if(index < 0){
+		reportError(DEVELOPER, 0, "lib_web_rtc_broadcast_send: Invalid agent index %d\n", index);
+		return -1; // return -1 to indicate error
+	}
+	printf("WebRTC Broadcast Send: channel = %s, msg = %s\n", channel, msg); // print message to console
+	return 0; // return 0 to indicate success
+}
 
 
 struct StdFuncTable __StdFuncTable__[] =
@@ -388,6 +423,7 @@ struct StdFuncTable __StdFuncTable__[] =
 	{lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
 	{lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
 	{lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
+	{lib_web_rtc_broadcast_send, 2, (int[]){String, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
 };
 
 int compile_func_init()
@@ -422,10 +458,43 @@ int compile_func_init()
 /*=============== Event Object Table ===============*/
 enum {
 	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	TIME_EO, // Timer event object
 	END_EO, /* DO NOT REMOVE THIS LINE */
+};
+
+//extern int __web_rtc_broadcast_eo__(char* channel, char* password, void* ptr);// JSCALL
+oop web_rtc_broadcast_eo(oop stack)
+{
+/*
+0: channel string
+1: password string
+2: eh internal pointer
+*/
+	GC_PUSH(oop,instance,newInstance(3));
+	getInstanceField(instance, 0) = popStack(stack); // channel
+	getInstanceField(instance, 1) = popStack(stack); // password
+	getInstanceField(instance, 2) = NULL; // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
+	_web_rtc_broadcast_eo_(CurrentAgentIndex,
+							   getObj(getInstanceField(instance,0), StrVal, value),
+	                           getObj(getInstanceField(instance,1), StrVal, value),
+	                           (void*)instance->Instance.fields[2]);// set internal pointer
+	GC_POP(instance);
+	return instance;
 }
+
+oop time_eo(oop stack){
+	// Placeholder implementation for timer EO
+	printf("timer_eo called\n");
+	return 0;
+}
+
+eo_func_t __EventObjectFuncTable__[2] = {
+	[WEB_RTC_BROADCAST_EO] = web_rtc_broadcast_eo,
+	[TIME_EO] = time_eo,
+};
+
 struct EventObjectTable __EventObjectTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+	[WEB_RTC_BROADCAST_EO] = {2, 2, (int[]){String, String}}, // WebRTC broadcast event object with 2 arguments and 2 functions
 };
 
 int compile_eo_init(){
@@ -435,9 +504,9 @@ int compile_eo_init(){
 
 	sym = intern("broadcast");
 	eo = newEventObject(sym, WEB_RTC_BROADCAST_EO);// var chat = broadcast(channel, password);
-	func = newEventH(0);sym = newSymbol("received");
+	func = newEventH(WEB_RTC_BROADCAST_RECEIVED_EH);sym = newSymbol("received");
 	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
-	func = newStdFunc(0);sym = newSymbol("send");
+	func = newStdFunc(WEB_RTC_BROADCAST_SEND_FUNC);sym = newSymbol("send");
 	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
 
 	return 0; // return 0 to indicate success

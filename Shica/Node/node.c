@@ -14,8 +14,8 @@
 #endif
 
 node nil   = 0;
-node false = 0;
-node true  = 0;
+node FALSE = 0;
+node TRUE  = 0;
 node entryEH = NULL;
 node exitEH  = NULL;
 
@@ -133,7 +133,7 @@ node newSymbol(char *name)
 	gc_pushRoot((void*)&name);
     GC_PUSH(node, sym, newNode(Symbol));
     sym->Symbol.name  = strdup(name);
-    sym->Symbol.value = false;
+    sym->Symbol.value = FALSE;
 	gc_popRoots(2);
     return sym;
 }

@@ -56,7 +56,7 @@ params	= LPAR p:mkNil
  	  RPAR				{ $$ = p }
 
 mkNil	= 				{ $$ = nil }
-mkFalse = 				{ $$ = false }
+mkFalse = 				{ $$ = FALSE }
 
 block   = LBRACE b:mkBlock
 	  (
@@ -74,8 +74,8 @@ define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0,
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
 	  		ELSE (t:expr | t:block)          	  { $$ = newIf(c, s, t) }
-		| IF LPAR c:expr RPAR (s:block|s:expr)	  { $$ = newIf(c, s, false) }
-		| WHILE LPAR c:expr RPAR (s:stmt|s:block)	  { $$ = newLoop(false, c,false, s) }
+		| IF LPAR c:expr RPAR (s:block|s:expr)	  { $$ = newIf(c, s, FALSE) }
+		| WHILE LPAR c:expr RPAR (s:stmt|s:block)	  { $$ = newLoop(FALSE, c,FALSE, s) }
 		| FOR LPAR (i:expr|i:mkFalse) SEMI 
 		  		   (c:expr|c:mkFalse) SEMI 
 		  		   (t:expr|k:mkFalse) RPAR 

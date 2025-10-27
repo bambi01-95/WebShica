@@ -1,0 +1,19 @@
+mergeInto(LibraryManager.library, {
+
+    //WebRTC broadcast Event Object
+  _web_rtc_broadcast_eo_: function (index, channelPtr, passwordPtr, ptr) {
+    const channel = UTF8ToString(channelPtr);
+    const password = UTF8ToString(passwordPtr);
+
+    _addWebRtcBroadcast(index, channel, password, ptr);
+    return 0;
+  },
+  _lib_web_rtc_broadcast_send_: function( index, channelPtr, msgPtr) {
+    const channel = UTF8ToString(channelPtr);
+    const msg = UTF8ToString(msgPtr);
+    
+    _sendWebRtcBroadcast(index, channel, msg);
+    return 0; 
+  }
+
+});

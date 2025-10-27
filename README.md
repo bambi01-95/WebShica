@@ -5,17 +5,20 @@
 
 ### CURRENT TASK
 
-エラー内容：
-    assert(code->kind == IntArray)でエラー　main.c line 162
-エラー原因推測：
-    GCで全てのObjectをカバーできていない可能性
+現状、JSのイベントループをそのまま利用して、Shica VMのイベントループを省くには、手間がかかる。
+そこで、Shica VMのEH functionは、空を実装することにする。
+
 
 ### NOTICE
 
 - EOの`time.min(int m)`や`time.hour(int h)`は、`timer.sec(int s)`と比較して、毎週期実装する必要がない。
   そのため、`eo->func()`の実装頻度を落としても良い。  
 
+### IF ERROR OCCUR
 
+エラー内容：cc
+    timer.reset()の配列が正しく保持できていない可能性
+    assert(code->kind == IntArray)でエラー　main.c line 162
 
 
 ## pub/sub communication

@@ -54,6 +54,7 @@ WEB_SHICA_FLAGS = -O3 \
          -s EXPORTED_FUNCTIONS='[$(WEB_SHICA_FUNC), $(WEB_SHICA_ERROR_FUNC)]' \
 		 -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS"]' \
          --no-entry \
+		 --js-library ./Platform/WebShica/shica-lib.js \
          -o $(WASMOUT)
 
 
@@ -67,10 +68,9 @@ input:
 	./$(NATIVEOUT) < ./input.txt 
 
 # build vm.js
-web: $(WASMOUT)
+wasm: $(WASMOUT)
 
 $(WASMOUT): $(SRC)
-	gcc $(SRC) ./Platform/WebShica/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/WebShica/Library/
 	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(WEB_SHICA_FLAGS) 
 
 move: web

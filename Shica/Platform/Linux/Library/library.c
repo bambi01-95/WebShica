@@ -107,7 +107,6 @@ int lib_chat_send(oop stack)
 	oop chat = popStack(stack); // get chat object from stack
 	char *msg = StrVal_value(popStack(stack)); // get message from stack
 	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
-	// chat.
 	return 0; // return 0 to indicate success
 }
 
@@ -150,7 +149,7 @@ enum {
 	END_EO, /* DO NOT REMOVE THIS LINE */
 };
 
-oop web_rtc_broadcast_eo(oop stack){
+oop wifi_udp_broadcast_eo(oop stack){
 	return 0;
 }
 oop time_eo(oop stack){
@@ -169,7 +168,7 @@ oop time_eo(oop stack){
 }
 
 eo_func_t __EventObjectFuncTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = web_rtc_broadcast_eo,
+	[WEB_RTC_BROADCAST_EO] = wifi_udp_broadcast_eo,
 	[TIME_EO] = time_eo,
 };
 

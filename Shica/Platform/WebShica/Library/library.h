@@ -3,6 +3,9 @@
 #define SHICA_LIBRARY_H
 #include "../../../Object/object.h"
 #include "../../../Node/node.h"
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
 extern char  WebText[WEBTEXT_MAX_SIZE];
@@ -59,7 +62,11 @@ int setActiveAgent(int index); // Set the active agent data by index
 #define	COLLISION_EH	0x03
 #define	SELF_STATE_EH	0x04
 #define CLICK_EH		0x05
+#define WEB_RTC_BROADCAST_RECEIVED_EH 0x06
 
+extern int _web_rtc_broadcast_receive_(void *ptr, char* message);//CCCALL
+extern int _lib_web_rtc_broadcast_send_(int index, char* channel, char* msg);// JSCALL
+extern int _web_rtc_broadcast_eo_(int index, char* channel, char* password, void* ptr);// JSCALL
 
 int event_handler_init(oop eh);
 int event_handler(oop eh);
@@ -75,7 +82,6 @@ int click_handler(oop eh);
 /*=============== Event Table ===============*/
 
 extern  struct EventTable __EventTable__[];
-
 int compile_eh_init();
 /*===============STANDARD LIBRARY==============*/
 
@@ -83,8 +89,7 @@ extern struct StdFuncTable __StdFuncTable__[];
 int compile_func_init();
 
 /*=============== Event Object Table ===============*/
-
-extern  struct EventObjectTable __EventObjectTable__[];
+extern  eo_func_t __EventObjectFuncTable__[2];
 int compile_eo_init();
 
 /*================END =========================*/

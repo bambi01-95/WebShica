@@ -1350,7 +1350,7 @@ YY_ACTION(void) yy_4_stmt(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_4_stmt\n"));
   {
 #line 78
-   __ = newLoop(false, c,false, s) ;
+   __ = newLoop(FALSE, c,FALSE, s) ;
   }
 #undef yythunkpos
 #undef yypos
@@ -1378,7 +1378,7 @@ YY_ACTION(void) yy_3_stmt(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_3_stmt\n"));
   {
 #line 77
-   __ = newIf(c, s, false) ;
+   __ = newIf(c, s, FALSE) ;
   }
 #undef yythunkpos
 #undef yypos
@@ -1583,7 +1583,7 @@ YY_ACTION(void) yy_1_mkFalse(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_1_mkFalse\n"));
   {
 #line 59
-   __ = false ;
+   __ = FALSE ;
   }
 #undef yythunkpos
 #undef yypos

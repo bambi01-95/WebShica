@@ -335,7 +335,7 @@ oop execute(oop prog,oop entity, oop agent)
 			if (l < 0 || l >= size) {
 				fatal("jump to invalid position %d", l);
 			}
-			if (pop()) { // if top of stack is true
+			if (pop()) { // if top of stack is TRUE
 				continue;
 			} else {
 				*pc+=l; // skip the jump
@@ -847,7 +847,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			switch(getType(rhs)){
 				case UserFunc:{
 					printTYPE(_Function_);
-					if(sym->Symbol.value !=false) {
+					if(sym->Symbol.value != FALSE) {
 						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
 						return 1;
 					}
@@ -891,7 +891,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 
 					node func = get(rhs, Call, function)->GetVar.id->Symbol.value;
 
-					if(func == false){
+					if(func ==  FALSE){
 						reportError(ERROR, get(ast,SetVar,line), "variable %s is not defined", get(rhs, Call,function)->GetVar.id->Symbol.name);
 						return 1;
 					}
@@ -1188,11 +1188,11 @@ int emitOn(oop prog,node vars, node ast, node type)
 
 			if(emitOn(prog, vars, condition,TYPES[Integer])) return 1; // compile condition
 
-			emitII(prog, iJUMPIF, 0); // emit jump if condition is true
+			emitII(prog, iJUMPIF, 0); // emit jump if condition is TRUE
 			int jumpPos = prog->IntArray.size-1; // remember position for jump
 
 			if(emitOn(prog, vars, statement1,type)) return 1; // compile first statement
-			if (statement2 != false) {
+			if (statement2 !=  FALSE) {
 				emitII(prog, iJUMP, 0);
 				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
 				if(emitOn(prog, vars, statement2,type)) return 1; // compile second statement
@@ -1214,25 +1214,25 @@ int emitOn(oop prog,node vars, node ast, node type)
 			//NEXT-TODO
 			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
-			if (initialization != false) {
+			if (initialization !=  FALSE) {
 				if(emitOn(prog, vars, initialization, type)) return 1; // compile initialization
 			}
 			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
-			int jumpPos = 0; // position for the jump if condition is true
-			if(condition != false) {
+			int jumpPos = 0; // position for the jump if condition is TRUE
+			if(condition !=  FALSE) {
 				if(emitOn(prog, vars, condition, TYPES[Integer])) return 1; // compile condition
-				emitII(prog, iJUMPIF, 0); // emit jump if condition is true
+				emitII(prog, iJUMPIF, 0); // emit jump if condition is TRUE
 				jumpPos = prog->IntArray.size - 1; // remember position for jump
 			}
 
 			if(emitOn(prog, vars, statement, type)) return 1; // compile statement
 
-			if (iteration != false) {
+			if (iteration !=  FALSE) {
 				if(emitOn(prog, vars, iteration, type)) return 1; // compile iteration
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
 			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
-			if(condition != false) {
+			if(condition !=  FALSE) {
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
 			}
 			//NEXT-TODO
@@ -1242,7 +1242,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Return:{
 			printTYPE(_Return_);
 			node value = get(ast, Return,value);
-			if (value != false) {
+			if (value !=  FALSE) {
 				if(emitOn(prog, vars, value, type)) return 1; // compile return value
 			} else {
 				emitII(prog, iPUSH, 0); // return 0 if no value is specified
@@ -1279,7 +1279,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int nElements = 0;
 			int elements[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
 			int nEventHandlers = 0;
-			node preid = false;
+			node preid =  FALSE;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
 			get(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
@@ -1418,7 +1418,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					get(params, Eparams, id), 
 					get(params, Eparams, type),
 					NULL); // add parameter to local variables
-				if(get(params, Eparams, cond) != false){
+				if(get(params, Eparams, cond) !=  FALSE){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, get(params, Eparams, cond), get(params, Eparams, type))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
@@ -2263,8 +2263,8 @@ int compile_init()
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
 
     nil   = newUndefine();	gc_pushRoot(nil);
-    false = newInteger(0);			gc_pushRoot(false);
-    true  = newInteger(1);			gc_pushRoot(true);
+     FALSE = newInteger(0);			gc_pushRoot( FALSE);
+    TRUE  = newInteger(1);			gc_pushRoot(TRUE);
 
 	printf("compile_event_init\n");
 	compile_event_init(); // initialize the event system
@@ -2378,7 +2378,7 @@ int executeWebCodes(void)
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
-		if(agent==retFlags[Error_F])continue;
+		if(agent==retFlags[ERROR_F])continue;
 		assert(agent->kind == Agent); // check if the agent is of type Agent
 		if(agent->Agent.isActive == 0){
 			agent = execute(webCodes[i] ,agent , agent);
@@ -2461,9 +2461,9 @@ int main(int argc, char **argv)
 	gc_init(1024 * 1024);// initialize the garbage collector with 1MB of memory 
 
     nil   = newUndefine();	gc_pushRoot(nil);
-    false = newInteger(0);	gc_pushRoot(false);
-    true  = newInteger(1);	gc_pushRoot(true);
-
+	FALSE = newInteger(0);	gc_pushRoot( FALSE);
+    TRUE  = newInteger(1);	gc_pushRoot(TRUE);
+	
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
 	rprintf("Compiling code:\n");

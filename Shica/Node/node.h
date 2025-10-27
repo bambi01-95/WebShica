@@ -11,8 +11,8 @@ typedef union Node Node;
 typedef Node *node;                 // ordinary object pointer 
 
 extern node nil;
-extern node false;
-extern node true;
+extern node FALSE;
+extern node TRUE;
 extern node entryEH;
 extern node exitEH;
 
