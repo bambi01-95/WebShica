@@ -892,7 +892,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 					node func = getNode(rhs, Call, function)->GetVar.id->Symbol.value;
 
 					if(func ==  FALSE){
-						reportError(ERROR, getNode(ast,SetVar,line), "variable %s is not defined", getNode(rhs, Call,function)->GetVar.id->Symbol.name);
+						reportError(ERROR, 
+							getNode(ast,SetVar,line), "variable %s is not defined", 
+							getNode(rhs, Call,function)->GetVar.id->Symbol.name);
 						return 1;
 					}
 					switch(getType(func)){
@@ -902,13 +904,21 @@ int emitOn(oop prog,node vars, node ast, node type)
 							int index = getNode(func, EventObject, index); // get the index of the event object
 							struct EventObjectTable eo = EventObjectTable[index];
 							node* funcs = getNode(func, EventObject, funcs);
+#ifndef NDEBUG
 							for(int i = 0; i < eo.nFuncs; i++){
-								if(funcs[i] == NULL)printf("index %d function %d is NULL\n", index, i);
+								if(funcs[i] == NULL){
+									reportError(DEVELOPER, getNode(ast,SetVar,line), "event object %s function %d is not defined", getNode(sym, Symbol,name), i);
+									return 1;
+								}
 							}
+#endif
 							int argsCount = 0;
 							while(args != nil){
 								if(argsCount >= eo.nArgs){
-									reportError(ERROR, getNode(ast,Call,line), "event object %s expects %d arguments, but got more", getNode(sym, Symbol,name), eo.nArgs);
+									reportError(ERROR, 
+										getNode(ast,SetVar,line), "event object %s expects %d arguments, but got more", 
+										getNode(sym, Symbol,name), eo.nArgs);
+									printf("index %d eo.nArgs %d argsCount %d\n", index, eo.nArgs, argsCount);
 									return 1;
 								}
 								node arg = getNode(args, Args, value);

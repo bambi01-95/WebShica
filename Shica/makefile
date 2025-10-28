@@ -73,7 +73,7 @@ wasm: $(WASMOUT)
 $(WASMOUT): $(SRC)
 	$(WASMCC) $(SRC) ./Platform/WebShica/Library/library.c $(WEB_SHICA_FLAGS) 
 
-move: web
+move: wasm
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
 

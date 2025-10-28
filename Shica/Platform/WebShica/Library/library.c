@@ -317,19 +317,7 @@ int compile_eh_init(){
  * These functions are used in the web code to interact with the web environment.
 */
 
-// Function initialization
- enum {
-	LOG_FUNC,   // log function
-	SETXY_FUNC, // setXY function
-	SETX_FUNC,  // setX function
-	SETY_FUNC,  // setY function
-	SETVXY_FUNC, // setVXY function
-	SETVX_FUNC, // setVX function
-	SETVY_FUNC, // setVY function
-	SETCOLOR_FUNC, // setColor function
-	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
-	WEB_RTC_BROADCAST_SEND_FUNC,
-};
+
 
 int lib_log(oop stack)
 {
@@ -412,6 +400,19 @@ int lib_web_rtc_broadcast_send(oop stack)
 	return 0; // return 0 to indicate success
 }
 
+// Function initialization
+ enum {
+	LOG_FUNC,   // log function
+	SETXY_FUNC, // setXY function
+	SETX_FUNC,  // setX function
+	SETY_FUNC,  // setY function
+	SETVXY_FUNC, // setVXY function
+	SETVX_FUNC, // setVX function
+	SETVY_FUNC, // setVY function
+	SETCOLOR_FUNC, // setColor function
+	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
+	WEB_RTC_BROADCAST_SEND_FUNC,
+};
 
 struct StdFuncTable __StdFuncTable__[] =
 {
@@ -455,12 +456,12 @@ int compile_func_init()
 	return 1; // return 1 to indicate success
 }
 
-/*=============== Event Object Table ===============*/
-enum {
-	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
-	TIME_EO, // Timer event object
-	END_EO, /* DO NOT REMOVE THIS LINE */
-};
+//  _____                 _      ___  _     _           _   
+// | ____|_   _____ _ __ | |_   / _ \| |__ (_) ___  ___| |_ 
+// |  _| \ \ / / _ \ '_ \| __| | | | | '_ \| |/ _ \/ __| __|
+// | |___ \ V /  __/ | | | |_  | |_| | |_) | |  __/ (__| |_ 
+// |_____| \_/ \___|_| |_|\__|  \___/|_.__// |\___|\___|\__|
+//                                       |__/               
 
 //extern int __web_rtc_broadcast_eo__(char* channel, char* password, void* ptr);// JSCALL
 oop web_rtc_broadcast_eo(oop stack)
@@ -488,16 +489,25 @@ oop time_eo(oop stack){
 	return 0;
 }
 
+enum {
+	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	TIME_EO, // Timer event object
+	END_EO, /* DO NOT REMOVE THIS LINE */
+};
+
 eo_func_t __EventObjectFuncTable__[2] = {
 	[WEB_RTC_BROADCAST_EO] = web_rtc_broadcast_eo,
 	[TIME_EO] = time_eo,
 };
 
+//nArgs, nFuncs, argTypes
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {2, 2, (int[]){String, String}}, // WebRTC broadcast event object with 2 arguments and 2 functions
+	[TIME_EO] = {1, 1, (int[]){Integer}}, // Timer event object with 1 argument and 1 function
 };
 
 int compile_eo_init(){
+	setEventObjectTable(__EventObjectTable__);
 	node sym = NULL;
 	node func = NULL;
 	node eo = NULL;
