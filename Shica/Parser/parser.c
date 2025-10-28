@@ -308,8 +308,8 @@ YY_RULE(int) yy_newline(yycontext *yy); /* 72 */
 YY_RULE(int) yy_blank(yycontext *yy); /* 71 */
 YY_RULE(int) yy_symbol(yycontext *yy); /* 70 */
 YY_RULE(int) yy_alnum(yycontext *yy); /* 69 */
-YY_RULE(int) yy_alnumsym(yycontext *yy); /* 68 */
-YY_RULE(int) yy_alpha(yycontext *yy); /* 67 */
+YY_RULE(int) yy_alpha(yycontext *yy); /* 68 */
+YY_RULE(int) yy_alnumsym(yycontext *yy); /* 67 */
 YY_RULE(int) yy_DQUOTE(yycontext *yy); /* 66 */
 YY_RULE(int) yy_expnt(yycontext *yy); /* 65 */
 YY_RULE(int) yy_float_(yycontext *yy); /* 64 */
@@ -1996,22 +1996,22 @@ YY_RULE(int) yy_alnum(yycontext *yy)
   yyprintf((stderr, "  fail %s @ %s\n", "alnum", yy->__buf+yy->__pos));
   return 0;
 }
-YY_RULE(int) yy_alnumsym(yycontext *yy)
-{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "alnumsym"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\043\254\377\163\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l17;
-  yyprintf((stderr, "  ok   %s @ %s\n", "alnumsym", yy->__buf+yy->__pos));
-  return 1;
-  l17:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
-  yyprintf((stderr, "  fail %s @ %s\n", "alnumsym", yy->__buf+yy->__pos));
-  return 0;
-}
 YY_RULE(int) yy_alpha(yycontext *yy)
 {  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
-  yyprintf((stderr, "%s\n", "alpha"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l18;
+  yyprintf((stderr, "%s\n", "alpha"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\000\000\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l17;
   yyprintf((stderr, "  ok   %s @ %s\n", "alpha", yy->__buf+yy->__pos));
   return 1;
-  l18:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  l17:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
   yyprintf((stderr, "  fail %s @ %s\n", "alpha", yy->__buf+yy->__pos));
+  return 0;
+}
+YY_RULE(int) yy_alnumsym(yycontext *yy)
+{  int yypos0= yy->__pos, yythunkpos0= yy->__thunkpos;
+  yyprintf((stderr, "%s\n", "alnumsym"));  if (!yymatchClass(yy, (unsigned char *)"\000\000\000\000\043\254\377\167\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l18;
+  yyprintf((stderr, "  ok   %s @ %s\n", "alnumsym", yy->__buf+yy->__pos));
+  return 1;
+  l18:;	  yy->__pos= yypos0; yy->__thunkpos= yythunkpos0;
+  yyprintf((stderr, "  fail %s @ %s\n", "alnumsym", yy->__buf+yy->__pos));
   return 0;
 }
 YY_RULE(int) yy_DQUOTE(yycontext *yy)
@@ -2128,7 +2128,7 @@ YY_RULE(int) yy_string(yycontext *yy)
 if (!(YY_BEGIN)) goto l49;
 #undef yytext
 #undef yyleng
-  }  if (!yy_alpha(yy)) goto l49;
+  }
   l50:;	
   {  int yypos51= yy->__pos, yythunkpos51= yy->__thunkpos;  if (!yy_alnumsym(yy)) goto l51;  goto l50;
   l51:;	  yy->__pos= yypos51; yy->__thunkpos= yythunkpos51;

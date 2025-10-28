@@ -157,13 +157,13 @@ float_	= < ( [0-9]+            expnt
 
 expnt	= 'e' [-+]? [0-9]+
 
-string	= DQUOTE < alpha alnumsym* > DQUOTE -	{ $$ = newString(yytext); }
+string	= DQUOTE < alnumsym* > DQUOTE -	{ $$ = newString(yytext); }
 id	= < alpha alnum* > -		{ $$ = intern(yytext);  }
 
 alpha	= [a-zA-Z_]
 alnum	= [a-zA-Z_0-9]
 symbol =  [+\-*/%<>=!] 
-alnumsym =  [a-zA-Z_0-9+\-*/%<>=! ]
+alnumsym =  [a-zA-Z_0-9+\-*/%<>=!: ]
 -	= blank*
 
 blank	= [ \t]
