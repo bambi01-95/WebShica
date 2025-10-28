@@ -1,4 +1,5 @@
 "use client";
+import { useShicaWebRTC } from '@/hooks/shikada/optbroadcast';
 import FileLists from "@/component/code/FileLists";
 import { ShicaCodeEditor } from "@/component/code/ShicaCodeEditor";
 import { useState, useEffect, useRef } from "react";
@@ -60,26 +61,18 @@ export interface Robot {
 
 // Example codes for initial state
 const examplecodes: string[] = [
-  `stt state(){
-    clickEH(x,y){
-      setColor(199, 31, 104);
-      setXY(x,y);
+  `var chat = broadcast('shica','pwd');
+  stt state(){
+    chat.received(str from, str msg){
+      print("msg from ", from, ": ", msg);
     }
-}`,
-  `stt state(){
-    clickEH(x,y){
-      setXY(50,50);
-      setVX(5);
-      setVY(0);
+  }`,
+  `var chat = broadcast('shica','pwd');
+  stt state(){
+    clickEH(int x,int y){
+      chat.send("Hello World",0);
     }
-}`,
-  `stt state(){
-    clickEH(x,y){
-      setXY(450,50);
-      setVX(0);
-      setVY(5);
-    }
-}`,
+  }`,
   `stt state(){
     clickEH(x,y){
       setXY(450,450);
@@ -134,6 +127,25 @@ const ShicaPage = () => {
   const [isRunInit, setIsRunInit] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
 
+  const {
+     userSessions,
+     topicHosts,
+     addUser,
+     connectUserToTopic,
+     sendMessage,
+     disconnectUserFromTopic,
+  } = useShicaWebRTC(Module, isReady);
+
+  const _addWebRtcBroadcast = (number: number, channel: string, password: string, ptr: number) => {
+    connectUserToTopic(number, channel);
+  };
+  const _sendWebRtcBroadcast = (index: number, channel: string, msg: string) => {
+    sendMessage(index, msg);
+  };
+  const _removeWebRtcBroadcast = (number: number, channel: string) => {
+    disconnectUserFromTopic(number, channel);
+  };
+
   //for user sample code
   const [clickXY, setClickXY] = useState<{ x: number; y: number }>({
     x: 0,
@@ -168,6 +180,7 @@ const ShicaPage = () => {
     ]);
     setSelectedIndex(codes.length); // 新しく追加したファイルを選択
     addRobot();
+    addUser();//WebRTC OptBroadcast user add
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");

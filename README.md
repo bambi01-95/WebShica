@@ -5,9 +5,32 @@
 
 ### CURRENT TASK
 
-現状、JSのイベントループをそのまま利用して、Shica VMのイベントループを省くには、手間がかかる。
-そこで、Shica VMのEH functionは、空を実装することにする。
+`test/webrtc/optbroadcast/shica`から`shikada/shica/`へWebRTC JS funcitonを移行する。
+そして、WASMとJSを統合する。
 
+- call a `Module.CCALL(_web_rtc_broadcast_receive_, Number, ['number', 'string'])`: 
+- make a `_addWebRtcBroadcast(index, channel, password, ptr)`
+- make a `_sendWebRtcBroadcast(index, channel, msg)`
+
+
+NEXT 
+- type
+struct UserType{
+    type_t _type;
+    oop id;
+    oop vars;//stack->Stack.elements[x]->Variable;
+};
+struct Instance{
+    kind_t kind;
+    char size;
+    oop* fields;
+};
+- array
+struct Array{
+    type_t _type;//obj type
+    oop typep; //own type
+    int size;
+};
 
 ### NOTICE
 

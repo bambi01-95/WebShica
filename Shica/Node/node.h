@@ -37,11 +37,13 @@ struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
 struct EventObject{ type_t _type;           int index; node *funcs;};
+struct List     { type_t _type;            node type; int size; node* elements; }     
+struct UserType  { type_t _type;           int size; node* fields;};
 struct Symbol  	 { type_t _type;           char *name;  node value; };
 struct Pair  	 { type_t _type;           node a, b; };
 struct Args  	 { type_t _type;           node value, next; };
 struct Eparams   { type_t _type;           node type, id, cond, next; };
-struct Params     { type_t _type;           node type, id; node next; };
+struct Params     { type_t _type;          node type, id; node next; };
 struct Tensor    { type_t _type;           int *shape;  int ndim;  node *elements; };
 struct Array  	 { type_t _type;           node *elements;  int size, capacity; };
 struct Closure 	 { type_t _type;           int nArgs; int pos,retType; int *argTypes; };//store user defined function
@@ -88,6 +90,8 @@ union Node {
     struct Float    Float;
     struct String   String;
     struct EventObject EventObject;
+    struct List     List;
+    struct UserType UserType;
     struct Symbol   Symbol;
     struct Pair     Pair;
     struct Args     Args;
@@ -149,7 +153,8 @@ node newString(char *value);
 node newEventObject(node sym, int index);
 node putFuncToEo(node eo, node func, node symbol, int index);
 
-
+node newList(int size, node type);
+node newUserType(int size, node* fields);
 /* Symbol: not string */
 node newSymbol(char *name);
 node intern(char *name);

@@ -362,8 +362,7 @@ const ShicaWebRTCPage = () => {
       if (!userSession) return;
       if(userSession.currentTopic !== topicName) return; // 現在のトピックと異なる場合は無視
       console.log(`👤 ${uid} processing message from topic "${topicName}" host`);
-      
-        // メッセージを現在のトピックにのみ追加
+        //Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [uid, JSON.stringify(message)]);//CCALL
         userSession.messages.push(message);
         setUserSessions(prev => new Map(prev).set(uid, { ...userSession }));
     };
@@ -375,7 +374,7 @@ const ShicaWebRTCPage = () => {
         content,
       };
     };
-  
+    //`_sendWebRtcBroadcast(index, channel, msg)`;// JSCALL
     const sendMessage = (uid: number, content: string) => {
       const session = userSessions.get(uid);
       if (!session || !content.trim() || !session.isConnected) return;
@@ -404,6 +403,7 @@ const ShicaWebRTCPage = () => {
     };
 
 // Shica: var chat = broadcast(topic);
+//`_addWebRtcBroadcast(index, channel, password, ptr)`
     const connectUserToCurrentTopic = async (uid: number) => {
       const session = userSessions.get(uid);
       if (!session || !session.currentTopic) return;

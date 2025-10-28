@@ -1,0 +1,580 @@
+/**
+ * Shica WebRTC OptBroadcast Library - Custom Hook
+ * トピックベースのWebRTCブロードキャスト通信を管理するカスタムフック
+ * 
+ * @description
+ * このフックは、複数ユーザー間でのトピックベースのメッセージング機能を提供します。
+ * 各トピックにはホストが存在し、ホストを介してメッセージがルーティングされます。
+ * 
+ * @example
+ * ```tsx
+ * const {
+ *   userSessions,
+ *   topicHosts,
+ *   addUser,
+ *   removeUser,
+ *   sendMessage,
+ *   connectUserToTopic,
+ *   disconnectUserFromTopic,
+ * } = useShicaWebRTC();
+ * ```
+ */
+
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import type { Agent, TopicHost, Message, TopicStats } from './types';
+
+export const useShicaWebRTC = (Module: any, isReady: boolean) => {
+  const [userSessions, setUserSessions] = useState<Map<number, Agent>>(
+    new Map([
+      [
+        1,
+        {
+          uid: 1,
+          filename: 'file1.ts',
+          code: 'const a = 1;',
+          compiled: false,
+          currentTopic: 'fish',
+          isConnected: false,
+          messages: [],
+        },
+      ],
+    ])
+  );
+
+  const [topicHosts, setTopicHosts] = useState<Map<string, TopicHost>>(new Map());
+
+  // WebRTC接続管理
+  const topicHostConnectionsRef = useRef<Map<string, Map<number, RTCPeerConnection>>>(new Map());
+  const topicHostDataChannelsRef = useRef<Map<string, Map<number, RTCDataChannel>>>(new Map());
+  const userToTopicHostConnectionRef = useRef<Map<number, Map<string, RTCPeerConnection>>>(new Map());
+  const userToTopicHostDataChannelRef = useRef<Map<number, Map<string, RTCDataChannel>>>(new Map());
+
+  // STUNサーバー設定
+  const iceServers = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+  };
+
+  // クリーンアップ関数
+  const cleanup = () => {
+    // 全てのトピックホスト接続を閉じる
+    topicHostConnectionsRef.current.forEach((topicConnections) => {
+      topicConnections.forEach((conn) => conn.close());
+    });
+    topicHostConnectionsRef.current.clear();
+    topicHostDataChannelsRef.current.clear();
+
+    // 全てのユーザー接続を閉じる
+    userToTopicHostConnectionRef.current.forEach((userConnections) => {
+      userConnections.forEach((conn) => conn.close());
+    });
+    userToTopicHostConnectionRef.current.clear();
+    userToTopicHostDataChannelRef.current.clear();
+  };
+
+  // 特定のトピック用ホストを初期化
+  const initializeTopicHost = async (topicName: string) => {
+    if (topicHosts.has(topicName)) {
+      console.log(`🏢 Topic host for "${topicName}" already exists`);
+      return;
+    }
+    console.log(`🏢 Initializing Topic Host for "${topicName}"...`);
+
+    const newHost: TopicHost = {
+      topicName,
+      hostId: `host-${topicName}-${Date.now()}`,
+      isActive: true,
+      connectedUsers: new Set(),
+      messageQueue: [],
+    };
+
+    setTopicHosts((prev) => new Map(prev.set(topicName, newHost)));
+
+    // トピック専用の接続マップを初期化
+    if (!topicHostConnectionsRef.current.has(topicName)) {
+      topicHostConnectionsRef.current.set(topicName, new Map());
+      topicHostDataChannelsRef.current.set(topicName, new Map());
+    }
+
+    console.log(`🟢 Topic Host for "${topicName}" is now active`);
+  };
+
+  // 特定のトピックホストにユーザー接続を作成
+  const createTopicHostToUserConnection = async (topicName: string, uid: number): Promise<boolean> => {
+    const topicHost = topicHosts.get(topicName);
+    if (!topicHost || !topicHost.isActive) {
+      console.error(`❌ Topic host for "${topicName}" is not active`);
+      return false;
+    }
+
+    try {
+      console.log(`🔗 Topic Host "${topicName}" creating connection to ${uid}...`);
+
+      const pc = new RTCPeerConnection(iceServers);
+
+      // トピック専用の接続を保存
+      const topicConnections = topicHostConnectionsRef.current.get(topicName) || new Map();
+      topicConnections.set(uid, pc);
+      topicHostConnectionsRef.current.set(topicName, topicConnections);
+
+      // データチャンネルを作成
+      const dataChannel = pc.createDataChannel(`${topicName}-host-to-${uid}`, {
+        ordered: true,
+      });
+
+      const topicChannels = topicHostDataChannelsRef.current.get(topicName) || new Map();
+      topicChannels.set(uid, dataChannel);
+      topicHostDataChannelsRef.current.set(topicName, topicChannels);
+
+      // ホストデータチャンネルイベント
+      dataChannel.onopen = () => {
+        console.log(`✅ Topic "${topicName}" host connection to ${uid} established`);
+
+        setTopicHosts((prev) => {
+          const newHosts = new Map(prev);
+          const host = newHosts.get(topicName);
+          if (host) {
+            host.connectedUsers.add(uid);
+            newHosts.set(topicName, { ...host });
+          }
+          return newHosts;
+        });
+
+        setUserSessions((prev) => {
+          const newSessions = new Map(prev);
+          const session = newSessions.get(uid);
+          if (session) {
+            newSessions.set(uid, {
+              ...session,
+              isConnected: true,
+              currentTopic: topicName,
+            });
+          }
+          return newSessions;
+        });
+      };
+
+      // received message
+      dataChannel.onmessage = (event) => {
+        const messageData = JSON.parse(event.data);
+        console.log(`📨 Topic "${topicName}" host received message from ${uid}:`, messageData);
+        handleMessageFromUserInTopic(messageData, uid, topicName);
+      };
+
+      dataChannel.onclose = () => {
+        console.log(`🔴 Topic "${topicName}" host connection to ${uid} closed`);
+
+        setTopicHosts((prev) => {
+          const newHosts = new Map(prev);
+          const host = newHosts.get(topicName);
+          if (host) {
+            host.connectedUsers.delete(uid);
+            newHosts.set(topicName, { ...host });
+          }
+          return newHosts;
+        });
+      };
+
+      dataChannel.onerror = (error) => {
+        console.error(`❌ Topic "${topicName}" host data channel error for ${uid}:`, error);
+      };
+
+      // ピア接続イベント
+      pc.onconnectionstatechange = () => {
+        console.log(`🔄 Topic "${topicName}" Host->${uid} connection state:`, pc.connectionState);
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          handleICECandidateForUserInTopic(topicName, uid, event.candidate);
+        }
+      };
+
+      // offer/answerの交換をシミュレート
+      await simulateOfferAnswerExchangeInTopic(pc, topicName, uid);
+
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to create topic "${topicName}" host connection to ${uid}:`, error);
+      return false;
+    }
+  };
+
+  // ユーザーからトピックホストへの接続を作成
+  const createUserToTopicHostConnection = async (topicName: string, uid: number): Promise<boolean> => {
+    try {
+      console.log(`🔗 ${uid} connecting to topic "${topicName}" host...`);
+
+      const pc = new RTCPeerConnection(iceServers);
+
+      // ユーザーの接続を保存
+      if (!userToTopicHostConnectionRef.current.has(uid)) {
+        userToTopicHostConnectionRef.current.set(uid, new Map());
+        userToTopicHostDataChannelRef.current.set(uid, new Map());
+      }
+
+      const userConnections = userToTopicHostConnectionRef.current.get(uid)!;
+      userConnections.set(topicName, pc);
+
+      // 受信データチャンネルを処理
+      pc.ondatachannel = (event) => {
+        const dataChannel = event.channel;
+        const userChannels = userToTopicHostDataChannelRef.current.get(uid)!;
+        userChannels.set(topicName, dataChannel);
+
+        dataChannel.onopen = () => {
+          console.log(`✅ ${uid} connected to topic "${topicName}" host`);
+        };
+
+        dataChannel.onmessage = (event) => {
+          const messageData = JSON.parse(event.data);
+          console.log(`📨 ${uid} received message from topic "${topicName}" host:`, messageData);
+          handleMessageFromTopicHost(messageData, uid, topicName);
+        };
+
+        dataChannel.onclose = () => {
+          console.log(`🔴 ${uid} disconnected from topic "${topicName}" host`);
+          setUserSessions((prev) => {
+            const newSessions = new Map(prev);
+            const session = newSessions.get(uid);
+            if (session) {
+              newSessions.set(uid, {
+                ...session,
+                isConnected: false,
+              });
+            }
+            return newSessions;
+          });
+        };
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log(`🔄 ${uid}->Topic "${topicName}" Host connection state:`, pc.connectionState);
+      };
+
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to create ${uid} connection to topic "${topicName}" host:`, error);
+      return false;
+    }
+  };
+
+  // WebRTC offer/answer交換のシミュレート
+  const simulateOfferAnswerExchangeInTopic = async (hostPc: RTCPeerConnection, topicName: string, uid: number) => {
+    setTimeout(async () => {
+      try {
+        // ユーザー接続を作成
+        await createUserToTopicHostConnection(topicName, uid);
+        const userConnections = userToTopicHostConnectionRef.current.get(uid);
+        const userPc = userConnections?.get(topicName);
+
+        if (userPc) {
+          // ホストからオファーを作成
+          const offer = await hostPc.createOffer();
+          await hostPc.setLocalDescription(offer);
+          await userPc.setRemoteDescription(offer);
+
+          // ユーザーからアンサーを作成
+          const answer = await userPc.createAnswer();
+          await userPc.setLocalDescription(answer);
+          await hostPc.setRemoteDescription(answer);
+
+          console.log(`🤝 Offer/Answer exchange completed for ${uid} in topic "${topicName}"`);
+        }
+      } catch (error) {
+        console.error(`❌ Offer/Answer exchange failed for ${uid} in topic "${topicName}":`, error);
+      }
+    }, 100);
+  };
+
+  // ICE候補の処理
+  const handleICECandidateForUserInTopic = async (topicName: string, uid: number, candidate: RTCIceCandidate) => {
+    setTimeout(async () => {
+      const userConnections = userToTopicHostConnectionRef.current.get(uid);
+      const userPc = userConnections?.get(topicName);
+      if (userPc) {
+        try {
+          await userPc.addIceCandidate(candidate);
+        } catch (error) {
+          console.error(`❌ Failed to add ICE candidate for ${uid} in topic "${topicName}":`, error);
+        }
+      }
+    }, 50);
+  };
+
+  // トピックホストがユーザーからのメッセージを処理してルーティング
+  const handleMessageFromUserInTopic = (messageData: { message: Message }, fromUserId: number, topicName: string) => {
+    const { message } = messageData;
+
+    console.log(`🏢 Topic "${topicName}" host routing message from ${fromUserId}`);
+
+    // ホストのメッセージキューに追加
+    setTopicHosts((prev) => {
+      const newHosts = new Map(prev);
+      const host = newHosts.get(topicName);
+      if (host) {
+        host.messageQueue.push(message);
+        newHosts.set(topicName, { ...host });
+      }
+      return newHosts;
+    });
+
+    // 同じトピックの他の接続されたユーザーに配信
+    const topicChannels = topicHostDataChannelsRef.current.get(topicName);
+    if (topicChannels) {
+      topicChannels.forEach((dataChannel, uid) => {
+        if (uid !== fromUserId && dataChannel.readyState === 'open') {
+          try {
+            dataChannel.send(JSON.stringify(messageData));
+            console.log(`📤 Topic "${topicName}" host broadcasted message to ${uid}`);
+          } catch (error) {
+            console.error(`❌ Failed to broadcast to ${uid} in topic "${topicName}":`, error);
+          }
+        }
+      });
+    }
+  };
+
+  // ユーザーがトピックホストからメッセージを受信
+  const handleMessageFromTopicHost = (messageData: { message: Message }, uid: number, topicName: string) => {
+    const { message } = messageData;
+
+    setUserSessions((prev) => {
+      const newSessions = new Map(prev);
+      const userSession = newSessions.get(uid);
+      if (!userSession) return prev;
+      if (userSession.currentTopic !== topicName) return prev; // 現在のトピックと異なる場合は無視
+
+      console.log(`👤 ${uid} processing message from topic "${topicName}" host`);
+      Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [uid, JSON.stringify(message)]);//CCALL
+      userSession.messages.push(message);
+      newSessions.set(uid, { ...userSession });
+      return newSessions;
+    });
+  };
+
+  const createMessage = (sender: number, content: string, topicName: string): Message => {
+    return {
+      id: `${sender}-${Date.now()}-${Math.random()}`,
+      sender,
+      content,
+    };
+  };
+
+  // メッセージ送信
+  // Shica: `_sendWebRtcBroadcast(index, channel, msg)`;// JSCALL
+  const sendMessage = (uid: number, content: string) => {
+    const session = userSessions.get(uid);
+    if (!session || !content.trim() || !session.isConnected) return;
+
+    const message = createMessage(uid, content, session.currentTopic);
+    const messageData = { message };
+
+    // トピックホスト経由でメッセージを送信
+    const userChannels = userToTopicHostDataChannelRef.current.get(uid);
+    const userChannel = userChannels?.get(session.currentTopic);
+
+    if (userChannel && userChannel.readyState === 'open') {
+      try {
+        userChannel.send(JSON.stringify(messageData));
+
+        console.log(`📤 ${uid} sent message to topic "${session.currentTopic}" host`);
+        // 送信者のローカル状態に即座に追加
+        setUserSessions((prev) => {
+          const newSessions = new Map(prev);
+          const updatedSession = newSessions.get(uid);
+          if (updatedSession) {
+            updatedSession.messages.push(message);
+            newSessions.set(uid, { ...updatedSession });
+          }
+          return newSessions;
+        });
+      } catch (error) {
+        console.error(`❌ Failed to send message from ${uid} to topic "${session.currentTopic}":`, error);
+      }
+    } else {
+      console.warn(`⚠️ ${uid} is not connected to topic "${session.currentTopic}" host`);
+    }
+  };
+
+  // Shica: var chat = broadcast(topic);
+  // `_addWebRtcBroadcast(index, channel, password, ptr)`
+  const connectUserToTopic = async (uid: number, topicName: string) => {
+    // トピック名を設定
+    setUserSessions((prev) => {
+      const newSessions = new Map(prev);
+      const session = newSessions.get(uid);
+      if (session) {
+        newSessions.set(uid, {
+          ...session,
+          currentTopic: topicName,
+        });
+      }
+      return newSessions;
+    });
+
+    // トピックホストを初期化（存在しない場合）
+    await initializeTopicHost(topicName);
+
+    const success = await createTopicHostToUserConnection(topicName, uid);
+    if (success) {
+      console.log(`✅ ${uid} connection process initiated for topic "${topicName}"`);
+    }
+  };
+
+  // Shica: chat.close()相当
+  const disconnectUserFromTopic = async (uid: number, topicName: string) => {
+    // トピックホスト接続を閉じる
+    const topicConnections = topicHostConnectionsRef.current.get(topicName);
+    if (topicConnections) {
+      const hostConnection = topicConnections.get(uid);
+      if (hostConnection) {
+        hostConnection.close();
+        topicConnections.delete(uid);
+      }
+
+      const topicChannels = topicHostDataChannelsRef.current.get(topicName);
+      if (topicChannels) {
+        topicChannels.delete(uid);
+      }
+    }
+
+    // ユーザー接続を閉じる
+    const userConnections = userToTopicHostConnectionRef.current.get(uid);
+    if (userConnections) {
+      const userConnection = userConnections.get(topicName);
+      if (userConnection) {
+        userConnection.close();
+        userConnections.delete(topicName);
+      }
+
+      const userChannels = userToTopicHostDataChannelRef.current.get(uid);
+      if (userChannels) {
+        userChannels.delete(topicName);
+      }
+    }
+
+    // 状態を更新
+    setUserSessions((prev) => {
+      const newSessions = new Map(prev);
+      const session = newSessions.get(uid);
+      if (!session) return prev;
+      if (session.currentTopic !== topicName) return prev; // 現在のトピックと異なる場合は無視
+
+      session.isConnected = false;
+      session.currentTopic = '';
+      session.messages = [];
+      newSessions.set(uid, { ...session });
+      return newSessions;
+    });
+
+    setTopicHosts((prev) => {
+      const newHosts = new Map(prev);
+      const host = newHosts.get(topicName);
+      if (host) {
+        host.connectedUsers.delete(uid);
+        newHosts.set(topicName, { ...host });
+      }
+      return newHosts;
+    });
+
+    console.log(`🔴 ${uid} disconnected from topic "${topicName}"`);
+  };
+
+  // ユーザーの追加: コードエディタとセッションを初期化
+  const addUser = () => {
+    if (userSessions.size >= 12) return;
+
+    const newUserId = userSessions.size + 1;
+    setUserSessions((prev) =>
+      new Map(prev).set(newUserId, {
+        uid: newUserId,
+        currentTopic: '',
+        isConnected: false,
+        messages: [],
+      })
+    );
+  };
+
+  // ユーザーの削除
+  const removeUser = (uid: number) => {
+    if (userSessions.size <= 1) return;
+
+    const session = userSessions.get(uid);
+    if (session && session.isConnected) {
+      disconnectUserFromTopic(uid, session.currentTopic);
+    }
+
+    setUserSessions((prev) => {
+      const newSessions = new Map(prev);
+      newSessions.delete(uid);
+      return newSessions;
+    });
+  };
+
+  // ユーザーの接続/切断トグル
+  const toggleUserConnection = async (uid: number) => {
+    const session = userSessions.get(uid);
+    if (!session) return;
+
+    if (session.isConnected) {
+      await disconnectUserFromTopic(uid, session.currentTopic);
+    } else {
+      if (session.currentTopic) {
+        await connectUserToTopic(uid, session.currentTopic);
+      }
+    }
+  };
+
+  // トピックごとの統計情報を取得
+  const getTopicStats = (): TopicStats => {
+    const topicUsers = new Map<string, number>();
+    const topicMessages = new Map<string, number>();
+
+    userSessions.forEach((session) => {
+      if (session.isConnected) {
+        topicUsers.set(session.currentTopic, (topicUsers.get(session.currentTopic) || 0) + 1);
+      }
+    });
+
+    Array.from(topicHosts.values()).forEach((host) => {
+      topicMessages.set(host.topicName, host.messageQueue.length);
+    });
+
+    return { topicUsers, topicMessages };
+  };
+
+  // 初期化とクリーンアップ
+  useEffect(() => {
+    initializeTopicHost('fish');
+    return () => {
+      cleanup();
+    };
+  }, []);
+
+  return {
+    // State
+    userSessions,
+    topicHosts,
+
+    // User Management
+    addUser,
+    removeUser,
+    toggleUserConnection,
+
+    // Topic & Connection Management
+    initializeTopicHost,
+    connectUserToTopic,
+    disconnectUserFromTopic,
+
+    // Messaging
+    sendMessage,
+
+    // Stats
+    getTopicStats,
+  };
+};
