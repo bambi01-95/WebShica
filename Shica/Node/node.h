@@ -232,7 +232,7 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type);
 
 node newEmitContext();
 
-void printlnObject(node node, int indent);
+void printNode(node node, int indent);
 void println(node obj);
 void print(node node);
 
