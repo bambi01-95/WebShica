@@ -3,6 +3,8 @@
 #define SHICA_LIBRARY_H
 #include "../../../Object/object.h"
 #include "../../../Node/node.h"
+#include "../../../GC/gc.h"
+/*===============Other =====================*/
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif

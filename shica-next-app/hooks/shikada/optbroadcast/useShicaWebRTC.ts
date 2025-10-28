@@ -24,21 +24,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Agent, TopicHost, Message, TopicStats } from './types';
+import { initialize } from 'next/dist/server/lib/render-server';
 
 export const useShicaWebRTC = (Module: any, isReady: boolean) => {
-  const [userSessions, setUserSessions] = useState<Map<number, Agent>>(
-    new Map([
-      [
-        1,
-        {
-          uid: 1,
-          currentTopic: 'fish',
-          isConnected: false,
-          messages: [],
-        },
-      ],
-    ])
-  );
+  const [userSessions, setUserSessions] = useState<Map<number, Agent>>(new Map());
 
   const [topicHosts, setTopicHosts] = useState<Map<string, TopicHost>>(new Map());
 
@@ -89,8 +78,11 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       messageQueue: [],
     };
 
-    setTopicHosts((prev) => new Map(prev.set(topicName, newHost)));
-
+    setTopicHosts((prev) => {
+      const newMap = new Map(prev);        // コピーを作る
+      newMap.set(topicName, newHost);      // コピーに追加
+      return newMap;                       // 新しい Map を返す
+    });
     // トピック専用の接続マップを初期化
     if (!topicHostConnectionsRef.current.has(topicName)) {
       topicHostConnectionsRef.current.set(topicName, new Map());
@@ -104,6 +96,9 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
   const createTopicHostToUserConnection = async (topicName: string, uid: number): Promise<boolean> => {
     const topicHost = topicHosts.get(topicName);
     if (!topicHost || !topicHost.isActive) {
+      topicHosts.forEach((host, name) => {
+        console.log(`ℹ️ Topic Host "${name}": isActive=${host.isActive}, connectedUsers=${Array.from(host.connectedUsers).join(',')}`);
+      });
       console.error(`❌ Topic host for "${topicName}" is not active`);
       return false;
     }
@@ -415,9 +410,11 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
     });
 
     // トピックホストを初期化（存在しない場合）
+    console.log("🦌 1");
     await initializeTopicHost(topicName);
-
+    console.log("🦌 2");
     const success = await createTopicHostToUserConnection(topicName, uid);
+    console.log("🦌 3");
     if (success) {
       console.log(`✅ ${uid} connection process initiated for topic "${topicName}"`);
     }
@@ -483,18 +480,21 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
   };
 
   // ユーザーの追加: コードエディタとセッションを初期化
-  const addUser = () => {
+  const addUser = (id: number) => {
     if (userSessions.size >= 12) return;
-
-    const newUserId = userSessions.size + 1;
-    setUserSessions((prev) =>
-      new Map(prev).set(newUserId, {
+    const userSession = userSessions.get(id);
+    if (userSession) return;
+    const newUserId = id;
+    setUserSessions((prev) => {
+      const newUserSessions = new Map(prev);
+      newUserSessions.set(newUserId, {
         uid: newUserId,
         currentTopic: '',
         isConnected: false,
         messages: [],
-      })
-    );
+      });
+      return newUserSessions;
+    });
   };
 
   // ユーザーの削除
@@ -547,7 +547,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // 初期化とクリーンアップ
   useEffect(() => {
-    initializeTopicHost('fish');
+    initializeTopicHost('shica');
     return () => {
       cleanup();
     };

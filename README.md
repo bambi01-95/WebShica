@@ -5,6 +5,14 @@
 
 ### CURRENT TASK
 
+- Implement communication without initialization from C
+- AND test send and received work or not.
+- IF success, move to TYPE and ARRAY
+- ELSE debug it!...
+
+# ISSUE 
+`useShicaWebRTC`の`initializeTopicHost`で、初期化しているのに、データが初期化されていない。
+
 `test/webrtc/optbroadcast/shica`から`shikada/shica/`へWebRTC JS funcitonを移行する。
 そして、WASMとJSを統合する。
 

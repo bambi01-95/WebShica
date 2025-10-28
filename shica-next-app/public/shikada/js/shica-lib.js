@@ -2,13 +2,6 @@
   you can call JS functions from C code here.
   remember to declare them in shica-lib.js and library.c
 */
-globalThis._addWebRtcBroadcast = function(index, channel, password, ptr) {
-  console.log("Adding WebRTC Broadcast (global):", index, channel, password, ptr);
-};
-
-globalThis._sendWebRtcBroadcast = function(index, channel, msg) {
-  console.log("Sending WebRTC Broadcast (global):", index, channel, msg);
-};
 
 mergeInto(LibraryManager.library, {
 

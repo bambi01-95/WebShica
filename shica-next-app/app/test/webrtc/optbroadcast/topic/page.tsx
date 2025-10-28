@@ -118,8 +118,10 @@ const TopicBasedWebRTCChat = () => {
       topicHostConnectionsRef.current.set(topicName, new Map());
       topicHostDataChannelsRef.current.set(topicName, new Map());
     }
+    const topic = topicHosts.get(topicName);
+    const isActive = topic?.isActive ?? false;
 
-    console.log(`🟢 Topic Host for "${topicName}" is now active`);
+    console.log(`🟢 Topic Host for "${topicName}" is now ${isActive ? "active" : "inactive"}`);
   };
 
   // ユーザーのトピック切り替え

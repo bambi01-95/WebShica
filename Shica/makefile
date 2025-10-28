@@ -51,7 +51,7 @@ WEB_SHICA_FLAGS = -O3 \
 		 $(FLAGS) \
 		 -DWEBSHICA \
          -s WASM=1 \
-         -s INITIAL_MEMORY=64MB \
+         -s INITIAL_MEMORY=128MB \
          -s ENVIRONMENT=web \
          -s EXPORTED_FUNCTIONS='[$(WEB_SHICA_FUNC), $(WEB_SHICA_ERROR_FUNC)]' \
 		 -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS"]' \

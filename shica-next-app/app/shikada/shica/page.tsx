@@ -10,6 +10,7 @@ import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 import { Roboto } from "next/font/google";
 import Script from 'next/script';
+import { sampleCodes } from './sample';
 
 const roboto = Roboto({
   subsets: ["latin", "latin-ext"],
@@ -61,34 +62,6 @@ export interface Robot {
 }
 
 // Example codes for initial state
-const examplecodes: string[] = [
-  `var chat = broadcast("shica","pwd");
-  stt state(){
-    chat.received(str from, str msg){
-      print("msg from ", from, ": ", msg);
-    }
-  }`,
-  `var chat = broadcast("shica","pwd");
-  stt state(){
-    clickEH(int x,int y){
-      chat.send("Hello World",0);
-    }
-  }`,
-  `stt state(){
-    clickEH(x,y){
-      setXY(450,450);
-      setVX(-5);
-      setVY(0);
-    }
-}`,
-  `stt state(){
-    clickEH(x,y){
-      setXY(50,450);
-      setVX(0);
-      setVY(-5);
-    }
-}`,
-];
 
 interface Agent{
   uid: number;
@@ -102,7 +75,7 @@ const ShicaPage = () => {
     {
       filename: "Agent0",
       code:
-        examplecodes[0] ||
+        sampleCodes[0] ||
         "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
       compiled: false, 
     },
@@ -129,8 +102,7 @@ const ShicaPage = () => {
   const [logs, setLogs] = useState<Log[]>([]);
 
   const {
-     userSessions,
-     topicHosts,
+     initializeTopicHost,
      addUser,
      connectUserToTopic,
      sendMessage,
@@ -138,9 +110,11 @@ const ShicaPage = () => {
   } = useShicaWebRTC(Module, isReady);
 
   const _addWebRtcBroadcast = (number: number, channel: string, password: string, ptr: number) => {
+    console.log(`🛜 Adding WebRTC Broadcast User: ${number} to channel: ${channel}`);
     connectUserToTopic(number, channel);
   };
   const _sendWebRtcBroadcast = (index: number, channel: string, msg: string) => {
+    console.log(`📡 Sending WebRTC Broadcast Message from User: ${index} to channel: ${channel}`);
     sendMessage(index, msg);
   };
   const _removeWebRtcBroadcast = (number: number, channel: string) => {
@@ -187,13 +161,13 @@ const ShicaPage = () => {
       ...prev,
       {
         filename: `Agent${codes.length}`,
-        code: examplecodes[0],
+        code: sampleCodes[0],
         compiled: false,
       },
     ]);
     setSelectedIndex(codes.length); // 新しく追加したファイルを選択
     addRobot();
-    addUser();//WebRTC OptBroadcast user add
+    addUser(codes.length);//WebRTC OptBroadcast user add
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");

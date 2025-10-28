@@ -4,15 +4,6 @@
 #include <string.h>
 #include "node.h"
 
-//GC
-#ifdef MSGC
-#define newAtomicObject(TYPE) gc_beAtomic(newNode(TYPE))
-#elif defined(MSGCS)
-#define newAtomicObject(TYPE) gc_beAtomic(newNode(TYPE))
-#else
-	#error "GC is not defined, please define MSGC or MSGCS"
-#endif
-
 node nil   = 0;
 node FALSE = 0;
 node TRUE  = 0;
@@ -52,9 +43,10 @@ static node _newNode(size_t size, enum Type type)
 
 #define newNode(TYPE)	_newNode(sizeof(struct TYPE), TYPE)
 
+
 node newUndefine()
 {
-    return newAtomicObject(Undefined);
+    return newAtomic(Undefined);
 }
 
 node newInteger(int value)
@@ -86,7 +78,7 @@ node newString(char *value)
 {
 	gc_pushRoot((void*)&value);
 	GC_PUSH(node, str, newNode(String));
-	str->String.value = strdup(value);
+	str->String.value = gc_strdup(value);
 	GC_POP(str);
 	gc_popRoots(1);
 	return str;
