@@ -1,34 +1,31 @@
-# wasm conecting functions
-
-- `_memory_init`
-- `_compileWebCode`
-- `_initRunWeb`
-- `_runWeb`
-- `_initWebTimerPtr`
-- `_initWebClickSTTPtr`
-- `_initAnAgnetDataPtr`
-
-int memory_init(void);
-int initWebCodes(int num);
-
-int addWebCode(void);
-
-int compileWebCode(const int doInit,const int index, const char *code);
-
-int deleteWebCode(const int index)
-
-int initWebAgents(int num);
-int executeWebCodes(void);
+# Web Assembler
 
 
-## wasm function
 
-### for file
 
-Simulation 
-- `int getWebCompiledCode(int index)`: get compiled web code at index
 
-Error: `./Shica/Error/*.*`
-combination two function, you can out put error msg.
-- `int getNumOfErrorMsg(void)`: return number of error.
-- `char* getErrorMsg(void)`: return a error msg. 
+## Cross funciton
+
+### Call C function from Next.js
+
+- Add that function name into the `WEB_SHICA_FUNC` list in the `Shica/makefile`.
+- Add `import { useVM } from "@/hooks/shikada/useShica";` and define `const [Module, isReady] = useVM();`.
+- Call your C function like `Module.ccall("FUNCTION_NAME", "retType", ["arg1Type",...],[arg1Name,...])`.
+
+***If something does not work, look the `shica-next-app/hooks/shikada/useShica.tsx`.
+
+### Call Next.js function from C
+
+- decare that function into `C` like, `export int funcion(int arg);`
+- define that function into `Platform/WebShica/shica-lib.js`
+- when you use/call function that define at next.js (page.ts) from `shica-lib.js`, 
+  you should define that funciton as global function.
+```js: page.tsx > ShicaPage (comp)
+  const JSFUNCITON = ()=>{...};
+  // JSCALL
+  useEffect(() => {
+    if (isReady) {
+      (globalThis as any).JSFUNCTION = JSFUNCTION;
+    }
+  }, [isReady]);
+```

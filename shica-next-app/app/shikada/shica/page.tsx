@@ -9,6 +9,7 @@ import { useVM } from "@/hooks/shikada/useShica";
 import InlineCodeWithCopy from "@/component/code/InlineCode";
 import ThemeToggleButton from "@/component/ui/ThemeToggleButton";
 import { Roboto } from "next/font/google";
+import Script from 'next/script';
 
 const roboto = Roboto({
   subsets: ["latin", "latin-ext"],
@@ -61,13 +62,13 @@ export interface Robot {
 
 // Example codes for initial state
 const examplecodes: string[] = [
-  `var chat = broadcast('shica','pwd');
+  `var chat = broadcast("shica","pwd");
   stt state(){
     chat.received(str from, str msg){
       print("msg from ", from, ": ", msg);
     }
   }`,
-  `var chat = broadcast('shica','pwd');
+  `var chat = broadcast("shica","pwd");
   stt state(){
     clickEH(int x,int y){
       chat.send("Hello World",0);
@@ -146,6 +147,18 @@ const ShicaPage = () => {
     disconnectUserFromTopic(number, channel);
   };
 
+  // JSCALL
+  useEffect(() => {
+    if (isReady) {
+      // グローバルに登録
+      (globalThis as any)._addWebRtcBroadcast = _addWebRtcBroadcast;
+      (globalThis as any)._sendWebRtcBroadcast = _sendWebRtcBroadcast;
+      (globalThis as any)._removeWebRtcBroadcast = _removeWebRtcBroadcast;
+
+      console.log("🌐 Registered WebRTC bridge functions to globalThis");
+    }
+  }, [isReady]);
+  
   //for user sample code
   const [clickXY, setClickXY] = useState<{ x: number; y: number }>({
     x: 0,

@@ -50,7 +50,6 @@ export function useVM() {
             };
           }
         };
-
         document.body.appendChild(script);
       }
     };

@@ -11,7 +11,9 @@
 
 # copy
 DEST = ../shica-next-app/public/shikada/js
-FILES = ./Platform/WebShica/shica.js ./Platform/WebShica/shica.wasm
+FILES = ./Platform/WebShica/shica.js \
+        ./Platform/WebShica/shica.wasm \
+		./Platform/WebShica/shica-lib.js
 
 # コンパイラ
 WASMCC = emcc

@@ -2346,6 +2346,8 @@ int deleteWebCode(const int index)
 //WARNING: which ctx you use is important -> comctx
 int initWebAgents(int num)
 {
+	executor_event_init(); // initialize the event system for the executor
+	executor_func_init(); // initialize the standard functions for the executor
 	ctx = comctx; // use the context for the garbage collector
 	if(num <= 0){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
@@ -2369,8 +2371,9 @@ int initWebAgents(int num)
 		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
 		#endif
 		GC_PUSH(oop,agent,newAgent(0,0)); // create a new agent
+		assert(getKind(agent) == Agent); // check if the agent is of type Agent
 		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
-		assert(((oop)*ctx->roots[0])->kind == Agent); // check if the root is of type Agent
+		assert(getKind(((oop)*ctx->roots[0])) == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
@@ -2389,23 +2392,22 @@ int executeWebCodes(void)
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
 		if(agent==retFlags[ERROR_F])continue;
-		assert(agent->kind == Agent); // check if the agent is of type Agent
-		if(agent->Agent.isActive == 0){
+		if(getObj(agent, Agent, isActive) == 0){
 			agent = execute(webCodes[i] ,agent , agent);
 		}else{
-			printf("nEvents: %d\n", agent->Agent.nEvents);
-			if(agent->Agent.nEvents == 0){
+			printf("nEvents: %d\n", getObj(agent, Agent, nEvents));
+			if(getObj(agent, Agent, nEvents) == 0){
 				printAgent(agent); // print the agent if it has no events
 				continue; // skip to the next agent
 			}
-			for(int j = 0; j < agent->Agent.nEvents; ++j){
+			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
-				oop eh = agent->Agent.eventHandlers[j];
-				EventTable[eh->EventHandler.EventH].eh(eh);
+				oop eh = getObj(agent, Agent, eventHandlers)[j];
+				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
-					agent->Agent.isActive = 0;
-					agent->Agent.pc = intArray_pop(agent->Agent.stack);
-					agent->Agent.eventHandlers = NULL;
+					getObj(agent, Agent, isActive) = 0;
+					getObj(agent, Agent, pc) = intArray_pop(getObj(agent, Agent, stack));
+					getObj(agent, Agent, eventHandlers) = NULL;
 					break;
 				}
 			}

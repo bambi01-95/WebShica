@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include "object.h"
 
-#define TAGBITS 3
+#define TAGBITS 2
 #define TAG_INT_ENT 0x1
 #define TAG_FLT_ENT 0x2
 
@@ -303,6 +303,7 @@ oop newAgent(int id, int nEvents)
 			agent->Agent.eventHandlers[i] = NULL;
 		}
 	}
+	assert(getKind(agent) == Agent);
 	return agent;
 }
 

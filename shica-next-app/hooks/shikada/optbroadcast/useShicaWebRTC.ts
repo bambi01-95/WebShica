@@ -32,9 +32,6 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
         1,
         {
           uid: 1,
-          filename: 'file1.ts',
-          code: 'const a = 1;',
-          compiled: false,
           currentTopic: 'fish',
           isConnected: false,
           messages: [],
