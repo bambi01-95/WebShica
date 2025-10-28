@@ -119,10 +119,10 @@ node putFuncToEo(node eo, node func, node symbol, int index)
 		assert(eo->EventObject.funcs[i] != NULL); // ensure no overwrite
 #endif
 	assert(eo->EventObject.funcs[index] == NULL); // ensure no overwrite
-	get(eo,EventObject,funcs) = (node*)realloc(get(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func
-	get(symbol,Symbol,value) = func;
-	get(eo,EventObject,funcs)[index] = symbol;
-	get(eo,EventObject,funcs)[index + 1] = NULL;
+	getNode(eo,EventObject,funcs) = (node*)realloc(getNode(eo,EventObject,funcs), sizeof(node) * (index + 2)); // +1 for new func
+	getNode(symbol,Symbol,value) = func;
+	getNode(eo,EventObject,funcs)[index] = symbol;
+	getNode(eo,EventObject,funcs)[index + 1] = NULL;
 	//remove
 	gc_popRoots(3);
 	return eo;
@@ -147,7 +147,7 @@ node intern(char *name)
     int lo = 0, hi = nsymbols - 1;
     while (lo <= hi) {
 	int mid = (lo + hi) / 2;
-	int cmp = strcmp(name, get(symbols[mid], Symbol,name));
+	int cmp = strcmp(name, getNode(symbols[mid], Symbol,name));
 	if      (cmp < 0) hi = mid - 1;
 	else if (cmp > 0) lo = mid + 1;
 	else{
@@ -249,46 +249,46 @@ node newArray(int size)
 node Array_grow(node array)
 {
 	gc_pushRoot((void*)&array);
-    int size  = get(array, Array,size);
-    int cap   = get(array, Array,capacity);
-    node *elts = get(array, Array,elements);
+    int size  = getNode(array, Array,size);
+    int cap   = getNode(array, Array,capacity);
+    node *elts = getNode(array, Array,elements);
     while (size >= cap) {
 		cap = cap ? cap * 2 : 4;
 		elts = realloc(elts, sizeof(*elts) * cap);
     }
-    get(array, Array,capacity) = cap;
-    get(array, Array,elements) = elts;
+    getNode(array, Array,capacity) = cap;
+    getNode(array, Array,elements) = elts;
 	gc_popRoots(1);
     return array;
 }
 
 node Array_append(node array, node element)
 {
-    int size = get(array, Array,size);
-    if (size >= get(array, Array,capacity)){ 
+    int size = getNode(array, Array,size);
+    if (size >= getNode(array, Array,capacity)){ 
 		gc_pushRoot((void*)&array);
 		gc_pushRoot((void*)&element);
 		Array_grow(array);
 		gc_popRoots(2);
 	}
-    get(array, Array,elements)[size++] = element;
-    get(array, Array,size) = size;
+    getNode(array, Array,elements)[size++] = element;
+    getNode(array, Array,size) = size;
     return element;
 }
 
 node Array_last(node array)
 {
-    int size = get(array, Array,size);
+    int size = getNode(array, Array,size);
     if (size == 0) fatal("last: array is empty");
-    return get(array, Array,elements)[size-1];
+    return getNode(array, Array,elements)[size-1];
 }
 
 node Array_pop(node array)
 {
-    int size = get(array, Array,size);
+    int size = getNode(array, Array,size);
     if (size == 0) fatal("pop: array is empty");
-    node element = get(array, Array,elements)[--size];
-    get(array, Array,size) = size;
+    node element = getNode(array, Array,elements)[--size];
+    getNode(array, Array,size) = size;
     return element;
 }
 
@@ -493,12 +493,12 @@ void Block_append(node b, node s)
 {
 	gc_pushRoot((void*)&b);
 	gc_pushRoot((void*)&s);
-    node *ss = get(b, Block,statements);
-    int  sz = get(b, Block,size);
+    node *ss = getNode(b, Block,statements);
+    int  sz = getNode(b, Block,size);
     ss = realloc(ss, sizeof(node) * (sz + 1));
     ss[sz++] = s;
-    get(b, Block,statements) = ss;
-    get(b, Block,size) = sz;
+    getNode(b, Block,statements) = ss;
+    getNode(b, Block,size) = sz;
 	gc_popRoots(2);
 }
 
@@ -508,23 +508,23 @@ void Event_Block_append(node b, node e)
 	gc_pushRoot((void*)&b);
 	gc_pushRoot((void*)&e);
 
-    node *ss = get(b, Block,statements);
-    int  sz = get(b, Block,size);
+    node *ss = getNode(b, Block,statements);
+    int  sz = getNode(b, Block,size);
     ss = realloc(ss, sizeof(node) * (sz + 1));
 
 	switch(getType(e)){
 		case Event:{
 			int isInserted = 0;
-			if(get(e, Event, id) == entryEH){
+			if(getNode(e, Event, id) == entryEH){
 				for(int i=sz-1; i>=0; i--){
 					ss[i+1] = ss[i];
 				}
 				ss[0] = e;
 				isInserted = 1;
-			}else if(get(e, Event, id) == exitEH){
+			}else if(getNode(e, Event, id) == exitEH){
 				if(sz == 0){
 					ss[0] = e;
-				}else if(get(ss[sz-1], Event, id) == entryEH){
+				}else if(getNode(ss[sz-1], Event, id) == entryEH){
 					for(int i=sz-1; i>=1; i--){
 						ss[i+1] = ss[i];
 					}
@@ -541,7 +541,7 @@ void Event_Block_append(node b, node e)
 					node ele = ss[i];
 					switch(getType(ele)){
 						case Event:{
-							if(get(ele, Event, id)==get(e, Event, id)){
+							if(getNode(ele, Event, id)==getNode(e, Event, id)){
 								for(int j=i+1; j < sz; j++){
 									ss[j + 1] = ss[j];
 								}
@@ -567,8 +567,8 @@ void Event_Block_append(node b, node e)
 			return;
 		}
 	}
-	get(b, Block,size) = sz + 1;
-    get(b, Block,statements) = ss;
+	getNode(b, Block,size) = sz + 1;
+    getNode(b, Block,statements) = ss;
 #if DEBUG
 	for(int i=0; i<sz+1; i++){
 		if(ss[i] == NULL){
@@ -648,12 +648,12 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 		node *arr = &ctx->EmitContext.global_vars + scope;
 		if(*arr == NULL) continue;
 		// linear search for existing variable
-		int nvariables = *arr ? get(*arr, Array, size) : 0;
-		node *variables = *arr ? get(*arr, Array, elements) : 0;
+		int nvariables = *arr ? getNode(*arr, Array, size) : 0;
+		node *variables = *arr ? getNode(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(variables[i]->Variable.type != sym){
-					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name)); 
+					reportError(ERROR, 0, "variable %s type mismatch", getNode(sym, Symbol,name)); 
 					return (struct RetVarFunc){0, -1}; // error
 				}
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
@@ -681,7 +681,7 @@ struct RetVarFunc appendVariable(node arr, node var, node type, node value)
 	node *variables = arr ? arr->Array.elements : 0;
 	for (int i = 0;  i < nvariables;  ++i){
 		if ((variables[i]->Variable.id)== var){
-			reportError(ERROR, 0, "variable %s already exists", get(var, Symbol,name));
+			reportError(ERROR, 0, "variable %s already exists", getNode(var, Symbol,name));
 			return (struct RetVarFunc){0, -1, NULL}; // error
 		}
 	}
@@ -705,19 +705,19 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type)//TYPE
 		if(*arr == NULL) continue;
 		assert(getType(*arr) == Array);
 
-		int nvariables = *arr ? get(*arr, Array, size) : 0;
-		node *variables = *arr ? get(*arr, Array, elements) : 0;
+		int nvariables = *arr ? getNode(*arr, Array, size) : 0;
+		node *variables = *arr ? getNode(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
 				if(type!=NULL && type!=TYPES[Undefined] && variables[i]->Variable.type != type){
-					reportError(ERROR, 0, "variable %s type mismatch", get(sym, Symbol,name));
+					reportError(ERROR, 0, "variable %s type mismatch", getNode(sym, Symbol,name));
 					return (struct RetVarFunc){0, -1}; // error
 				}
 				return (struct RetVarFunc){(scope==0)?SCOPE_GLOBAL:(scope==1)?SCOPE_STATE_LOCAL:SCOPE_LOCAL, i, variables[i]};
 			}	
 		}
 	}
-	reportError(ERROR, 0, "variable %s not found", get(sym, Symbol,name));
+	reportError(ERROR, 0, "variable %s not found", getNode(sym, Symbol,name));
 	return (struct RetVarFunc){0, -1, NULL}; // not found
 }
 
@@ -740,36 +740,36 @@ void printlnObject(node node, int indent)
 	case Undefined:	printf("nil\n");				break;
 	case Integer:	printf("%d\n", Integer_value(node));		break;
 
-	case Symbol:	printf("%s\n", get(node, Symbol,name));		break;
+	case Symbol:	printf("%s\n", getNode(node, Symbol,name));		break;
 	case Pair: {
 	    printf("Pair\n");
-	    printlnObject(get(node, Pair,a), indent+1);
-	    printlnObject(get(node, Pair,b), indent+1);
+	    printlnObject(getNode(node, Pair,a), indent+1);
+	    printlnObject(getNode(node, Pair,b), indent+1);
 	    break;
 	}
 	case Array: {
 	    printf("Array\n");
-	    for (int i = 0;  i < get(node, Array,size);  ++i)
-		printlnObject(get(node, Array,elements)[i], indent+1);
+	    for (int i = 0;  i < getNode(node, Array,size);  ++i)
+		printlnObject(getNode(node, Array,elements)[i], indent+1);
 	    break;
 	}
 	case Closure: {
 	    printf("Closure\n");
-		printf("nArgs: %d, pos: %d\n", get(node, Closure,nArgs), get(node, Closure,pos));
+		printf("nArgs: %d, pos: %d\n", getNode(node, Closure,nArgs), getNode(node, Closure,pos));
 	    break;
 	}
 	case StdFunc: {
-	    printf("StdFunc %d\n", get(node, StdFunc,index));
+	    printf("StdFunc %d\n", getNode(node, StdFunc,index));
 	    break;
 	}
 	case UserFunc: {
 	    printf("function()\n");
-	    printlnObject(get(node, UserFunc,parameters), indent+2);
-	    printlnObject(get(node, UserFunc,body), indent+1);
+	    printlnObject(getNode(node, UserFunc,parameters), indent+2);
+	    printlnObject(getNode(node, UserFunc,body), indent+1);
 	    break;
 	}
 	case Binop: {
-	    switch (get(node, Binop,op)) {
+	    switch (getNode(node, Binop,op)) {
 		case NE:  printf("NE\n"); break;
 		case EQ:  printf("EQ\n"); break;
 		case LT:  printf("LT\n"); break;
@@ -783,55 +783,55 @@ void printlnObject(node node, int indent)
 		case MOD: printf("MOD\n"); break;
 		default:  assert(!"this cannot happen");
 	    }
-	    printlnObject(get(node, Binop,lhs), indent+1);
-	    printlnObject(get(node, Binop,rhs), indent+1);
+	    printlnObject(getNode(node, Binop,lhs), indent+1);
+	    printlnObject(getNode(node, Binop,rhs), indent+1);
 	    break;
 	}
 	case Unyop: {
-	    switch (get(node, Unyop,op)) {
+	    switch (getNode(node, Unyop,op)) {
 		case NEG: printf("NEG\n"); break;
 		case NOT: printf("NOT\n"); break;
 		default:  assert(!"this cannot happen");
 	    }
-	    printlnObject(get(node, Unyop,rhs), indent+1);
+	    printlnObject(getNode(node, Unyop,rhs), indent+1);
 	    break;
 	}
 	case GetVar: {
-	    printf("GetVar %s\n", get(get(node, GetVar,id), Symbol,name));
+	    printf("GetVar %s\n", getNode(getNode(node, GetVar,id), Symbol,name));
 	    break;
 	}
 	case SetVar: {
-	    printf("SetVar %s\n", get(get(node, SetVar,id), Symbol,name));
-	    printlnObject(get(node, SetVar,rhs), indent+1);
+	    printf("SetVar %s\n", getNode(getNode(node, SetVar,id), Symbol,name));
+	    printlnObject(getNode(node, SetVar,rhs), indent+1);
 	    break;
 	}
 	case GetArray: {
 	    printf("GetArray\n");
-	    printlnObject(get(node, GetArray,array), indent+1);
-	    printlnObject(get(node, GetArray,index), indent+1);
+	    printlnObject(getNode(node, GetArray,array), indent+1);
+	    printlnObject(getNode(node, GetArray,index), indent+1);
 	    break;
 	}
 	case SetArray: {
 	    printf("SetArray\n");
-	    printlnObject(get(node, SetArray,array), indent+1);
-	    printlnObject(get(node, SetArray,index), indent+1);
-	    printlnObject(get(node, SetArray,value), indent+1);
+	    printlnObject(getNode(node, SetArray,array), indent+1);
+	    printlnObject(getNode(node, SetArray,index), indent+1);
+	    printlnObject(getNode(node, SetArray,value), indent+1);
 	    break;
 	}
 	case GetField: {
-	    printf("GetField %s\n", get(get(node, GetField,field), Symbol,name));
-	    printlnObject(get(node, GetField,id), indent+1);
+	    printf("GetField %s\n", getNode(getNode(node, GetField,field), Symbol,name));
+	    printlnObject(getNode(node, GetField,id), indent+1);
 	    break;
 	}
 	case Call: {
 	    printf("Call\n");
-	    printlnObject(get(node, Call,function), indent+1);
-	    printlnObject(get(node, Call,arguments), indent+1);
+	    printlnObject(getNode(node, Call,function), indent+1);
+	    printlnObject(getNode(node, Call,arguments), indent+1);
 	    break;
 	}
 	case Return: {
 	    printf("Return\n");
-	    printlnObject(get(node, Return,value), indent+1);
+	    printlnObject(getNode(node, Return,value), indent+1);
 	    break;
 	}
 	case Break: {
@@ -843,27 +843,27 @@ void printlnObject(node node, int indent)
 	    break;
 	}
 	case Transition: {
-		printf("Transition %s\n", get(get(node, Transition,id), Symbol,name));
+		printf("Transition %s\n", getNode(getNode(node, Transition,id), Symbol,name));
 		break;
 	}
 	case Print: {
 	    printf("Print\n");
-	    printlnObject(get(node, Print,arguments), indent+1);
+	    printlnObject(getNode(node, Print,arguments), indent+1);
 	    break;
 	}
 	case If: {
 	    printf("If\n");
-	    printlnObject(get(node, If,condition), indent+1);
-	    printlnObject(get(node, If,statement1), indent+1);
-	    printlnObject(get(node, If,statement2), indent+1);
+	    printlnObject(getNode(node, If,condition), indent+1);
+	    printlnObject(getNode(node, If,statement1), indent+1);
+	    printlnObject(getNode(node, If,statement2), indent+1);
 	    break;
 	}
 	case Loop: {
 	    printf("Loop\n");
-	    printlnObject(get(node, Loop,condition), indent+1);
-		printlnObject(get(node, Loop,initialization), indent+1);
-		printlnObject(get(node, Loop,iteration), indent+1);
-	    printlnObject(get(node, Loop,statement), indent+2);
+	    printlnObject(getNode(node, Loop,condition), indent+1);
+		printlnObject(getNode(node, Loop,initialization), indent+1);
+		printlnObject(getNode(node, Loop,iteration), indent+1);
+	    printlnObject(getNode(node, Loop,statement), indent+2);
 	    break;
 	}
 	case Block: {
@@ -871,19 +871,19 @@ void printlnObject(node node, int indent)
 	    break;
 	}
 	case State: {
-	    printf("State %s\n", get(get(node, State,id), Symbol,name));
-	    printlnObject(get(node, State,parameters), indent+1);
-	    printlnObject(get(node, State,events), indent+1);
+	    printf("State %s\n", getNode(getNode(node, State,id), Symbol,name));
+	    printlnObject(getNode(node, State,parameters), indent+1);
+	    printlnObject(getNode(node, State,events), indent+1);
 	    break;
 	}
 	case Event: {
-	    printf("Event %s\n", get(get(node, Event,id), Symbol,name));
-	    printlnObject(get(node, Event,parameters), indent+1);
-	    printlnObject(get(node, Event,block), indent+1);
+	    printf("Event %s\n", getNode(getNode(node, Event,id), Symbol,name));
+	    printlnObject(getNode(node, Event,parameters), indent+1);
+	    printlnObject(getNode(node, Event,block), indent+1);
 	    break;
 	}
 	case EventH: {
-	    printf("EventH %d\n", get(node, EventH,index));
+	    printf("EventH %d\n", getNode(node, EventH,index));
 	    break;
 	}
 	default:
@@ -899,7 +899,7 @@ void print(node node)
 	case Undefined:	printf("nil");				break;
 	case Integer:	printf("%d", Integer_value(node));	break;
 	case Float:	printf("%f", Float_value(node));	break;
-	case Symbol:	printf("%s", get(node, Symbol,name));	break;
+	case Symbol:	printf("%s", getNode(node, Symbol,name));	break;
 	default:	println(node);				break;
     }
 }

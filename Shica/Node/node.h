@@ -37,7 +37,7 @@ struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
 struct EventObject{ type_t _type;           int index; node *funcs;};
-struct List     { type_t _type;            node type; int size; node* elements; }     
+struct List     { type_t _type;            node type; int size; node* elements; };     
 struct UserType  { type_t _type;           int size; node* fields;};
 struct Symbol  	 { type_t _type;           char *name;  node value; };
 struct Pair  	 { type_t _type;           node a, b; };
@@ -129,7 +129,7 @@ union Node {
 int getType(node o);
 
 node _check(node node, enum Type type, char *file, int line);
-#define get(PTR, TYPE, FIELD)	(_check((PTR), TYPE, __FILE__, __LINE__)->TYPE.FIELD)
+#define getNode(PTR, TYPE, FIELD)	(_check((PTR), TYPE, __FILE__, __LINE__)->TYPE.FIELD)
 
 extern int nobj;
 // It should not be called in outside, only from inside
@@ -148,7 +148,7 @@ double Float_value(node obj);
 
 /* String */
 node newString(char *value);
-#define String_value(obj) (get(obj, String, value))
+#define String_value(obj) (getNode(obj, String, value))
 
 node newEventObject(node sym, int index);
 node putFuncToEo(node eo, node func, node symbol, int index);

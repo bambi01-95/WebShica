@@ -667,9 +667,9 @@ void appendS0T1(node name, int pos,int type)
 	node *lists = type == APSTATE ? states : transitions;
 	int *listSize = type == APSTATE ? &nstates : &ntransitions;
 	for (int i = 0;  i < *listSize;  ++i) {
-		node stateName = get(lists[i], Pair,a);
+		node stateName = getNode(lists[i], Pair,a);
 		if (stateName == name) {
-			printf("state %s already exists\n", get(name, Symbol,name));
+			printf("state %s already exists\n", getNode(name, Symbol,name));
 			return;
 		}
 	}
@@ -697,13 +697,13 @@ void setTransPos(oop prog){
 	int *code = prog->IntArray.elements;
 	for (int i = 0;  i < ntransitions;  ++i) {
 		node trans = transitions[i];
-		node transName = get(trans, Pair,a);
-		int transPos = Integer_value(get(trans, Pair,b));//pos of after emitII(prog, iTRANSITION, 0);
+		node transName = getNode(trans, Pair,a);
+		int transPos = Integer_value(getNode(trans, Pair,b));//pos of after emitII(prog, iTRANSITION, 0);
 		for (int j = 0;  j < nstates;  ++j) {
 			node state = states[j];
-			node stateName = get(state, Pair,a);
+			node stateName = getNode(state, Pair,a);
 			if (stateName == transName) {
-				int statePos = Integer_value(get(state, Pair,b));
+				int statePos = Integer_value(getNode(state, Pair,b));
 				code[transPos-1] = statePos - transPos;//relative position
 			}
 		}
@@ -722,7 +722,7 @@ int parseType(node vars, node ast)
 		case Integer:return Integer;
 		case String:return String;
 		case GetVar:{
-			struct RetVarFunc var = searchVariable(vars, get(ast, GetVar,id), NULL);
+			struct RetVarFunc var = searchVariable(vars, getNode(ast, GetVar,id), NULL);
 			if(var.index == -1)return -1; // variable not found
 			return GET_OOP_FLAG(var.variable->Variable.type);
 		}
@@ -761,7 +761,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case String:{
 			printTYPE(_String_);
-			char* str = get(ast, String,value);
+			char* str = getNode(ast, String,value);
 			int sLen = strlen(str);
 			emitII(prog, sPUSH, sLen); // push the length of the string
 			for(int i = 0; i < sLen; i++){
@@ -780,8 +780,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case Array:{
 			printTYPE(_Array_);
-			node *elements = get(ast, Array,elements);
-			int size = get(ast, Array,size);
+			node *elements = getNode(ast, Array,elements);
+			int size = getNode(ast, Array,size);
 			emitII(prog, iPUSH, size); // push the size of the array
 			for (int i = 0;  i < size;  ++i) {
 				if(emitOn(prog, vars, elements[i], type))return 1; // compile each element
@@ -790,9 +790,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case Binop:{
 			printTYPE(_Binop_);
-			if(emitOn(prog, vars, get(ast, Binop,lhs), type)) return 1;
-			if(emitOn(prog, vars, get(ast, Binop,rhs), type)) return 1;
-			switch (get(ast, Binop,op)) {
+			if(emitOn(prog, vars, getNode(ast, Binop,lhs), type)) return 1;
+			if(emitOn(prog, vars, getNode(ast, Binop,rhs), type)) return 1;
+			switch (getNode(ast, Binop,op)) {
 				case NE: emitI(prog, iNE);  return 0; // emit not equal
 				case EQ: emitI(prog, iEQ);  return 0;
 				case LT: emitI(prog, iLT);  return 0;
@@ -806,34 +806,34 @@ int emitOn(oop prog,node vars, node ast, node type)
 				case MOD: emitI(prog, iMOD);  return 0;
 				default:break;
 			}
-			fatal("file %s line %d unknown Binop operator %d", __FILE__, __LINE__, get(ast, Binop,op));
+			fatal("file %s line %d unknown Binop operator %d", __FILE__, __LINE__, getNode(ast, Binop,op));
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case Unyop:{
 			printTYPE(_Unyop_);
-			node rhs = get(ast, Unyop,rhs);
-			switch (get(ast, Unyop,op)) {
+			node rhs = getNode(ast, Unyop,rhs);
+			switch (getNode(ast, Unyop,op)) {
 				case NEG: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iSUB); return 0;
 				case NOT: emitII(prog,iPUSH, 0);emitOn(prog, vars, rhs, type); emitI(prog, iEQ);  return 0;
 				default: break;
 			}
-			struct RetVarFunc var = searchVariable(vars, get(rhs, GetVar,id), type);
+			struct RetVarFunc var = searchVariable(vars, getNode(rhs, GetVar,id), type);
 			if(var.index == -1)return 1; // variable not found
-			switch(get(ast, Unyop,op)) {
+			switch(getNode(ast, Unyop,op)) {
 					case BINC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index);if(emitOn(prog, vars, rhs, type))return 1; return 0;
 					case BDEC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); if(emitOn(prog, vars, rhs, type))return 1;return 0;
 					case AINC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index); return 0;
 					case ADEC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); return 0;
 				default: break;
 			}
-			fatal("file %s line %d unknown Unyop operator %d", __FILE__, __LINE__, get(ast, Unyop,op));
+			fatal("file %s line %d unknown Unyop operator %d", __FILE__, __LINE__, getNode(ast, Unyop,op));
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case GetVar: {
 			printTYPE(_GetVar_);
-			node sym = get(ast, GetVar,id);
+			node sym = getNode(ast, GetVar,id);
 			struct RetVarFunc var = searchVariable(vars, sym, type);
 			if(var.index == -1)return 1; // variable found
 			emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the global variable value
@@ -841,32 +841,32 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case SetVar: {
 			printTYPE(_SetVar_);
-			node sym = get(ast, SetVar,id);
-			node rhs = get(ast, SetVar,rhs);
-			node declaredType = get(ast, SetVar,type);
+			node sym = getNode(ast, SetVar,id);
+			node rhs = getNode(ast, SetVar,rhs);
+			node declaredType = getNode(ast, SetVar,type);
 			switch(getType(rhs)){
 				case UserFunc:{
 					printTYPE(_Function_);
 					if(sym->Symbol.value != FALSE) {
-						reportError(ERROR, get(ast,SetVar,line), "variable %s is already defined as a function", get(sym, Symbol,name));
+						reportError(ERROR, getNode(ast,SetVar,line), "variable %s is already defined as a function", getNode(sym, Symbol,name));
 						return 1;
 					}
-					node params = get(rhs, UserFunc,parameters);
-					node body = get(rhs, UserFunc,body);
-					get(vars, EmitContext, local_vars) = newArray(0);
+					node params = getNode(rhs, UserFunc,parameters);
+					node body = getNode(rhs, UserFunc,body);
+					getNode(vars, EmitContext, local_vars) = newArray(0);
 					GC_PUSH(node, closure, newClosure());
 					GC_PUSH(int*, argTypes, NULL);
 					while(params != nil){
-						node sym = get(params, Params, id);
-						node type = get(params, Params, type);
-						struct RetVarFunc var = appendVariable(get(vars, EmitContext, local_vars), sym, type, NULL); // insert parameter into local variables
+						node sym = getNode(params, Params, id);
+						node type = getNode(params, Params, type);
+						struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, local_vars), sym, type, NULL); // insert parameter into local variables
 						if(var.index == -1){
 							GC_POP(argTypes);
 							GC_POP(closure);
 							return 1; // type error
 						}
 						appendNewInt(argTypes, ++(closure->Closure.nArgs), GET_OOP_FLAG(type)); // append parameter type to argument types
-						params = get(params, Pair,b);
+						params = getNode(params, Pair,b);
 					}
 					closure->Closure.argTypes = argTypes; // set the argument types
 					closure->Closure.retType = GET_OOP_FLAG(declaredType); // set the return type
@@ -880,70 +880,70 @@ int emitOn(oop prog,node vars, node ast, node type)
 						GC_POP(closure);
 						return 1; // compile function body
 					}
-					prog->IntArray.elements[codePos] = get(get(vars, EmitContext, local_vars), Array, size); // set the size of local variables
+					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, size); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
-					get(vars, EmitContext, local_vars) = NULL; // clear local variables
+					getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
 				}
 				case Call:{
 					printTYPE(_Call_);
 
-					node func = get(rhs, Call, function)->GetVar.id->Symbol.value;
+					node func = getNode(rhs, Call, function)->GetVar.id->Symbol.value;
 
 					if(func ==  FALSE){
-						reportError(ERROR, get(ast,SetVar,line), "variable %s is not defined", get(rhs, Call,function)->GetVar.id->Symbol.name);
+						reportError(ERROR, getNode(ast,SetVar,line), "variable %s is not defined", getNode(rhs, Call,function)->GetVar.id->Symbol.name);
 						return 1;
 					}
 					switch(getType(func)){
 						case EventObject:{//var t = timer();
 							printTYPE(__EventObject__);
-							node args = get(rhs, Call, arguments);
-							int index = get(func, EventObject, index); // get the index of the event object
+							node args = getNode(rhs, Call, arguments);
+							int index = getNode(func, EventObject, index); // get the index of the event object
 							struct EventObjectTable eo = EventObjectTable[index];
-							node* funcs = get(func, EventObject, funcs);
+							node* funcs = getNode(func, EventObject, funcs);
 							for(int i = 0; i < eo.nFuncs; i++){
 								if(funcs[i] == NULL)printf("index %d function %d is NULL\n", index, i);
 							}
 							int argsCount = 0;
 							while(args != nil){
 								if(argsCount >= eo.nArgs){
-									reportError(ERROR, get(ast,Call,line), "event object %s expects %d arguments, but got more", get(sym, Symbol,name), eo.nArgs);
+									reportError(ERROR, getNode(ast,Call,line), "event object %s expects %d arguments, but got more", getNode(sym, Symbol,name), eo.nArgs);
 									return 1;
 								}
-								node arg = get(args, Args, value);
+								node arg = getNode(args, Args, value);
 								if(emitOn(prog, vars, arg, TYPES[eo.argTypes[argsCount]]))return 1; // compile argument
-								args = get(args, Args, next);
+								args = getNode(args, Args, next);
 								argsCount++;
 							}
 							if(eo.nArgs != argsCount){
-								reportError(ERROR, get(ast,Call,line), "event object %s expects %d arguments, but got %d", get(sym, Symbol,name), eo.nArgs, argsCount);
+								reportError(ERROR, getNode(ast,Call,line), "event object %s expects %d arguments, but got %d", getNode(sym, Symbol,name), eo.nArgs, argsCount);
 								return 1;
 							}
 							//initialize the event handler opcode
 							emitII(prog, eCALL, index); // call the event object and push it to top of the stack
-							switch(get(ast, SetVar,scope)) {
+							switch(getNode(ast, SetVar,scope)) {
 								case SCOPE_LOCAL:{
-									reportError(ERROR, get(ast,SetVar,line), "cannot define event object %s as local variable", get(sym, Symbol,name));
+									reportError(ERROR, getNode(ast,SetVar,line), "cannot define event object %s as local variable", getNode(sym, Symbol,name));
 									return 1;
 								}
 								case SCOPE_STATE_LOCAL:{
-									struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType, func);
+									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, state_vars),sym, declaredType, func);
 									emitII(prog, iSETSTATEVAR, var.index);
 									return 0;
 								}
 								case SCOPE_GLOBAL:{
-									struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType, func);
+									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, global_vars),sym, declaredType, func);
 									emitII(prog, iSETGLOBALVAR, var.index);
 									return 0;
 								}
 							}
-							reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+							reportError(DEVELOPER,getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 							return 1;
 						}
 						default:{
 							fatal("file %s line %d emitOn: unknown Call type %d", __FILE__, __LINE__, getType(func));
-							reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+							reportError(DEVELOPER, getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 							return 1;
 						}
 					}
@@ -953,10 +953,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 				case GetVar:
 				case Unyop:
 				case Binop:{
-					int scope = get(ast, SetVar,scope);
+					int scope = getNode(ast, SetVar,scope);
 					switch(scope) {
 						case SCOPE_LOCAL:{
-							printf("defining local variable %s\n", get(sym, Symbol,name));
+							printf("defining local variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
 							struct RetVarFunc var = insertVariable(vars, sym, declaredType);
 							if(var.index == -1)return 1; //type error
@@ -964,51 +964,51 @@ int emitOn(oop prog,node vars, node ast, node type)
 							return 0;
 						}
 						case SCOPE_STATE_LOCAL:{
-							printf("defining state variable %s\n", get(sym, Symbol,name));
+							printf("defining state variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, state_vars),sym, declaredType, NULL);
+							struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, state_vars),sym, declaredType, NULL);
 							emitII(prog, iSETSTATEVAR, var.index);
 							return 0;
 						}
 						case SCOPE_GLOBAL:{
-							printf("defining global variable %s\n", get(sym, Symbol,name));
+							printf("defining global variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
-							struct RetVarFunc var = appendVariable(get(vars, EmitContext, global_vars),sym, declaredType, NULL);
+							struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, global_vars),sym, declaredType, NULL);
 							emitII(prog, iSETGLOBALVAR, var.index);
 							return 0;
 						}
 					}
 					fatal("file %s line %d emitOn: unknown SetVar scope %d", __FILE__, __LINE__, scope);
-					reportError(DEVELOPER,get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+					reportError(DEVELOPER,getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 				default:{
 					fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
-					reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+					reportError(DEVELOPER, getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 			}
 			fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
-			reportError(DEVELOPER, get(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+			reportError(DEVELOPER, getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
 			return 0;
 		}
 		case GetField:{
 			printTYPE(_GetField_);
 			// search variable table
-			const node id = get(ast, GetField, id);
-			const node field = get(ast, GetField, field);
+			const node id = getNode(ast, GetField, id);
+			const node field = getNode(ast, GetField, field);
 
 			struct RetVarFunc var = searchVariable(vars, id, type);
 			if(var.index == -1)return 1; // variable not found
-			const node value = get(var.variable,Variable,value);
+			const node value = getNode(var.variable,Variable,value);
 			switch(getType(value))
 			{
 				case EventObject:{//readme: dev/common/eo.md: eo.func()
-					int eoIndex = get(value, EventObject,index);
-					const node * const funcs = get(value, EventObject,funcs);
+					int eoIndex = getNode(value, EventObject,index);
+					const node * const funcs = getNode(value, EventObject,funcs);
 					//search field in eo.funcs
 					int fieldIndex = 0;
-					char* funcName = get(get(field, Call, function), GetVar, id)->Symbol.name;//Stopied at this line
+					char* funcName = getNode(getNode(field, Call, function), GetVar, id)->Symbol.name;//Stopied at this line
 					while(funcs[fieldIndex] != nil){
 						if(strcmp(funcs[fieldIndex]->Symbol.name, funcName) == 0){
 							emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object
@@ -1019,7 +1019,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 						}
 						fieldIndex++;
 					}
-					reportError(ERROR, get(ast,GetField,line), "event object %s has no field %s", get(id, Symbol,name), get(field, Symbol,name));
+					reportError(ERROR, getNode(ast,GetField,line), "event object %s has no field %s", getNode(id, Symbol,name), getNode(field, Symbol,name));
 					return 1;
 				}
 				//case UserType:
@@ -1034,9 +1034,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 
 
 			/* Event Object: chat.send(msg); chat.remove();
-			int index = get(var,Variable,index);
+			int index = getNode(var,Variable,index);
 			if(index == -1){
-				reportError(ERROR, get(ast,GetField,line), "variable %s not found", get(id, Symbol,name));
+				reportError(ERROR, getNode(ast,GetField,line), "variable %s not found", getNode(id, Symbol,name));
 				return 1;
 			}
 			// seach eo[index] have the field
@@ -1059,33 +1059,33 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Call:{
 			//Standard library functions / user defined functions
 			printTYPE(_Call__);
-			node id   = get(ast, Call, function);
+			node id   = getNode(ast, Call, function);
 			if(getType(id) == GetVar)id = id->GetVar.id;
-			node args = get(ast, Call,arguments);
+			node args = getNode(ast, Call,arguments);
 
-			node func = get(id, Symbol, value); // get the function from the variable;
+			node func = getNode(id, Symbol, value); // get the function from the variable;
 
 			switch(getType(func)){
 				case EventObject:{
-					reportError(DEVELOPER, get(ast,Call,line), "event object call is not supported yet");
+					reportError(DEVELOPER, getNode(ast,Call,line), "event object call is not supported yet");
 					return -1;
 				}
 				case EventH:{// event handler
 					printTYPE(_EventH_);
-					int index = get(func, EventH,index);// get the index of the event handler
+					int index = getNode(func, EventH,index);// get the index of the event handler
 					struct EventTable eh = EventTable[index];
 					int nArgs = eh.nArgs;
 					char *argTypes = eh.argTypes;
 
 					int argsCount = 0;
 					while(args != nil){
-						node arg = get(args, Eparams, id);
+						node arg = getNode(args, Eparams, id);
 						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
-						args = get(args, Eparams, next);
+						args = getNode(args, Eparams, next);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						reportError(ERROR, get(ast,Call,line), "event %s expects %d arguments, but got %d", get(func, Symbol,name), nArgs, argsCount);
+						reportError(ERROR, getNode(ast,Call,line), "event %s expects %d arguments, but got %d", getNode(func, Symbol,name), nArgs, argsCount);
 						return 1;
 					}
 					emitIII(prog, iPCALL,  index, nArgs); // call the event handler
@@ -1093,17 +1093,17 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				case StdFunc:{// standard function
 					printTYPE(_StdFunc_);
-					int funcIndex = get(func, StdFunc, index); // get the index of the standard function
+					int funcIndex = getNode(func, StdFunc, index); // get the index of the standard function
 					int argsCount = 0;
 					struct StdFuncTable func = StdFuncTable[funcIndex];
 					while(args != nil){
-						node arg = get(args, Args, value);
+						node arg = getNode(args, Args, value);
 						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
-						args = get(args, Args, next);
+						args = getNode(args, Args, next);
 						argsCount++;
 					}
 					if(func.nArgs != argsCount){
-						reportError(ERROR, get(ast,Call,line), "standard function %s expects %d arguments, but got %d", get(id, Symbol,name), func.nArgs, argsCount);
+						reportError(ERROR, getNode(ast,Call,line), "standard function %s expects %d arguments, but got %d", getNode(id, Symbol,name), func.nArgs, argsCount);
 						return 1;
 					}
 
@@ -1115,18 +1115,18 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				case Closure:{ // user defined function
 					printTYPE(_Closure_);
-					int nArgs = get(func, Closure,nArgs);
-					int *argTypes = get(func, Closure, argTypes);
-					int pos   = get(func, Closure,pos);
+					int nArgs = getNode(func, Closure,nArgs);
+					int *argTypes = getNode(func, Closure, argTypes);
+					int pos   = getNode(func, Closure,pos);
 					int argsCount = 0;
 					while(args != nil){
-						node arg = get(args, Args, value);
+						node arg = getNode(args, Args, value);
 						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
-						args = get(args, Args, next);
+						args = getNode(args, Args, next);
 						argsCount++;
 					}
 					if(nArgs != argsCount){
-						reportError(ERROR, get(ast, Call, line), "function %s expects %d arguments, but got %d", get(id, Symbol,name), nArgs, argsCount);
+						reportError(ERROR, getNode(ast, Call, line), "function %s expects %d arguments, but got %d", getNode(id, Symbol,name), nArgs, argsCount);
 						return 1; 
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
@@ -1147,19 +1147,19 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case Pair:{
 			printTYPE(_Pair_);
-			node a = get(ast, Pair,a);
-			node b = get(ast, Pair,b);
+			node a = getNode(ast, Pair,a);
+			node b = getNode(ast, Pair,b);
 			fatal("file %s line %d emitOn: Pair is not supported yet", __FILE__, __LINE__);
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
 		}
 		case Print:{
 			printTYPE(_Print_);
-			node args = get(ast, Print,arguments);
-			node local_vars = get(vars, EmitContext, local_vars);
+			node args = getNode(ast, Print,arguments);
+			node local_vars = getNode(vars, EmitContext, local_vars);
 			int nArgs = 0;
 			while (args != nil) {
-				node value = get(args, Args, value);
+				node value = getNode(args, Args, value);
 				int argType = parseType(vars, value);
 				printf(" argType: %d\n", argType);
 				if(argType == -1) return 1; // type error
@@ -1169,10 +1169,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 					case Float:   emitI(prog, fPRINT); break;
 					case String:  emitI(prog, sPRINT); break;
 					default:
-						reportError(ERROR, get(ast, Print, line), "print statement does not support type %d", argType);
+						reportError(ERROR, getNode(ast, Print, line), "print statement does not support type %d", argType);
 						return 1;
 				}
-				args = get(args, Args, next);
+				args = getNode(args, Args, next);
 				nArgs++;
 			}
 			emitI(prog, flashPRINT); // print the result
@@ -1181,10 +1181,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case If:{
 			printTYPE(_If_);
 			//NEXT-TODO
-			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
-			node condition = get(ast, If,condition);
-			node statement1 = get(ast, If,statement1);
-			node statement2 = get(ast, If,statement2);
+			int variablesSize = getNode(vars, EmitContext, local_vars) ? getNode(getNode(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
+			node condition = getNode(ast, If,condition);
+			node statement1 = getNode(ast, If,statement1);
+			node statement2 = getNode(ast, If,statement2);
 
 			if(emitOn(prog, vars, condition,TYPES[Integer])) return 1; // compile condition
 
@@ -1202,17 +1202,17 @@ int emitOn(oop prog,node vars, node ast, node type)
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
 			}
 			//NEXT-TODO
-			discardVariables(get(vars, EmitContext, local_vars), variablesSize); // discard variables
+			discardVariables(getNode(vars, EmitContext, local_vars), variablesSize); // discard variables
 			return 0;
 		}
 		case Loop:{
 			printTYPE(_Looop_);
-			node initialization = get(ast, Loop,initialization);
-			node condition      = get(ast, Loop,condition);
-			node iteration      = get(ast, Loop,iteration);
-			node statement      = get(ast, Loop,statement);
+			node initialization = getNode(ast, Loop,initialization);
+			node condition      = getNode(ast, Loop,condition);
+			node iteration      = getNode(ast, Loop,iteration);
+			node statement      = getNode(ast, Loop,statement);
 			//NEXT-TODO
-			int variablesSize = get(vars, EmitContext, local_vars) ? get(get(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
+			int variablesSize = getNode(vars, EmitContext, local_vars) ? getNode(getNode(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
 			if (initialization !=  FALSE) {
 				if(emitOn(prog, vars, initialization, type)) return 1; // compile initialization
@@ -1236,12 +1236,12 @@ int emitOn(oop prog,node vars, node ast, node type)
 				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
 			}
 			//NEXT-TODO
-			discardVariables(get(vars, EmitContext, local_vars), variablesSize); // discard variables
+			discardVariables(getNode(vars, EmitContext, local_vars), variablesSize); // discard variables
 			return 0;
 		}
 		case Return:{
 			printTYPE(_Return_);
-			node value = get(ast, Return,value);
+			node value = getNode(ast, Return,value);
 			if (value !=  FALSE) {
 				if(emitOn(prog, vars, value, type)) return 1; // compile return value
 			} else {
@@ -1261,7 +1261,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case Transition:{
 			printTYPE(_Transition_);
-			node id = get(ast, Transition,id);
+			node id = getNode(ast, Transition,id);
 			emitII(prog, iTRANSITION, 0);
 			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
 			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
@@ -1269,10 +1269,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case State:{
 			printTYPE(_State_);
-			node id = get(ast, State,id);
-			node params = get(ast, State,parameters);
-			node events = get(ast, State,events);
-			dprintf("State: %s\n", get(id, Symbol,name));
+			node id = getNode(ast, State,id);
+			node params = getNode(ast, State,parameters);
+			node events = getNode(ast, State,events);
+			dprintf("State: %s\n", getNode(id, Symbol,name));
 
 			// compile events  
 			node *eventList = events->Block.statements;
@@ -1282,15 +1282,15 @@ int emitOn(oop prog,node vars, node ast, node type)
 			node preid =  FALSE;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
-			get(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
+			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
 
-			for (int i = 0;  i < get(events, Block, size);  ++i) {
+			for (int i = 0;  i < getNode(events, Block, size);  ++i) {
 				if(eventList[i] == NULL){
 					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
-				if((get(eventList[i], Event,id) == entryEH) || (get(eventList[i], Event,id) == exitEH)){
+				if((getNode(eventList[i], Event,id) == entryEH) || (getNode(eventList[i], Event,id) == exitEH)){
 					dprintf("entryEH or exitEH\n");
 					elements[nElements++] = 0; // collect empty events
 					continue;
@@ -1301,16 +1301,16 @@ int emitOn(oop prog,node vars, node ast, node type)
 					return 1;
 					elements[nElements++] = 0; // collect empty events
 				}
-				else if(get(eventList[i], Event,id) != preid) {
+				else if(getNode(eventList[i], Event,id) != preid) {
 					dprintf("new event\n");
 					nEventHandlers++;
-					preid = get(eventList[i], Event,id);
+					preid = getNode(eventList[i], Event,id);
 					elements[nElements]=1; // collect unique events
-				}else if(get(eventList[i], Event,id) == preid){
+				}else if(getNode(eventList[i], Event,id) == preid){
 					dprintf("same event\n");
 					elements[nElements]++;
 				}
-				dprintf("eventList[%d]: %s\n", i, get(eventList[i], Event,id)->Symbol.name);
+				dprintf("eventList[%d]: %s\n", i, getNode(eventList[i], Event,id)->Symbol.name);
 				if(emitOn(prog, vars, eventList[i], type)) return 1; // compile each event
 			}
 			dprintf("Finished collecting events\n");
@@ -1319,24 +1319,24 @@ int emitOn(oop prog,node vars, node ast, node type)
 			// state initialization
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			//entryEH
-			if(get(eventList[0], Event,id) == entryEH){
+			if(getNode(eventList[0], Event,id) == entryEH){
 				if(emitOn(prog, vars, eventList[0], type)) return 1; // compile entryEH
 			}
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
-			for(int i =0 ,  ehi =0;  i < get(events, Block, size);  ++i) {
+			for(int i =0 ,  ehi =0;  i < getNode(events, Block, size);  ++i) {
 				if(elements[i] == 0){ ehi++;continue;} // skip empty events
-				node id = get(eventList[i], Event,id);
+				node id = getNode(eventList[i], Event,id);
 
 				if(getType(id) == GetField)//chat.received()
 				{
-					struct RetVarFunc var = searchVariable(vars, get(id, GetField, id), type);
+					struct RetVarFunc var = searchVariable(vars, getNode(id, GetField, id), type);
 					if(var.index == -1)return 1; // variable not found
 					emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
-					node *funcs = get(var.variable->Variable.value, EventObject, funcs);
-					char * fieldName = get(get(id, GetField, field),Symbol,name);
+					node *funcs = getNode(var.variable->Variable.value, EventObject, funcs);
+					char * fieldName = getNode(getNode(id, GetField, field),Symbol,name);
 					int _i = 0;
 					while(funcs[_i] != NULL){
-						if(strcmp(get(funcs[_i], Symbol,name), fieldName) == 0){
+						if(strcmp(getNode(funcs[_i], Symbol,name), fieldName) == 0){
 							id = funcs[_i];
 							break;
 						}
@@ -1344,94 +1344,94 @@ int emitOn(oop prog,node vars, node ast, node type)
 					}
 				}
 
-				node eh = get(id,Symbol,value);
+				node eh = getNode(id,Symbol,value);
 
-				int eventID = get(eh, EventH, index); // get event ID
+				int eventID = getNode(eh, EventH, index); // get event ID
 				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
 				for(int j = 0; j < elements[ehi]; ++j) {
 					node event = eventList[i++];
-					node posPair = get(event, Event,block);
-					emitIII(prog, iSETPROCESS ,Integer_value(get(posPair,Pair,a)),Integer_value(get(posPair,Pair,b))); // set the position of the event handler)
+					node posPair = getNode(event, Event,block);
+					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a)),Integer_value(getNode(posPair,Pair,b))); // set the position of the event handler)
 				}
 				ehi++; // increment event handler index
 			}
 			emitI(prog, iIMPL);
 			// exitEH
-			for(int i = 0; i < get(events, Block, size); i++){
-				if(get(eventList[i], Event,id) == exitEH){ 
+			for(int i = 0; i < getNode(events, Block, size); i++){
+				if(getNode(eventList[i], Event,id) == exitEH){ 
 					if(emitOn(prog, vars, eventList[i],type)) return 1; // compile exitEH
 				}
 				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
 			//NEXT-TODO
 			// discardVariables(vars->EmitContext.state_vars, 0); // discard variables
-			get(vars, EmitContext, state_vars) = NULL; // clear state variables
+			getNode(vars, EmitContext, state_vars) = NULL; // clear state variables
 			emitII(prog, iEOS, 0); // emit EOS instruction to mark the end of the state
 			return 0;
 		}
 		case Event:{
 			printTYPE(_Event_);
-			node id = get(ast, Event,id);
+			node id = getNode(ast, Event,id);
 			//chat.received()
 			if(getType(id) == GetField)
 			{
-				node parent = get(id, GetField, id); // get the variable from the GetField
+				node parent = getNode(id, GetField, id); // get the variable from the GetField
 				struct RetVarFunc var = searchVariable(vars, parent, type);
 				if(var.index == -1){
-					reportError(ERROR, get(ast,Event,line), "variable %s is not defined", get(parent, Symbol,name));
+					reportError(ERROR, getNode(ast,Event,line), "variable %s is not defined", getNode(parent, Symbol,name));
 					return 1;
 				}
-				int parentIndex = get(var.variable->Variable.value, EventObject, index);
-				node* funcs = get(var.variable->Variable.value, EventObject, funcs);
+				int parentIndex = getNode(var.variable->Variable.value, EventObject, index);
+				node* funcs = getNode(var.variable->Variable.value, EventObject, funcs);
 				struct EventObjectTable eo = EventObjectTable[parentIndex];
-				char* fieldName = get(get(id, GetField, field),Symbol,name);
+				char* fieldName = getNode(getNode(id, GetField, field),Symbol,name);
 				id = NULL;
 				for(int i = 0; i < eo.nFuncs; ++i){
-					if(strcmp(get(funcs[i], Symbol,name), fieldName) == 0){
+					if(strcmp(getNode(funcs[i], Symbol,name), fieldName) == 0){
 						id = funcs[i];
 						break;
 					}
 				}
 				if(id == NULL){
-					reportError(ERROR, get(ast,Event,line), "event object %s has no event %s", get(parent, Symbol,name), fieldName);
+					reportError(ERROR, getNode(ast,Event,line), "event object %s has no event %s", getNode(parent, Symbol,name), fieldName);
 					return 1;
 				}
 				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
 			}
-			node params = get(ast, Event, parameters);
-			node block = get(ast, Event, block);
-			node eh = get(id,Symbol,value);
+			node params = getNode(ast, Event, parameters);
+			node block = getNode(ast, Event, block);
+			node eh = getNode(id,Symbol,value);
 			if(getType(eh) != EventH) {
-				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, get(id, Symbol,name));
-				reportError(DEVELOPER, get(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
+				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, getNode(id, Symbol,name));
+				reportError(DEVELOPER, getNode(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
 				return 1;
 			}
 
-			get(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
+			getNode(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
 			int nArgs = EventTable[eh->EventH.index].nArgs;
 			int paramSize =0;
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
 				appendVariable(
-					get(vars, EmitContext, local_vars), 
-					get(params, Eparams, id), 
-					get(params, Eparams, type),
+					getNode(vars, EmitContext, local_vars), 
+					getNode(params, Eparams, id), 
+					getNode(params, Eparams, type),
 					NULL); // add parameter to local variables
-				if(get(params, Eparams, cond) !=  FALSE){
+				if(getNode(params, Eparams, cond) !=  FALSE){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
-					if(emitOn(prog, vars, get(params, Eparams, cond), get(params, Eparams, type))) return 1; // compile condition if exists
+					if(emitOn(prog, vars, getNode(params, Eparams, cond), getNode(params, Eparams, type))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
-				params = get(params, Eparams, next);
+				params = getNode(params, Eparams, next);
 				paramSize++;
 			}
 			if(cPos != 0){
 				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
-				reportError(ERROR, get(ast,Event,line), "event %s has %d parameters, but expected %d", get(id, Symbol,name), paramSize, nArgs);
-				get(vars, EmitContext, local_vars) = NULL; // clear local variables
+				reportError(ERROR, getNode(ast,Event,line), "event %s has %d parameters, but expected %d", getNode(id, Symbol,name), paramSize, nArgs);
+				getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 				return 1;
 			}
 			int aPos = prog->IntArray.size; // remember the position of the event handler
@@ -1439,10 +1439,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
 
 			if(emitOn(prog, vars, block, type))return 1; // compile block
-			emitII(prog, iEOE, get(get(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
+			emitII(prog, iEOE, getNode(getNode(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = get(get(vars, EmitContext, local_vars), Array, size); // store number of local variables
-			get(vars, EmitContext, local_vars) = NULL; // clear local variables
+			prog->IntArray.elements[mkspacepos] = getNode(getNode(vars, EmitContext, local_vars), Array, size); // store number of local variables
+			getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(node,apos, newInteger(aPos));
 			GC_PUSH(node,cpos,newInteger(cPos));
 /* BE CAREFUL */
@@ -1680,8 +1680,8 @@ int roots = gc_ctx.nroots;
 	if(result == parserRetFlags[PARSER_FINISH]){
 		printf("compilation finished\n");
 		emitI (prog, iHALT); // end of program
-		printf("total variable size %d\n", get(vars, EmitContext, global_vars)->Array.size);
-		prog->IntArray.elements[1] = get(vars, EmitContext, global_vars)->Array.size; // store number of variables
+		printf("total variable size %d\n", getNode(vars, EmitContext, global_vars)->Array.size);
+		prog->IntArray.elements[1] = getNode(vars, EmitContext, global_vars)->Array.size; // store number of variables
 		setTransPos(prog); // set transition positions
 	}else if(result == parserRetFlags[PARSER_ERROR]){
 		printf("compilation error\n");
