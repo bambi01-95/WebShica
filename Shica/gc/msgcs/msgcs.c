@@ -217,6 +217,10 @@ int gc_collect(void)
 }
 
 void *gc_alloc(const int lbs){
+#ifndef NDEBUG
+    if(lbs < 0) printf("< 0 allocation request\n");
+    else if(lbs > 10000) printf("> 10k allocation request\n");
+#endif 
     gc_total += lbs;
     if (lbs <= 0) return NULL;		// no allocation for zero or negative size
     // round up the allocation size to a multiple of the pointer size

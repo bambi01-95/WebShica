@@ -2233,6 +2233,7 @@ void collectWeb(void)
 	}
 }
 
+//CCALL
 //WARNING: which ctx you use is important -> comctx
 int initWebCodes(int num)
 {
@@ -2296,7 +2297,7 @@ int compile_finalize()
 	return 1; // return 1 to indicate success
 }
 
-
+//CCALL
 int compileWebCode(const int doInit,const int index, const char *code)
 {
 	ctx = comctx; // use the context for the garbage collector
@@ -2310,6 +2311,7 @@ int compileWebCode(const int doInit,const int index, const char *code)
 		ctx = comctx; // use the context for the garbage collector
 		gc_collect(); // collect garbage before compiling
 	}
+	webCodes[index] = NULL;
 	compile_init(); // initialize the compiler
 	store(code); // store the code to the memory
 	initYYContext();

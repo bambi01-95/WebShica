@@ -1,5 +1,11 @@
 
-
+const clickSample: string = `
+stt state(){
+  clickEH(int x,int y){
+    print("clicked at ", x, ":", y);
+  }
+}
+`;
 
 const webRtcReceiverSample: string = `
 var chat = broadcast("shica","pwd");
@@ -23,6 +29,7 @@ var chat = broadcast("shica","pwd");
 
 
 const sampleCodes: string[] = [
+    clickSample,
     webRtcReceiverSample,
     webRtcSenderSample
 ];

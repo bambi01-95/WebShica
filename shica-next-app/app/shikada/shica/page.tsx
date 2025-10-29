@@ -313,6 +313,7 @@ const ShicaPage = () => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = codes[selectedIndex].code;
     const bool = process === "compile" ? 1 : 0;
+    console.log(`CompileWebCode bool:${bool} index:${selectedIndex}`);
     const ret = Module.ccall(
       "compileWebCode",
       "number",
