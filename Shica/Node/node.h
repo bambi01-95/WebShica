@@ -18,7 +18,9 @@ extern node exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, String, EventObject, Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
+    /*  1 */ Integer, Float, String, EventObject, List, UserType, //Shica Atomic Type
+    
+    Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
     /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField,
     /* 18 */ Call, Return, Break, Continue,
     /* 22 */ Print, If, Loop, Block,

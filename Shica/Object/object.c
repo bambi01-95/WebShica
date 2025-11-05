@@ -8,6 +8,7 @@
 #include "object.h"
 
 #define TAGBITS 2
+#define TAGMASK ((1 << TAGBITS) - 1)
 #define TAG_INT_ENT 0x1
 #define TAG_FLT_ENT 0x2
 
@@ -25,8 +26,8 @@ static oop _newEntity(size_t size, kind_t kind)
 
 kind_t getKind(oop o)
 {
-    if ((((intptr_t)o) & TAGBITS) == TAG_INT_ENT) return IntVal;
-    if ((((intptr_t)o) & TAGBITS) == TAG_FLT_ENT) return FloVal;
+    if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT) return IntVal;
+    if ((((intptr_t)o) & TAGMASK) == TAG_FLT_ENT) return FloVal;
     return o->kind;
 }
 

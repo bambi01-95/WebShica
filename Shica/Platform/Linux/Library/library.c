@@ -55,11 +55,18 @@ int compile_eh_init(){
 int timer_sec_handler(oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
-	oop* fields = instance->Instance.fields;
-	int interval = IntVal_value(fields[0]);
-	int pre = IntVal_value(fields[2]);
+	oop* fields = getObj(instance, Instance, fields);
+	assert(fields != NULL);
+
+	oop obj = fields[0];
+	assert(obj != NULL);
+	assert(getKind(obj) == IntVal);
+	int interval = IntVal_value(obj);
+
+	int pre = IntVal_value(fields[2]);	
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
+
 	if(now - pre >= interval){
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
@@ -159,10 +166,11 @@ oop time_eo(oop stack){
 2: label (hold time for comparison)
 */
 	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
-	getInstanceField(instance, 0) = newIntVal(0); // interval
-	getInstanceField(instance, 1) = newIntVal(0); // count
+	oop* fields = getObj(instance, Instance, fields);
+	fields[0] = newIntVal(0); // interval
+	fields[1] = newIntVal(0); // count
 	time_t t = time(NULL);
-	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // label
+	fields[2] = newIntVal((int)(t % 10000)); // label
 	GC_POP(instance);
 	return instance;
 }

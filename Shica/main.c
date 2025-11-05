@@ -199,10 +199,10 @@ int runNative(oop code){
 				return 1; // return 1 to indicate error
 			}
 		}else{
-			for(int i = 0; i< agent->Agent.nEvents; ++i){
+			for(int i = 0; i< getObj(agent,Agent,nEvents); ++i){
 				// get event data
 				oop eh = getObj(agent,Agent,eventHandlers)[i];
-				EventTable[eh->EventHandler.EventH].eh(eh);
+				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				oop ret = impleBody(code, eh, agent);
 				if(ret == retFlags[TRANSITION_F]){
 					getObj(agent,Agent,isActive) = 0;
@@ -222,6 +222,7 @@ int runNative(oop code){
 oop execute(oop prog,oop entity, oop agent)
 {
 
+	printf("Execute Start: entity kind %d\n", getKind(entity));
 	int opstep = 20; // number of operations to execute before returning
     int* code = getObj(prog, IntArray, elements);
 	int size = getObj(prog, IntArray, size);

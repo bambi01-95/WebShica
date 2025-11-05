@@ -3,6 +3,11 @@
 
 ## MEMO
 
+Monday: 
+- Half of related work.
+- Whole of introduction.
+
+
 ### CURRENT TASK
 
 - Implement communication without initialization from C
