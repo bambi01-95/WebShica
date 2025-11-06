@@ -1,1 +1,9 @@
 int a[2][2] = {{1,2},{3,4}};
+
+var t = timer();//event object
+
+stt s(){
+    t.sec(int sec){
+        a[0][0] = 1;
+    }
+}

@@ -357,7 +357,7 @@ node newSetVar(node type, node id, node rhs, ScopeClass scope, int line)
     return node;
 }
 
-node newGetArray(node array, node index)
+node newGetArray(node array, node index, int line)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
@@ -368,7 +368,7 @@ node newGetArray(node array, node index)
     return node;
 }
 
-node newSetArray(node type, node value, node index, node array, ScopeClass scope)
+node newSetArray(node type, node value, node index, node array, ScopeClass scope, int line)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);
@@ -644,7 +644,8 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 		node *variables = *arr ? getNode(*arr, Array, elements) : 0;
 		for (int i = 0;  i < nvariables;  ++i){
 			if ((variables[i]->Variable.id)== sym){
-				if(variables[i]->Variable.type != sym){
+				if(variables[i]->Variable.type != type){
+					printf("type %d %d\n", GET_OOP_FLAG(variables[i]->Variable.type), GET_OOP_FLAG(type));
 					reportError(ERROR, 0, "variable %s type mismatch", getNode(sym, Symbol,name)); 
 					return (struct RetVarFunc){0, -1}; // error
 				}

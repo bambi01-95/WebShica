@@ -5,7 +5,9 @@ enum opcode_t {
     iHALT, 
     iPUSH,
     sPUSH,
-    iARRAY,
+    iARRAY,    //initialize array with n elements a[2][2] = {{...}, {...}}
+    iSETARRAY, // set array element a[0] = x
+    iGETARRAY, // get array element x = a[0]
     iGT, 
     iGE, 
     iEQ, 
@@ -57,6 +59,8 @@ static const char *_opcode_names[] = {
     "iPUSH",
     "sPUSH",
     "iARRAY",
+    "iSETARRAY",
+    "iGETARRAY",
     "iGT",
     "iGE",
     "iEQ",

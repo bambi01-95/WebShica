@@ -1028,48 +1028,79 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case GetArray:{
 			printTYPE(_GetArray_);
+
 			return 0;
 		}
 		case SetArray:{
 			printTYPE(_SetArray_);
-			node type = getNode(ast, SetArray,type);
+			node setType = getNode(ast, SetArray,type);
 			node array = getNode(ast, SetArray,array);//Array
 			node index = getNode(ast, SetArray,index);//Pair
 			node value = getNode(ast, SetArray,value);//Id
 #ifdef DEBUG
-			assert(getType(array) == Array);
 			assert(getType(index) == Pair);
 			assert(getType(value) == GetVar);
 #endif
 			int scope = getNode(ast, SetArray,scope);
-			if(parseArray(prog, array, index, type, vars))return 1;
-			struct RetVarFunc var;
-			switch(scope) {
-				case SCOPE_LOCAL:{
-					var = insertVariable(vars, value->GetVar.id, type);
-					if(var.index == -1)return 1; //type error
-					emitII(prog, iSETGLOBALVAR, var.index);
-					break;
-				}
-				case SCOPE_STATE_LOCAL:{
-					var = appendVariable(getNode(vars, EmitContext, state_vars), value->GetVar.id, type, NULL);
-					emitII(prog, iSETSTATEVAR, var.index);
-					break;
-				}
-				case SCOPE_GLOBAL:{
-					var = appendVariable(getNode(vars, EmitContext, global_vars), value->GetVar.id, type, NULL);
-					emitII(prog, iSETGLOBALVAR, var.index);
-					break;
-				}
+			if(scope == SCOPE_GLOBAL && setType == nil){
+				reportError(ERROR, getNode(ast,SetArray,line), "global variable %s must have a declared type", getNode(value, GetVar,id)->Symbol.name);
+				return 1;
 			}
-			node variable = var.variable;
-			int dimIndex = 0;
-			while(index != nil){
-				node idx = getNode(index, Pair, a);
-				variable->Variable.dim[dimIndex++] = Integer_value(idx);
-				index = getNode(index, Pair, b);
+			if(setType==nil && getType(value)==Array){
+				reportError(ERROR, getNode(ast,SetArray,line), "array variable %s must have a declared type", getNode(value, GetVar,id)->Symbol.name);
+				return 1;
 			}
-			return 0;
+			if(setType==nil){
+				setType = TYPES[parseType(vars, value)];
+				struct RetVarFunc var = searchVariable(vars, value->GetVar.id, setType);
+				if(var.index == -1)return 1; // variable not found
+				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the global variable value
+				while(index != nil){
+					node idx = getNode(index, Pair, a);
+					if(emitOn(prog, vars, idx, TYPES[Integer]))return 1;					
+					index = getNode(index, Pair, b);
+					if(index==nil){
+						if(emitOn(prog, vars, array, setType))return 1;
+						emitI(prog, iSETARRAY);
+						return 0;
+					}else{
+						emitI(prog, iGETARRAY);
+					}
+				}
+				return 0;
+			}else{// UNDEFINED
+				if(parseArray(prog, array, index, setType, vars))return 1;
+				struct RetVarFunc var;
+				switch(scope) {
+					case SCOPE_LOCAL:{
+						printf("type %d\n",GET_OOP_FLAG(setType));
+						var = insertVariable(vars, value->GetVar.id, setType);
+						if(var.index == -1)return 1; //type error
+						emitII(prog, iSETGLOBALVAR, var.index);
+						break;
+					}
+					case SCOPE_STATE_LOCAL:{
+						var = appendVariable(getNode(vars, EmitContext, state_vars), value->GetVar.id, setType, NULL);
+						emitII(prog, iSETSTATEVAR, var.index);
+						break;
+					}
+					case SCOPE_GLOBAL:{
+						var = appendVariable(getNode(vars, EmitContext, global_vars), value->GetVar.id, setType, NULL);
+						emitII(prog, iSETGLOBALVAR, var.index);
+						break;
+					}
+				}
+				node variable = var.variable;
+				int dimIndex = 0;
+				while(index != nil){
+					node idx = getNode(index, Pair, a);
+					variable->Variable.dim[dimIndex++] = Integer_value(idx);
+					index = getNode(index, Pair, b);
+				}
+				return 0;
+			}
+			reportError(DEVELOPER, getNode(ast,SetArray,line), "please contact %s", DEVELOPER_EMAIL);
+			return 1;
 		}
 		case GetField:{
 			printTYPE(_GetField_);
@@ -1568,6 +1599,16 @@ void printCode(oop code){
 				inst = "ARRAY";
 				int nElements = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nElements);
+				break;
+			}
+			case iSETARRAY: {
+				inst = "SETARRAY";
+				printf("%03d: %-10s\n", i, inst);
+				break;
+			}
+			case iGETARRAY: {
+				inst = "GETARRAY";
+				printf("%03d: %-10s\n", i, inst);
 				break;
 			}
 			case iGT:   inst = "GT"; goto simple;

@@ -733,7 +733,7 @@ YY_ACTION(void) yy_4_postfix(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_4_postfix\n"));
   {
 #line 133
-   v = newGetArray(v, i) ;
+   v = newGetArray(v, i, nlines) ;
   }
 #undef yythunkpos
 #undef yypos
@@ -1148,7 +1148,7 @@ YY_ACTION(void) yy_2_assignment(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_2_assignment\n"));
   {
 #line 101
-   __ = newSetArray(t, v, i, x, SCOPE_LOCAL); ;
+   __ = newSetArray(t, v, i, x, SCOPE_LOCAL, nlines); ;
   }
 #undef yythunkpos
 #undef yypos
@@ -1192,7 +1192,7 @@ YY_ACTION(void) yy_2_stt_local_assignment(yycontext *yy, char *yytext, int yylen
   yyprintf((stderr, "do yy_2_stt_local_assignment\n"));
   {
 #line 98
-   __ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL); ;
+   __ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL, nlines); ;
   }
 #undef yythunkpos
 #undef yypos
@@ -1516,7 +1516,7 @@ YY_ACTION(void) yy_3_define(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_3_define\n"));
   {
 #line 72
-   __ = newSetArray(t,v, i, x, SCOPE_GLOBAL); ;
+   __ = newSetArray(t,v, i, x, SCOPE_GLOBAL, nlines); ;
   }
 #undef yythunkpos
 #undef yypos

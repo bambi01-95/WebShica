@@ -56,8 +56,8 @@ struct Binop   	 { type_t _type;           enum binop op;  node lhs, rhs; };
 struct Unyop   	 { type_t _type;           enum unyop op;  node rhs; };
 struct GetVar  	 { type_t _type; int line; node id; };
 struct SetVar  	 { type_t _type; int line; node type; node id; node rhs;int scope;  };
-struct GetArray	 { type_t _type;           node array, index; };
-struct SetArray	 { type_t _type;           node type, array, index, value;int scope; };
+struct GetArray	 { type_t _type; int line; node array, index; };
+struct SetArray	 { type_t _type; int line; node type, array, index, value;int scope; };
 struct GetField  { type_t _type; int line; node id; node field; };
 struct Call 	 { type_t _type; int line; node function, arguments; };
 struct Return 	 { type_t _type;           node value; };
@@ -194,8 +194,8 @@ typedef enum {
 node newGetVar(node id,int line);
 node newSetVar(node type, node id, node rhs,ScopeClass scope, int line);
 
-node newGetArray(node array, node index);
-node newSetArray(node type, node array, node index, node value, ScopeClass scope);
+node newGetArray(node array, node index, int line);
+node newSetArray(node type, node array, node index, node value, ScopeClass scope, int line);
 
 node newGetField(node id, node field, int line);
 
