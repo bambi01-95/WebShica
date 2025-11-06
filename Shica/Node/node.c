@@ -395,6 +395,19 @@ node newGetField(node id, node field, int line)
 	return node;
 }
 
+node newSetType(node id, node rhs, ScopeClass scope, int line)
+{
+	gc_pushRoot((void*)&id);
+	gc_pushRoot((void*)&rhs);
+	node node = newNode(SetType);
+	node->SetType.id = id;
+	node->SetType.rhs = rhs;
+	node->SetType.scope = scope;
+	node->SetType.line = line;
+	gc_popRoots(2);
+	return node;
+}
+
 node newCall(node arguments, node function, int line)
 {
 	gc_pushRoot((void*)&arguments);
@@ -814,6 +827,12 @@ void printNode(node node, int indent)
 	case GetField: {
 	    printf("GetField %s\n", getNode(getNode(node, GetField,field), Symbol,name));
 	    printNode(getNode(node, GetField,id), indent+1);
+	    break;
+	}
+	case SetType: {
+	    printf("SetType\n");
+	    printNode(getNode(node, SetType,id), indent+1);
+	    printNode(getNode(node, SetType,rhs), indent+1);
 	    break;
 	}
 	case Call: {

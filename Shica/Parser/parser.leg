@@ -70,6 +70,7 @@ mkBlock =                               { $$ = newBlock() }
 define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0, nlines); } #/*func*/
        | t:TYPE i:id ASSIGN x:eqop SEMI { $$ = newSetVar(t,i, x, SCOPE_GLOBAL, nlines) }
        | t:TYPE v:value i:indexes ASSIGN x:eqop SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL, nlines); }
+	   | STRUCT i:id ASSIGN x:typer SEMI    { $$ = newSetType(i, x, SCOPE_GLOBAL, nlines); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -84,7 +85,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }
 		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
 		| - SEMI			
-		
+
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newArgs(i, a) }
 	    ( COMMA i:expr		{ a = newArgs(i, a) }
@@ -96,10 +97,20 @@ expr	= assignment
 
 stt_local_assignment = t:TYPE i:id ASSIGN x:assignment { $$ = newSetVar(t, i, x, SCOPE_STATE_LOCAL, nlines) }
 	  			     | t:TYPE v:value i:indexes ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL, nlines); }
+					 | STRUCT i:id ASSIGN x:typer SEMI    { $$ = newSetType(i, x, SCOPE_STATE_LOCAL, nlines); }
 
 assignment  = (t:TYPE | t:mkNil) i:id ASSIGN x:assignment			{ $$ = newSetVar(t, i, x, SCOPE_LOCAL, nlines) }
 			| (t:TYPE | t:mkNil) v:value i:indexes ASSIGN x:assignment	{ $$ = newSetArray(t, v, i, x, SCOPE_LOCAL, nlines); }
+	  		| STRUCT i:id ASSIGN x:typer SEMI    { $$ = newSetType(i, x, SCOPE_LOCAL, nlines); }
 			| eqop
+
+			
+typer = LBRACE a:mkArray
+	  ( t:TYPE i:id			{ Array_append(a, newVariable(t, i)) }
+	    ( COMMA t:TYPE i:id		{ Array_append(a, newVariable(t, i)) }
+	    )*
+	  )?
+ 	  RBRACE				{ $$ = a }
 
 eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }
 	  	   | NOTEQ rhs:ineq	{ lhs = newBinop(NE, lhs, rhs) }
@@ -218,6 +229,8 @@ RET = "return" -
 TYPE = VAR | INT | FLO | STR | FUNC 
 
 FUNC = "fn" - 
+STRUCT = "type" - 
+
 VAR = "var" - { $$ = TYPES[Undefined]; }
 INT = "int" - { $$ = TYPES[Integer]; }
 FLO = "flo" - { $$ = TYPES[Float]; }

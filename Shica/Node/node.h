@@ -19,10 +19,10 @@ extern node exitEH;
 
 typedef enum Type {
     /*  0 */ Undefined = 0,
-    /*  1 */ Integer, Float, String, EventObject, List, UserType, //Shica Atomic Type
+    /*  1 */ Integer, Float, String, EventObject, //Shica Atomic Type
     
     Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
-    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField,
+    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField, SetType,
     /* 18 */ Call, Return, Break, Continue,
     /* 22 */ Print, If, Loop, Block,
 	/* 24 */ Transition, State, Event,EventH,
@@ -40,8 +40,6 @@ struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
 struct EventObject{ type_t _type;           int index; node *funcs;};
-struct List     { type_t _type;            node type; int size; node* elements; };     
-struct UserType  { type_t _type;           int size; node* fields;};
 struct Symbol  	 { type_t _type;           char *name;  node value; };
 struct Pair  	 { type_t _type;           node a, b; };
 struct Args  	 { type_t _type;           node value, next; };
@@ -59,6 +57,7 @@ struct SetVar  	 { type_t _type; int line; node type; node id; node rhs;int scop
 struct GetArray	 { type_t _type; int line; node array, index; };
 struct SetArray	 { type_t _type; int line; node type, array, index, value;int scope; };
 struct GetField  { type_t _type; int line; node id; node field; };
+struct SetType   { type_t _type; int line; node id; node rhs;int scope; };
 struct Call 	 { type_t _type; int line; node function, arguments; };
 struct Return 	 { type_t _type;           node value; };
 struct Break 	 { type_t _type;           };
@@ -94,8 +93,6 @@ union Node {
     struct Float    Float;
     struct String   String;
     struct EventObject EventObject;
-    struct List     List;
-    struct UserType UserType;
     struct Symbol   Symbol;
     struct Pair     Pair;
     struct Args     Args;
@@ -112,6 +109,7 @@ union Node {
     struct GetArray GetArray;
     struct SetArray SetArray;
     struct GetField GetField;
+    struct SetType  SetType;
     struct Call     Call;
     struct Return   Return;
     struct Break    Break;
@@ -157,8 +155,6 @@ node newString(char *value);
 node newEventObject(node sym, int index);
 node putFuncToEo(node eo, node func, node symbol, int index);
 
-node newList(int size, node type);
-node newUserType(int size, node* fields);
 /* Symbol: not string */
 node newSymbol(char *name);
 node intern(char *name);
@@ -198,6 +194,8 @@ node newGetArray(node array, node index, int line);
 node newSetArray(node type, node array, node index, node value, ScopeClass scope, int line);
 
 node newGetField(node id, node field, int line);
+
+node newSetType(node id, node rhs, ScopeClass scope, int line);
 
 node newCall(node arguments, node function, int line);
 
