@@ -85,6 +85,17 @@ char* StrVal_value(oop obj)
 	return obj->StrVal.value;
 }
 
+oop newArrVal(int size)
+{
+	GC_PUSH(oop, a, newEntity(ArrVal));
+	a->ArrVal.elements = NULL;
+	a->ArrVal.elements = (oop*)gc_beAtomic(gc_alloc(sizeof(oop) * size));
+	a->ArrVal.size     = 0;
+	a->ArrVal.capacity = size;
+	GC_POP(a);
+	return a;
+}
+
 oop intArray_init(void)
 {
 	GC_PUSH(oop, a, newEntity(IntArray));
@@ -396,6 +407,13 @@ void printObj(oop obj, int indent)
 	}
 	case StrVal:{
 		printf("%s\n", getObj(obj, StrVal, value));
+		break;
+	}
+	case ArrVal:{
+		printf("ArrVal\n");
+		for(int i = 0; i< getObj(obj, ArrVal, size); i++){
+			printObj(getObj(obj, ArrVal, elements)[i], indent + 1);
+		}
 		break;
 	}
 	case IntArray:{

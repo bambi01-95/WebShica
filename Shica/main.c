@@ -284,6 +284,34 @@ oop execute(oop prog,oop entity, oop agent)
 	    case iMUL:printOP(iMUL);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l * r));  continue;
 	    case iDIV:printOP(iDIV);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
+		case iARRAY:{
+			int n = fetch();
+			oop arr = newArrVal(n);
+			oop *ele = getObj(arr, ArrVal, elements);
+			for(int i=0; i<n; ++i){
+				ele[i] = pop();
+			}
+			push(arr);
+			continue;
+		}
+		case iSETARRAY:{
+			printOP(iSETARRAY);
+			oop val   = pop();
+			int index = (intptr_t)pop();
+			oop arr   = pop();
+			assert(getKind(arr) == ArrVal);
+			getObj(arr, ArrVal, elements)[index] = val;
+			continue;
+		}
+		case iGETARRAY:{
+			printOP(iGETARRAY);
+			int index = (intptr_t)pop();
+			oop arr = pop();
+			assert(getKind(arr) == ArrVal);
+			oop *ele = getObj(arr, ArrVal, elements);
+			push(ele[index]);
+			continue;
+		}
 	    case iGETVAR:{
 			printOP(iGETVAR);
 			int symIndex = fetch(); // need to change

@@ -16,6 +16,7 @@ typedef enum kind{
 	IntVal,
 	FloVal,
 	StrVal,
+	ArrVal,
 	IntArray,
 	Stack,
 	IntQue3,
@@ -44,6 +45,11 @@ struct FloVal{
 struct StrVal{
 	kind_t kind; // kind of the string
 	char *value;
+};
+struct ArrVal{
+	kind_t kind; // kind of the array
+	int size, capacity;
+	oop *elements;
 };
 
 struct IntArray{
@@ -120,6 +126,7 @@ union Object{
 	struct IntVal IntVal;
 	struct FloVal FloVal;
 	struct StrVal StrVal;
+	struct ArrVal ArrVal;
 	struct Instance Instance;
 	struct Any Any;
 };
@@ -127,12 +134,13 @@ union Object{
 oop newIntVal(int value);
 int IntVal_value(oop obj);
 
-
-
 oop newFloVal(double value);
 double FloVal_value(oop obj);
+
 oop newStrVal(const char *value);
 char* StrVal_value(oop obj);
+
+oop newArrVal(int size);
 
 oop intArray_init(void);
 oop newStack(const int initVal);
