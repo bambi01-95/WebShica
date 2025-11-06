@@ -984,6 +984,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				case Integer:
 				case String:
+				case GetArray:
 				case GetVar:
 				case Unyop:
 				case Binop:{
@@ -1028,7 +1029,19 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case GetArray:{
 			printTYPE(_GetArray_);
-
+			node array = getNode(ast, GetArray,array);//Array
+			node index = getNode(ast, GetArray,index);//Pair
+			struct RetVarFunc var = searchVariable(vars, array->GetVar.id, type);
+			if(var.index == -1)return 1; // variable not found
+			emitII(prog, iGETGLOBALVAR + var.scope, var.index); 
+			while(index != nil){
+				node idx = getNode(index, Pair, a);
+				if(emitOn(prog, vars, idx, TYPES[Integer]))return 1;					
+				index = getNode(index, Pair, b);
+				emitI(prog, iGETARRAY);
+			}
+			printCode(prog);
+			stop();
 			return 0;
 		}
 		case SetArray:{

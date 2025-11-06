@@ -83,8 +83,8 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }
 		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
 		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
-		| - SEMI				  		
-
+		| - SEMI			
+		
 args	= LPAR a:mkNil
 	  ( i:expr			{ a = newArgs(i, a) }
 	    ( COMMA i:expr		{ a = newArgs(i, a) }
