@@ -368,7 +368,7 @@ node newGetArray(node array, node index)
     return node;
 }
 
-node newSetArray(node type, node array, node index, node value, ScopeClass scope)
+node newSetArray(node type, node value, node index, node array, ScopeClass scope)
 {
 	gc_pushRoot((void*)&array);
 	gc_pushRoot((void*)&index);

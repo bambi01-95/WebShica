@@ -9,6 +9,7 @@
 union Node;
 typedef union Node Node;
 typedef Node *node;                 // ordinary object pointer 
+typedef const node cnode;           // constant object pointer
 
 extern node nil;
 extern node FALSE;
@@ -83,6 +84,7 @@ struct Variable{
     node type; // type of variable (for future use)
     node id; // symbol
     node value;// EventObject or Types
+    unsigned char dim[3]; //maximum 3 dimension for array and 256 size each
 };
 
 union Node {

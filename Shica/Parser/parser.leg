@@ -69,7 +69,7 @@ mkBlock =                               { $$ = newBlock() }
 
 define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0, nlines); } #/*func*/
        | t:TYPE i:id ASSIGN x:eqop SEMI { $$ = newSetVar(t,i, x, SCOPE_GLOBAL, nlines) }
-       | t:TYPE v:value i:index ASSIGN x:eqop SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL); }
+       | t:TYPE v:value i:indexes ASSIGN x:eqop SEMI { $$ = newSetArray(t,v, i, x, SCOPE_GLOBAL); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
 		| IF LPAR c:expr RPAR (s:expr | s:block )
@@ -95,10 +95,10 @@ args	= LPAR a:mkNil
 expr	= assignment
 
 stt_local_assignment = t:TYPE i:id ASSIGN x:assignment { $$ = newSetVar(t, i, x, SCOPE_STATE_LOCAL, nlines) }
-	  			     | t:TYPE v:value i:index ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL); }
+	  			     | t:TYPE v:value i:indexes ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL); }
 
 assignment  = (t:TYPE | t:mkNil) i:id ASSIGN x:assignment			{ $$ = newSetVar(t, i, x, SCOPE_LOCAL, nlines) }
-			| (t:TYPE | t:mkNil) v:value i:index ASSIGN x:assignment	{ $$ = newSetArray(t, v, i, x, SCOPE_LOCAL); }
+			| (t:TYPE | t:mkNil) v:value i:indexes ASSIGN x:assignment	{ $$ = newSetArray(t, v, i, x, SCOPE_LOCAL); }
 			| eqop
 
 eqop    = lhs:ineq ( EQUAL rhs:ineq	{ lhs = newBinop(EQ, lhs, rhs) }
@@ -130,8 +130,12 @@ prefix	= MINUS x:postfix		{ $$ = newUnyop(NEG, x) }
 postfix = v:value PPLUS { $$ = newUnyop(AINC, v) }
 		| v:value MMINUS{ $$ = newUnyop(ADEC, v) }
 		| v:value ( a:args		{ v = newCall(a, v, nlines) }
-	    | i:index		{ v = newGetArray(v, i) }
-	  	  )*			{ $$ = v }
+	    		  | i:indexes		{ v = newGetArray(v, i) }
+	  	  			)*			{ $$ = v }
+
+indexes = i:index p:mkNil { p = newPair(i, p) }
+		( i:index		  { p = newPair(i, p) }
+	  )* { $$ = p }
 
 index	= LBRAK e:expr RBRAK		{ $$ = e }
 

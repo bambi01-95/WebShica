@@ -21,12 +21,14 @@ UserFunc Name: should start with a lowwer letter
 #include <stdint.h>
 #include <unistd.h>
 
+
 #include "./GC/gc.h"
 #include "./Error/error.h"
 #include "./Opcode/opcode.h"
 #include "./Node/node.h"
 #include "./Parser/parser.h"
 #include "./Object/object.h"
+#include "./Tool/tool.h"
 
 #ifdef WEBSHICA
 #include "./Platform/WebShica/Library/library.h"
@@ -717,6 +719,18 @@ void setTransPos(oop prog){
 #define printTYPE(OP) ;
 #endif
 
+int emitOn(oop prog,node vars, node ast, node type);
+void emitL (oop array, node object) 	  { intArray_append(array, Integer_value(object)); }
+void emitI (oop array, int i     ) 	  { intArray_append(array, i); }
+void emitII(oop array, int i, int j)      { emitI(array, i); emitI(array, j); }
+void emitIL(oop array, int i, node object) { emitI(array, i); emitL(array, object); }
+void emitIII(oop array, int i, int j, int k)
+{
+	emitI(array, i);
+	emitI(array, j);
+	emitI(array, k);
+}
+
 int parseType(node vars, node ast)
 {
 	switch(getType(ast)){
@@ -735,16 +749,25 @@ int parseType(node vars, node ast)
 	return -1; // should never reach here
 }
 
-
-void emitL (oop array, node object) 	  { intArray_append(array, Integer_value(object)); }
-void emitI (oop array, int i     ) 	  { intArray_append(array, i); }
-void emitII(oop array, int i, int j)      { emitI(array, i); emitI(array, j); }
-void emitIL(oop array, int i, node object) { emitI(array, i); emitL(array, object); }
-void emitIII(oop array, int i, int j, int k)
-{
-	emitI(array, i);
-	emitI(array, j);
-	emitI(array, k);
+// 0: success
+// 1: error
+int parseArray(oop prog, cnode array,cnode index,cnode type, cnode vars){
+	if(index == nil)return 0;
+	const int size = Integer_value(getNode(index, Pair,a));
+	if(size!=getNode(array, Array,size)){
+		reportError(DEVELOPER, 0, "array size mismatch: expected %d, got %d", size, getNode(array, Array,size));
+		return 1;
+	}
+	cnode *elements = getNode(array, Array,elements);
+	for(int i=0;i<size;i++){
+		if(getType(elements[i]) == Array){
+			if(parseArray(prog, elements[i], getNode(index, Pair,b), type, vars))return 1;
+		}else {
+			if(emitOn(prog, vars, elements[i], type))return 1;
+		}
+	}
+	emitII(prog, iARRAY, size);
+	return 0;
 }
 
 void printCode(oop code);
@@ -1001,6 +1024,51 @@ int emitOn(oop prog,node vars, node ast, node type)
 			}
 			fatal("file %s line %d emitOn: unknown SetVar type %d", __FILE__, __LINE__, getType(rhs));
 			reportError(DEVELOPER, getNode(ast,SetVar,line), "please contact %s", DEVELOPER_EMAIL);
+			return 0;
+		}
+		case GetArray:{
+			printTYPE(_GetArray_);
+			return 0;
+		}
+		case SetArray:{
+			printTYPE(_SetArray_);
+			node type = getNode(ast, SetArray,type);
+			node array = getNode(ast, SetArray,array);//Array
+			node index = getNode(ast, SetArray,index);//Pair
+			node value = getNode(ast, SetArray,value);//Id
+#ifdef DEBUG
+			assert(getType(array) == Array);
+			assert(getType(index) == Pair);
+			assert(getType(value) == GetVar);
+#endif
+			int scope = getNode(ast, SetArray,scope);
+			if(parseArray(prog, array, index, type, vars))return 1;
+			struct RetVarFunc var;
+			switch(scope) {
+				case SCOPE_LOCAL:{
+					var = insertVariable(vars, value->GetVar.id, type);
+					if(var.index == -1)return 1; //type error
+					emitII(prog, iSETGLOBALVAR, var.index);
+					break;
+				}
+				case SCOPE_STATE_LOCAL:{
+					var = appendVariable(getNode(vars, EmitContext, state_vars), value->GetVar.id, type, NULL);
+					emitII(prog, iSETSTATEVAR, var.index);
+					break;
+				}
+				case SCOPE_GLOBAL:{
+					var = appendVariable(getNode(vars, EmitContext, global_vars), value->GetVar.id, type, NULL);
+					emitII(prog, iSETGLOBALVAR, var.index);
+					break;
+				}
+			}
+			node variable = var.variable;
+			int dimIndex = 0;
+			while(index != nil){
+				node idx = getNode(index, Pair, a);
+				variable->Variable.dim[dimIndex++] = Integer_value(idx);
+				index = getNode(index, Pair, b);
+			}
 			return 0;
 		}
 		case GetField:{
@@ -1494,6 +1562,12 @@ void printCode(oop code){
 					i += sLen/sizeof(int) - 1;
 				else
 					i += sLen/sizeof(int);
+				break;
+			}
+			case iARRAY: {
+				inst = "ARRAY";
+				int nElements = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nElements);
 				break;
 			}
 			case iGT:   inst = "GT"; goto simple;
