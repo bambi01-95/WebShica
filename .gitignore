@@ -1,3 +1,5 @@
 ./vm.c
 ./vm
 ./Shica/.garbage/
+./.tmp.driveupload
+./.tmp.drivedownload
