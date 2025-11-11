@@ -1,5 +1,6 @@
 int a[2][2] = {{1,2},{3,4}};
-
+type Pos = {int x; int y;};
+Pos p = {0,0};
 var t = timer();//event object
 
 stt s(){

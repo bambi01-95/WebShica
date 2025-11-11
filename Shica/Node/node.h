@@ -22,12 +22,12 @@ typedef enum Type {
     /*  1 */ Integer, Float, String, EventObject, //Shica Atomic Type
     
     Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
-    /* 12 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField, SetType,
-    /* 18 */ Call, Return, Break, Continue,
-    /* 22 */ Print, If, Loop, Block,
-	/* 24 */ Transition, State, Event,EventH,
+    /* 14 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField, SetType,
+    /* 22 */ Call, Return, Break, Continue,
+    /* 26 */ Print, If, Loop, Block,
+	/* 30 */ Transition, State, Event,EventH,
 	/* AF LEG */
-	/* 25 */ Variable,EmitContext,
+	/* 34 */ Variable,EmitContext,
 	/* LEG OBJ */
 }type_t;
 
@@ -57,7 +57,7 @@ struct SetVar  	 { type_t _type; int line; node type; node id; node rhs;int scop
 struct GetArray	 { type_t _type; int line; node array, index; };
 struct SetArray	 { type_t _type; int line; node type, array, index, value;int scope; };
 struct GetField  { type_t _type; int line; node id; node field; };
-struct SetType   { type_t _type; int line; node id; node rhs;int scope; };
+struct SetType   { type_t _type; int line; node id; node rhs;};
 struct Call 	 { type_t _type; int line; node function, arguments; };
 struct Return 	 { type_t _type;           node value; };
 struct Break 	 { type_t _type;           };
@@ -77,6 +77,7 @@ struct EmitContext{
 	node global_vars; // global variables
 	node state_vars; // state variables to emit code for
 	node local_vars; // local variables to emit code for
+    node user_types; // user defined types
 };
 struct Variable{
     type_t _type;
@@ -127,6 +128,11 @@ union Node {
     struct Variable Variable;
     struct EmitContext EmitContext; // for emit code
 };
+// typedef struct RetNode{
+//     node value;
+//     int isSuccess; // 0: success, 1: error
+//     int line;
+// } RetNode;
 
 int getType(node o);
 
@@ -195,7 +201,7 @@ node newSetArray(node type, node array, node index, node value, ScopeClass scope
 
 node newGetField(node id, node field, int line);
 
-node newSetType(node id, node rhs, ScopeClass scope, int line);
+node newSetType(node id, node rhs, int line);
 
 node newCall(node arguments, node function, int line);
 
@@ -233,6 +239,10 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type);
 #define discardVariables(V,X) V->Array.size = X
 
 node newEmitContext();
+int addUserType(node ctx, node ut); // ret: index of user type
+// nested user type index stack
+int pushUserTypeIndex(node ctx); // ret: 0: success, 1: error
+int popUserTypeIndex(node ctx);  // ret: 0: success, 1: error
 
 void printNode(node node, int indent);
 void println(node obj);

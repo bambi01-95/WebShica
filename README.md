@@ -3,9 +3,7 @@
 
 ## MEMO
 
-Monday: 
-- Half of related work.
-- Whole of introduction.
+Hello world
 
 
 ### CURRENT TASK

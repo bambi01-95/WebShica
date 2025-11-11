@@ -395,14 +395,13 @@ node newGetField(node id, node field, int line)
 	return node;
 }
 
-node newSetType(node id, node rhs, ScopeClass scope, int line)
+node newSetType(node id, node rhs, int line)
 {
 	gc_pushRoot((void*)&id);
 	gc_pushRoot((void*)&rhs);
 	node node = newNode(SetType);
 	node->SetType.id = id;
 	node->SetType.rhs = rhs;
-	node->SetType.scope = scope;
 	node->SetType.line = line;
 	gc_popRoots(2);
 	return node;
@@ -733,10 +732,41 @@ node newEmitContext()
 	context->EmitContext.global_vars = newArray(0);
 	context->EmitContext.state_vars  = NULL;
 	context->EmitContext.local_vars  = NULL;
+	context->EmitContext.user_types  = newArray(0);
 	GC_POP(context);
 	return context;
 }
 
+// manage user type index stack
+static unsigned int userTypeIndexs[32] = {0};
+static int userTypeIndexCount = 0;
+int addUserType(node ctx, node ut)
+{
+	gc_pushRoot((void*)&ctx);
+	gc_pushRoot((void*)&ut);
+	Array_append(ctx->EmitContext.user_types, ut);
+	gc_popRoots(2);
+	return 0;
+}
+int pushUserTypeIndex(node ctx)
+{
+	if(userTypeIndexCount >= 32){
+		reportError(ERROR, 0, "exceeded maximum user type nesting level");
+		return 1;
+	}
+	userTypeIndexs[userTypeIndexCount++] = ctx->EmitContext.user_types->Array.size;
+	return 0;
+}
+int popUserTypeIndex(node ctx)
+{
+	if(userTypeIndexCount <= 0){
+		reportError(ERROR, 0, "user type nesting level underflow");
+		return 1;
+	}
+	int startIndex = userTypeIndexs[--userTypeIndexCount];
+	getNode(getNode(ctx, EmitContext, user_types), Array, size) = startIndex;
+	return 0;
+}
 
 
 void printNode(node node, int indent)
@@ -745,7 +775,6 @@ void printNode(node node, int indent)
     switch (getType(node)) {
 	case Undefined:	printf("nil\n");				break;
 	case Integer:	printf("%d\n", Integer_value(node));		break;
-
 	case Symbol:	printf("%s\n", getNode(node, Symbol,name));		break;
 	case Pair: {
 	    printf("Pair\n");
@@ -896,6 +925,11 @@ void printNode(node node, int indent)
 	}
 	case EventH: {
 	    printf("EventH %d\n", getNode(node, EventH,index));
+	    break;
+	}
+	case Variable:{
+	    printf("Variable %s\n", getNode(getNode(node, Variable,id), Symbol,name));
+		
 	    break;
 	}
 	default:

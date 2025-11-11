@@ -759,7 +759,7 @@ void emitIII(oop array, int i, int j, int k)
 	emitI(array, k);
 }
 
-int parseType(node vars, node ast)
+static int parseType(node vars, node ast)
 {
 	switch(getType(ast)){
 		case Integer:return Integer;
@@ -779,7 +779,7 @@ int parseType(node vars, node ast)
 
 // 0: success
 // 1: error
-int parseArray(oop prog, cnode array,cnode index,cnode type, cnode vars){
+static int parseArray(oop prog, cnode array,cnode index,cnode type, cnode vars){
 	if(index == nil)return 0;
 	const int size = Integer_value(getNode(index, Pair,a));
 	if(size!=getNode(array, Array,size)){
@@ -798,6 +798,29 @@ int parseArray(oop prog, cnode array,cnode index,cnode type, cnode vars){
 	return 0;
 }
 
+static int isAtomicType(node type)
+{
+	if(type == TYPES[Integer]) return 1;
+	if(type == TYPES[Float]) return 1;
+	if(type == TYPES[String]) return 1;
+	if(type == TYPES[Undefined]) return 1;
+	if(type == nil) return 1; // dynamic type
+	return 0;
+}
+static node getElementType(cnode ctx,cnode id)
+{
+	assert(getType(getNode(ctx, EmitContext, user_types)) == Array);
+	cnode *user_types = getNode(ctx, EmitContext, user_types)->Array.elements;
+	int nUserTypes = getNode(ctx, EmitContext, user_types)->Array.size;
+	for(int i=0;i<nUserTypes;i++){
+		cnode user_type = user_types[i]->Pair.a;
+		if(user_type == id){
+			return user_types[i]->Pair.b;
+		}
+	}
+	return nil;
+}
+
 void printCode(oop code);
 
 int emitOn(oop prog,node vars, node ast, node type)
@@ -808,11 +831,19 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Undefined:
 		case Integer:{
 			printTYPE(_Integer_);
+			if(type != TYPES[Integer]){
+				reportError(DEVELOPER, 0, "type mismatch: expected %d, got Integer", GET_OOP_FLAG(TYPES[Integer]));
+				return 1;
+			}
 			emitIL(prog, iPUSH, ast);
 			return 0;
 		}
 		case String:{
 			printTYPE(_String_);
+			if(type != TYPES[String]){
+				reportError(DEVELOPER, 0, "type mismatch: expected %d, got String", GET_OOP_FLAG(type));
+				return 1;
+			}
 			char* str = getNode(ast, String,value);
 			int sLen = strlen(str);
 			emitII(prog, sPUSH, sLen); // push the length of the string
@@ -832,11 +863,30 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case Array:{
 			printTYPE(_Array_);
-			node *elements = getNode(ast, Array,elements);
-			int size = getNode(ast, Array,size);
-			emitII(prog, iPUSH, size); // push the size of the array
-			for (int i = 0;  i < size;  ++i) {
-				if(emitOn(prog, vars, elements[i], type))return 1; // compile each element
+			if(isAtomicType(type))
+			{
+				node *elements = getNode(ast, Array,elements);
+				int size = getNode(ast, Array,size);
+				emitII(prog, iPUSH, size); // push the size of the array
+				for (int i = 0;  i < size;  ++i) {
+					if(emitOn(prog, vars, elements[i], type))return 1; // compile each element
+				}
+			}else{//User-defined type
+				assert(getType(type) == Array);
+				int arrSize = getNode(ast, Array,size);
+				node *arrs = getNode(ast, Array,elements);
+				int typeSize= getNode(type, Array,size);
+				node *types = getNode(type, Array,elements);//Variable
+				if(arrSize != typeSize){
+					reportError(ERROR, 0, "element size mismatch: expected %d, got %d", typeSize, arrSize);
+					return 1;
+				}
+				for(int i=0;i<arrSize;i++){
+					node t = getNode(types[i], Variable,type);
+					if(!isAtomicType(t))stop();//removeme
+					if(emitOn(prog, vars, arrs[i], t))return 1;
+				}
+				emitII(prog, iARRAY, arrSize);//user defined type (that deal as array)
 			}
 			return 0; 
 		}
@@ -1012,6 +1062,27 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				case Integer:
 				case String:
+				case Array:{//UserType
+					if(isAtomicType(declaredType)){
+						reportError(DEVELOPER, getNode(ast,SetVar,line), "variable %s declared type cannot be atomic type", getNode(sym, Symbol,name));
+						return 1;
+					}
+					assert(getType(declaredType) == Symbol);
+					node userTypes = vars->EmitContext.user_types;
+					assert(getType(userTypes) == Array);
+					int size = userTypes->Array.size;
+					node *ele = userTypes->Array.elements;
+					for(int i=0;i<size;i++){//search for user type
+						if(declaredType == getNode(ele[i], Pair, a)){
+							declaredType = getNode(ele[i], Pair, b);
+							break;
+						}
+						if(i==size-1){
+							reportError(DEVELOPER, getNode(ast,SetVar,line), "unknown user type %s", getNode(declaredType, Symbol,name));
+							return 1;
+						}
+					}
+				}
 				case GetArray:
 				case GetVar:
 				case Unyop:
@@ -1108,13 +1179,13 @@ int emitOn(oop prog,node vars, node ast, node type)
 						emitI(prog, iGETARRAY);
 					}
 				}
+				stop();
 				return 0;
-			}else{// UNDEFINED
+			}else{// setType is given
 				if(parseArray(prog, array, index, setType, vars))return 1;
 				struct RetVarFunc var;
 				switch(scope) {
 					case SCOPE_LOCAL:{
-						printf("type %d\n",GET_OOP_FLAG(setType));
 						var = insertVariable(vars, value->GetVar.id, setType);
 						if(var.index == -1)return 1; //type error
 						emitII(prog, iSETGLOBALVAR, var.index);
@@ -1206,6 +1277,14 @@ int emitOn(oop prog,node vars, node ast, node type)
 			fatal("file %s line %d emitOn: GetField is not supported yet", __FILE__, __LINE__);
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
+		}
+		case SetType:{
+			printTYPE(_SetType_);
+			node id = getNode(ast, SetType,id);
+			node rhs = getNode(ast, SetType,rhs);
+			assert(getType(rhs) == Array);// variable array typesa
+			addUserType(vars, newPair(id, rhs)); 
+			return 0;
 		}
 		case Call:{
 			//Standard library functions / user defined functions
@@ -1312,7 +1391,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 			while (args != nil) {
 				node value = getNode(args, Args, value);
 				int argType = parseType(vars, value);
-				printf(" argType: %d\n", argType);
 				if(argType == -1) return 1; // type error
 				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
 				switch(argType){
@@ -1420,6 +1498,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case State:{
 			printTYPE(_State_);
+			pushUserTypeIndex(vars);
 			node id = getNode(ast, State,id);
 			node params = getNode(ast, State,parameters);
 			node events = getNode(ast, State,events);
@@ -1439,6 +1518,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				if(eventList[i] == NULL){
 					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
+					popUserTypeIndex(vars);
 					return 1;
 				}
 				if((getNode(eventList[i], Event,id) == entryEH) || (getNode(eventList[i], Event,id) == exitEH)){
@@ -1449,8 +1529,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 				if(getType(eventList[i])!=Event){
 					fatal("file %s line %d emitOn: eventList[%d] is not an Event", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					popUserTypeIndex(vars);
 					return 1;
-					elements[nElements++] = 0; // collect empty events
 				}
 				else if(getNode(eventList[i], Event,id) != preid) {
 					dprintf("new event\n");
@@ -1462,7 +1542,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 					elements[nElements]++;
 				}
 				dprintf("eventList[%d]: %s\n", i, getNode(eventList[i], Event,id)->Symbol.name);
-				if(emitOn(prog, vars, eventList[i], type)) return 1; // compile each event
+				if(emitOn(prog, vars, eventList[i], type)) {
+					popUserTypeIndex(vars);
+					return 1; // compile each event
+				}
 			}
 			dprintf("Finished collecting events\n");
 
@@ -1471,7 +1554,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
 			//entryEH
 			if(getNode(eventList[0], Event,id) == entryEH){
-				if(emitOn(prog, vars, eventList[0], type)) return 1; // compile entryEH
+				if(emitOn(prog, vars, eventList[0], type)) {
+					popUserTypeIndex(vars);
+					return 1; // compile entryEH
+				}
 			}
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			for(int i =0 ,  ehi =0;  i < getNode(events, Block, size);  ++i) {
@@ -1481,7 +1567,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 				if(getType(id) == GetField)//chat.received()
 				{
 					struct RetVarFunc var = searchVariable(vars, getNode(id, GetField, id), type);
-					if(var.index == -1)return 1; // variable not found
+					if(var.index == -1){
+						popUserTypeIndex(vars);
+						return 1; // variable not found
+					}
 					emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
 					node *funcs = getNode(var.variable->Variable.value, EventObject, funcs);
 					char * fieldName = getNode(getNode(id, GetField, field),Symbol,name);
@@ -1510,7 +1599,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 			// exitEH
 			for(int i = 0; i < getNode(events, Block, size); i++){
 				if(getNode(eventList[i], Event,id) == exitEH){ 
-					if(emitOn(prog, vars, eventList[i],type)) return 1; // compile exitEH
+					if(emitOn(prog, vars, eventList[i],type)) {
+						popUserTypeIndex(vars);
+						return 1; // compile exitEH
+					}
 				}
 				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
@@ -1518,18 +1610,20 @@ int emitOn(oop prog,node vars, node ast, node type)
 			// discardVariables(vars->EmitContext.state_vars, 0); // discard variables
 			getNode(vars, EmitContext, state_vars) = NULL; // clear state variables
 			emitII(prog, iEOS, 0); // emit EOS instruction to mark the end of the state
+			popUserTypeIndex(vars);
 			return 0;
 		}
 		case Event:{
 			printTYPE(_Event_);
 			node id = getNode(ast, Event,id);
-			//chat.received()
+			pushUserTypeIndex(vars); // push user type index stack
 			if(getType(id) == GetField)
 			{
 				node parent = getNode(id, GetField, id); // get the variable from the GetField
 				struct RetVarFunc var = searchVariable(vars, parent, type);
 				if(var.index == -1){
 					reportError(ERROR, getNode(ast,Event,line), "variable %s is not defined", getNode(parent, Symbol,name));
+					popUserTypeIndex(vars);
 					return 1;
 				}
 				int parentIndex = getNode(var.variable->Variable.value, EventObject, index);
@@ -1545,6 +1639,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 				if(id == NULL){
 					reportError(ERROR, getNode(ast,Event,line), "event object %s has no event %s", getNode(parent, Symbol,name), fieldName);
+					popUserTypeIndex(vars);
 					return 1;
 				}
 				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
@@ -1555,9 +1650,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 			if(getType(eh) != EventH) {
 				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, getNode(id, Symbol,name));
 				reportError(DEVELOPER, getNode(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
+				popUserTypeIndex(vars);
 				return 1;
 			}
-
 			getNode(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
 			int nArgs = EventTable[eh->EventH.index].nArgs;
 			int paramSize =0;
@@ -1583,6 +1678,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			if(paramSize != nArgs) {
 				reportError(ERROR, getNode(ast,Event,line), "event %s has %d parameters, but expected %d", getNode(id, Symbol,name), paramSize, nArgs);
 				getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
+				popUserTypeIndex(vars);
 				return 1;
 			}
 			int aPos = prog->IntArray.size; // remember the position of the event handler
@@ -1600,12 +1696,14 @@ int emitOn(oop prog,node vars, node ast, node type)
 			ast->Event.block = newPair(apos,cpos); // set the position of the event handler
 			GC_POP(cpos);
 			GC_POP(apos);
+			popUserTypeIndex(vars); // pop user type index stack
 			return 0;
 		}
 		default:break;
 	}
     fatal("file %s line %d: emitOn: unimplemented emitter for type %d", __FILE__, __LINE__, getType(ast));
 	reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+	popUserTypeIndex(vars);
 	return 1;
 }
 
