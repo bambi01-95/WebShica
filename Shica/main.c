@@ -804,7 +804,6 @@ static int isAtomicType(node type)
 	if(type == TYPES[Float]) return 1;
 	if(type == TYPES[String]) return 1;
 	if(type == TYPES[Undefined]) return 1;
-	if(type == nil) return 1; // dynamic type
 	return 0;
 }
 static node getElementType(cnode ctx,cnode id)
@@ -832,7 +831,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Integer:{
 			printTYPE(_Integer_);
 			if(type != TYPES[Integer]){
-				reportError(DEVELOPER, 0, "type mismatch: expected %d, got Integer", GET_OOP_FLAG(TYPES[Integer]));
+				reportError(ERROR, 0, "type mismatch: expected %d, got Integer", GET_OOP_FLAG(type));
 				return 1;
 			}
 			emitIL(prog, iPUSH, ast);
@@ -841,7 +840,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case String:{
 			printTYPE(_String_);
 			if(type != TYPES[String]){
-				reportError(DEVELOPER, 0, "type mismatch: expected %d, got String", GET_OOP_FLAG(type));
+				reportError(ERROR, 0, "type mismatch: expected %d, got String", GET_OOP_FLAG(type));
 				return 1;
 			}
 			char* str = getNode(ast, String,value);
@@ -1040,12 +1039,12 @@ int emitOn(oop prog,node vars, node ast, node type)
 									return 1;
 								}
 								case SCOPE_STATE_LOCAL:{
-									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, state_vars),sym, declaredType, func);
+									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, state_vars),sym, nil/*Undefined*/, func);
 									emitII(prog, iSETSTATEVAR, var.index);
 									return 0;
 								}
 								case SCOPE_GLOBAL:{
-									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, global_vars),sym, declaredType, func);
+									struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, global_vars),sym, nil/*Undefined*/, func);
 									emitII(prog, iSETGLOBALVAR, var.index);
 									return 0;
 								}
@@ -1060,8 +1059,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 						}
 					}
 				}
-				case Integer:
-				case String:
 				case Array:{//UserType
 					if(isAtomicType(declaredType)){
 						reportError(DEVELOPER, getNode(ast,SetVar,line), "variable %s declared type cannot be atomic type", getNode(sym, Symbol,name));
@@ -1083,7 +1080,14 @@ int emitOn(oop prog,node vars, node ast, node type)
 						}
 					}
 				}
+				case Integer:
+				case String:{
+					if(declaredType == nil){
+						declaredType = TYPES[parseType(vars, rhs)];
+					}
+				}
 				case GetArray:
+				case GetField:
 				case GetVar:
 				case Unyop:
 				case Binop:{
@@ -1179,8 +1183,8 @@ int emitOn(oop prog,node vars, node ast, node type)
 						emitI(prog, iGETARRAY);
 					}
 				}
-				stop();
-				return 0;
+				reportError(DEVELOPER, getNode(ast,SetArray,line), "please contact %s", DEVELOPER_EMAIL);
+				return 1;
 			}else{// setType is given
 				if(parseArray(prog, array, index, setType, vars))return 1;
 				struct RetVarFunc var;
@@ -1216,16 +1220,21 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case GetField:{
 			printTYPE(_GetField_);
-			// search variable table
-			const node id = getNode(ast, GetField, id);
-			const node field = getNode(ast, GetField, field);
-
-			struct RetVarFunc var = searchVariable(vars, id, type);
+			// id->field
+			node id = getNode(ast, GetField, id);
+			node field = getNode(ast, GetField, field);
+	
+			struct RetVarFunc var = searchVariable(vars, id, NULL);//if error happens, `type` is set to NULL to skip type checking
 			if(var.index == -1)return 1; // variable not found
-			const node value = getNode(var.variable,Variable,value);
-			switch(getType(value))
+			 node varType = getNode(var.variable,Variable, type);
+			if(isAtomicType(varType)){
+				reportError(ERROR, getNode(ast,GetField,line), "variable %s is of atomic type and has no fields", getNode(id, Symbol,name));
+				return 1;
+			}
+			switch(getType(varType))
 			{
-				case EventObject:{//readme: dev/common/eo.md: eo.func()
+				case Undefined:{//Event Object
+					node value = var.variable->Variable.value;
 					int eoIndex = getNode(value, EventObject,index);
 					const node * const funcs = getNode(value, EventObject,funcs);
 					//search field in eo.funcs
@@ -1244,36 +1253,44 @@ int emitOn(oop prog,node vars, node ast, node type)
 					reportError(ERROR, getNode(ast,GetField,line), "event object %s has no field %s", getNode(id, Symbol,name), getNode(field, Symbol,name));
 					return 1;
 				}
-				//case UserType:
+				case Array:{ //User-defined type
+					int fieldSize = getNode(varType, Array,size);
+					node *fields = getNode(varType, Array,elements);
+					int isGetField = getType(field) == GetField ? 1 : 0;
+					node fieldId = isGetField ? getNode(field, GetField, id) : getNode(field, GetVar, id);
+					emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the user-defined type variable
+					for(int i=0; i<fieldSize; i++){
+						if(fieldId == getNode(fields[i], Variable, id)){
+							emitII(prog, iPUSH, i); // push the field index
+							emitI(prog, iGETARRAY);
+							if(isGetField){//agent.pos.x
+								i = -1;
+								id = getNode(field, GetField, id);
+								field = getNode(field, GetField, field);
+								var = searchVariable(vars, id, NULL);//if error happens, `type` is set to NULL to skip type checking
+								if(var.index == -1)return 1; // variable not found
+			 					varType = getNode(var.variable,Variable, type);
+								fieldSize = getNode(varType, Array,size);
+								fields = getNode(varType, Array,elements);
+								i = -1; //restart searching
+								continue;
+							}else{
+								return 0;
+							}
+						}
+						if(i==fieldSize-1){
+							reportError(ERROR, getNode(ast,GetField,line), "user-defined type %s has no field %s", getNode(id, Symbol,name), getNode(fieldId, Symbol,name));
+							return 1;
+						}
+					}
+					return 0;
+				}
 				default:{
-					fatal("file %s line %d emitOn: GetField is not supported for type %d yet", __FILE__, __LINE__, getType(value));
+					fatal("file %s line %d emitOn: GetField is not supported for type %d yet", __FILE__, __LINE__, getType(varType));
 					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 					return 1;
 				}
 			}
-
-			stop();
-
-
-			/* Event Object: chat.send(msg); chat.remove();
-			int index = getNode(var,Variable,index);
-			if(index == -1){
-				reportError(ERROR, getNode(ast,GetField,line), "variable %s not found", getNode(id, Symbol,name));
-				return 1;
-			}
-			// seach eo[index] have the field
-			// if so, push the eo index and compile the field
-			// else, error
-			*/
-
-			// Type: pos.x, agent.pos.y
-			/*
-			emitOn(prog, Global_field, id);
-			emitOn(prog, State_field, id);
-			emitOn(prog, Local_field, id);
-			*/
-
-
 			fatal("file %s line %d emitOn: GetField is not supported yet", __FILE__, __LINE__);
 			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 			return 1;
@@ -1591,7 +1608,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				for(int j = 0; j < elements[ehi]; ++j) {
 					node event = eventList[i++];
 					node posPair = getNode(event, Event,block);
-					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a)),Integer_value(getNode(posPair,Pair,b))); // set the position of the event handler)
+					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a))/*action*/,Integer_value(getNode(posPair,Pair,b))/*condition*/); // set the position of the event handler)
 				}
 				ehi++; // increment event handler index
 			}

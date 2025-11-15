@@ -5,8 +5,16 @@ var t = timer();//event object
 
 stt s(){
     t.sec(int sec){
-        a[0][0] = 1;
-        int x = a[0][0];
-        print(x);
+        a[0][0] = 0;
+        int x = p.x;
+        x = 10;
+        int y = p.y;
+        t.reset(0);
+        print(y);
     }
 }
+
+// type Pos = {int x; int y;};
+// type Agent = {int id; Pos p;};
+// Agent list[2] = {{1,{0,0}},{2,{10,10}}};
+// list[0].p.x = 5;// i forget considering conbination and 2 or more dots
