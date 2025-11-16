@@ -1676,11 +1676,17 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
-				appendVariable(
+				printf("\t appendVarialbe\n");
+				struct RetVarFunc var =  appendVariable(
 					getNode(vars, EmitContext, local_vars), 
 					getNode(params, Eparams, id), 
 					getNode(params, Eparams, type),
 					NULL); // add parameter to local variables
+				if(var.index == -1){
+					popUserTypeIndex(vars);
+					return 1; // type error
+				}
+				printf("\t finished appendVarialbe\n");
 				if(getNode(params, Eparams, cond) !=  FALSE){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, getNode(params, Eparams, cond), getNode(params, Eparams, type))) return 1; // compile condition if exists
@@ -2449,7 +2455,7 @@ void collectExecutors(void)
 // #include <emscripten/bind.h>
 // #include <emscripten/val.h>
 // WEB RUN 
-int compile_init();
+int compile_init(int index);
 int compile_finalize();
 oop webcode  = NULL;
 oop webagent = NULL;
@@ -2464,7 +2470,7 @@ int memory_init(void)
 #elif defined(MSGCS)
 	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
 	exectx = &gc_ctx;
-	comctx = ctx    = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
+	comctx = ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
@@ -2486,9 +2492,11 @@ void collectWeb(void)
 {
 	assert(ctx == comctx); // check if the context is equal to the compilation context
 	gc_markOnly(webCodes); // mark the web codes
+	printf("collectWeb: nWebCodes=%d, size %lu\n", nWebCodes, sizeof(oop) * maxNumWebCodes);
 	if(nWebCodes > 0) {
 		for(int i = 0; i < nWebCodes; ++i){
 			if(webCodes[i] != NULL){//manualy mark web codes cause they are called from both side.
+				printf("\tmarking web code %d, size %lu\n", i, sizeof(int) * (webCodes[i]->IntArray.size));
 				gc_markOnly(webCodes[i]); // mark the web code
 				gc_markOnly(webCodes[i]->IntArray.elements); // mark the web code elements
 			}
@@ -2527,27 +2535,29 @@ int addWebCode(void)
 	return 0; 
 }
 
-int compile_init()
+int compile_init(int index)
 {
 	printf("compile_init\n");
+	webCodes[index] = NULL; // initialize the web code
+	ctx = comctx; // use the context for the garbage collector
 	ctx->nroots = 0; // reset the number of roots
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
-	/* collectEmpty() collect webAgents webCodes*/
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
 
 	// reset global variables
 	initSymbols();
 	initSttTrans();
-
 	initLine();
-	gc_collect(); // collect garbage
+
+	gc_collectWithCleanup(); // collect garbage
+	//gc_collect(); // collect garbage
 
 	gc_markFunction = (gc_markFunction_t)markObject; // set the mark function for the garbage collector
 	gc_collectFunction = (gc_collectFunction_t)collectObjects; // set the collect function for the garbage collector
 
-    nil   = newUndefine();	gc_pushRoot(nil);
-     FALSE = newInteger(0);			gc_pushRoot( FALSE);
-    TRUE  = newInteger(1);			gc_pushRoot(TRUE);
+    nil   = newUndefine();gc_pushRoot(nil);
+    FALSE = newInteger(0);gc_pushRoot( FALSE);
+    TRUE  = newInteger(1);gc_pushRoot(TRUE);
 
 	printf("compile_event_init\n");
 	compile_event_init(); // initialize the event system
@@ -2570,21 +2580,15 @@ int compile_finalize()
 }
 
 //CCALL
-int compileWebCode(const int doInit,const int index, const char *code)
+int compileWebCode(const int index, const char *code)
 {
-	ctx = comctx; // use the context for the garbage collector
+	printf("nroot: %d\n", ctx->nroots);
 	if(index < 0 || index >= maxNumWebCodes){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
-	if(doInit)
-	{
-		ctx = comctx; // use the context for the garbage collector
-		gc_collect(); // collect garbage before compiling
-	}
-	webCodes[index] = NULL;
-	compile_init(); // initialize the compiler
+	compile_init(index); // initialize the compiler
 	store(code); // store the code to the memory
 	initYYContext();
 	webCodes[index] = compile();

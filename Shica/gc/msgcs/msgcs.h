@@ -106,6 +106,7 @@ int gc_collect(void);
 char *gc_strdup(const char *s);
 void *gc_realloc(void *oldptr, int newsize);
 
+int gc_collectWithCleanup();
 
 void *gc_beAtomic(void *p);
 void *gc_alloc_atomic(int size);
