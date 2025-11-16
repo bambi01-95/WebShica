@@ -243,9 +243,8 @@ int self_state_handler(oop eh)
 
 int click_handler(oop eh)
 {
-	printf("triggered click event\n");
+
 	if (WEB_CLICK_STT[2]==1) {
-		printf("clicked!!!\n");
 		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
 		pushStack(stack, newIntVal(WEB_CLICK_STT[1])); // y
@@ -321,7 +320,7 @@ int compile_eh_init(){
 
 int lib_log(oop stack)
 {
-	int value = intArray_pop(stack); // get value from stack
+	int value = IntVal_value(popStack(stack)); // get value from stack
 	printf("log: %d\n", value); // print value to console
 	return 0; // return 0 to indicate success
 }
@@ -329,8 +328,8 @@ int lib_log(oop stack)
 // This function sets the x and y coordinates of the agent
 int lib_setxy(oop stack)
 {
-	int y = intArray_pop(stack); // get x coordinate from stack
-	int x = intArray_pop(stack); // get y coordinate from stack
+	int y = IntVal_value(popStack(stack)); // get x coordinate from stack
+	int x = IntVal_value(popStack(stack)); // get y coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
 	AN_AGENT_DATA->y = y; // set y coordinate
 	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
@@ -338,21 +337,21 @@ int lib_setxy(oop stack)
 }
 int lib_setx(oop stack)
 {
-	int x = intArray_pop(stack); // get x coordinate from stack
+	int x = IntVal_value(popStack(stack)); // get x coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
 	return 0; // return 0 to indicate success
 }
 int lib_sety(oop stack)
 {
-	int y = intArray_pop(stack); // get y coordinate from stack
+	int y = IntVal_value(popStack(stack)); // get y coordinate from stack
 	AN_AGENT_DATA->y = y; // set y coordinate
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvxy(oop stack)
 {
-	int vy = intArray_pop(stack); // get y velocity from stack
-	int vx = intArray_pop(stack); // get x velocity from stack
+	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
+	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	printf("setVXY: vx = %d, vy = %d\n", vx, vy); // print velocities to console
@@ -361,23 +360,23 @@ int lib_setvxy(oop stack)
 
 int lib_setvx(oop stack)
 {
-	int vx = intArray_pop(stack); // get x velocity from stack
+	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvy(oop stack)
 {
-	int vy = intArray_pop(stack); // get y velocity from stack
+	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
 
 int lib_setcolor(oop stack)
 {
-	int  red = intArray_pop(stack); // get red value from stack
-	int green = intArray_pop(stack); // get green value from stack
-	int blue = intArray_pop(stack); // get blue value from stack
+	int  red = IntVal_value(popStack(stack)); // get red value from stack
+	int green = IntVal_value(popStack(stack)); // get green value from stack
+	int blue = IntVal_value(popStack(stack)); // get blue value from stack
 	AN_AGENT_DATA->red = (char)red; // set red value
 	AN_AGENT_DATA->green = (char)green; // set green value
 	AN_AGENT_DATA->blue = (char)blue; // set blue value

@@ -218,6 +218,8 @@ int runNative(oop code){
 				oop ret = impleBody(code, eh, agent);
 				if(ret == retFlags[TRANSITION_F]){
 					getObj(agent,Agent,isActive) = 0;
+					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
+					getObj(agent, Agent, eventHandlers) = NULL;
 					break;
 				}
 				if(ret == retFlags[ERROR_F]){
@@ -501,7 +503,7 @@ oop execute(oop prog,oop entity, oop agent)
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			pushStack(agent->Agent.stack,  newIntVal(nextStatePos+(*pc)));//relative position:
+			pushStack(getObj(agent, Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position:
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
@@ -2701,7 +2703,7 @@ int executeWebCodes(void)
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
 					getObj(agent, Agent, isActive) = 0;
-					getObj(agent, Agent, pc) = intArray_pop(getObj(agent, Agent, stack));
+					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
 					getObj(agent, Agent, eventHandlers) = NULL;
 					break;
 				}

@@ -13,15 +13,6 @@
 #define TAG_INT_ENT 0b01
 #define TAG_FLT_ENT 0b10
 
-void isMaskedPtr(oop o)
-{
-	if ((((intptr_t)o) & TAGMASK) == TAG_NON_ENT){
-		printf("Not masked pointer: %ld\n", (((intptr_t)o) & TAGMASK));
-	} else {
-		printf("Masked pointer: %ld\n", (((intptr_t)o) & TAGMASK));
-	}
-}
-
 static oop _newEntity(size_t size, kind_t kind)
 {
 	oop e = (oop)gc_alloc(size);
@@ -29,7 +20,6 @@ static oop _newEntity(size_t size, kind_t kind)
 		fprintf(stderr, "Out of memory\n");
 		exit(1);
 	}
-	isMaskedPtr(e);
 	e->kind = kind;
 	return e;
 }
@@ -222,6 +212,7 @@ int intArray_pop(oop a)
 	if (getObj(a, IntArray, size) == 0) fatal("pop: stack is empty");
 	return getObj(a, IntArray, elements)[--getObj(a, IntArray, size)];
 }
+
 int intArray_last(oop a)
 {
 	if (getObj(a, IntArray, size) == 0) fatal("last: stack is empty");
