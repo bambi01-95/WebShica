@@ -157,6 +157,59 @@ void gc_mark(void *ptr)
 }
 
 
+// collect memory and set 0
+int gc_collectWithCleanup(){
+    int nfree = 0, nbusy = 0;			// count memory in use and free
+    gc_collectFunction();			// run pre-collection function to mark static roots
+    for (int i = 0;  i < ctx->nroots;  ++i){		// mark the pointers stored in each root variable
+        gc_debug_log("Root %d\n", i);
+	    gc_mark(*ctx->roots[i]);
+        gc_debug_log("Root pointer %p\n", ctx->roots[i]);
+    }
+    
+    for ( gc_header *here = ctx->memory;		// iterate over all objects in memory
+	  here < ctx->memend;
+	  here = (void *)here + here->size ) {
+        gc_debug_log("%p %c%c%c %d\n", (void *)here + sizeof(*here),
+                here->busy ? 'B' : '-', here->atom ? 'A' : '-', here->mark ? 'M' : '-',
+                here->size);
+        if (here->mark) {			// block is marked reachable: do not reclaim
+            here->mark = 0;
+            assert(here->busy);			// if it is not allocated, the mutator has a bug
+            nbusy += here->size;
+            continue;
+        }
+        // block is not marked, is unreachable, and is therefore garbage
+        gc_debug_log("%p RECLAIM\n", (void *)here + sizeof(*here));
+        here->busy = 0;				// reclaim the block
+        here->mark = 0;
+        here->atom = 0;
+        for (;;) {				// coalesce all following free blocks into this one
+            gc_header *next = (void *)here + here->size;
+            if (next == ctx->memend) break;	// current block is the last
+            if (next->mark) break;		// next block is reachable
+            assert(ctx->memory < next);
+            assert(next < ctx->memend);
+            gc_debug_log("%p EXTEND %p %d\n",
+                    (void *)here + sizeof(*here),
+                    (void *)next + sizeof(*next),
+                    next->size);
+            here->size += next->size;		// absorb following block into this one
+        }
+/*
+ * Clear the memory of the reclaimed block to avoid dangling pointers.
+ */
+        memset((void *)here + sizeof(*here), 0, here->size - sizeof(*here)); // clear memory
+        nfree += here->size;
+    }
+    ctx->memnext = ctx->memory;		// start allocating at the start of memory
+# ifndef NDEBUG
+    printf("\r[GC %d used %d free]\r\n", nbusy, nfree);
+    fflush(stdout);
+# endif
+    return nbusy;
+}
+
 int gc_collect(void)
 {
     // phase one: transitively trace the object graph starting at each root variable, setting

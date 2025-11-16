@@ -128,7 +128,6 @@ const ShicaPage = () => {
       (globalThis as any)._addWebRtcBroadcast = _addWebRtcBroadcast;
       (globalThis as any)._sendWebRtcBroadcast = _sendWebRtcBroadcast;
       (globalThis as any)._removeWebRtcBroadcast = _removeWebRtcBroadcast;
-
       console.log("🌐 Registered WebRTC bridge functions to globalThis");
     }
   }, [isReady]);
@@ -312,13 +311,12 @@ const ShicaPage = () => {
   useEffect(() => {
     if (!Module || !isReady || !isCompiling) return;
     const selectedCode = codes[selectedIndex].code;
-    const bool = process === "compile" ? 1 : 0;
-    console.log(`CompileWebCode bool:${bool} index:${selectedIndex}`);
+    console.log(`CompileWebCode index:${selectedIndex}`);
     const ret = Module.ccall(
       "compileWebCode",
       "number",
-      ["number", "number", "string"],
-      [bool, selectedIndex, selectedCode]
+      [ "number", "string"],
+      [ selectedIndex, selectedCode]
     );
     // change .shica to .stt, and meke output filename
     const outputFilename = codes[selectedIndex].filename.replace(

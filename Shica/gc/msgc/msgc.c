@@ -184,6 +184,10 @@ void gc_unmarkOnly(void *ptr){
 }
 #endif
 
+int gc_collectWithCleanup(){
+    gc_collect();
+}
+
 int gc_collect(void)	// collect garbage
 {
     // phase one: transitively trace the object graph starting at each root variable, setting
