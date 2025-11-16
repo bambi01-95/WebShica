@@ -285,6 +285,19 @@ oop execute(oop prog,oop entity, oop agent)
 			}
 			continue;
 		}
+#if WEBSHICA
+	    case iGT:printOP(iGT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l > r));  continue;
+		case iGE:printOP(iGE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l >= r)); continue;
+		case iEQ:printOP(iEQ);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l == r)); continue;
+		case iNE:printOP(iNE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l != r)); continue;
+		case iLE:printOP(iLE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l <= r)); continue;
+		case iLT:printOP(iLT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l < r));  continue;
+	    case iADD:printOP(iADD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l + r));  continue;
+	    case iSUB:printOP(iSUB);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l - r));  continue;
+	    case iMUL:printOP(iMUL);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l * r));  continue;
+	    case iDIV:printOP(iDIV);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l / r));  continue;
+	    case iMOD:printOP(iMOD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l % r));  continue;
+#else
 	    case iGT:printOP(iGT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l > r));  continue;
 		case iGE:printOP(iGE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l >= r)); continue;
 		case iEQ:printOP(iEQ);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l == r)); continue;
@@ -296,6 +309,7 @@ oop execute(oop prog,oop entity, oop agent)
 	    case iMUL:printOP(iMUL);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l * r));  continue;
 	    case iDIV:printOP(iDIV);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
+#endif
 		case iARRAY:{
 			int n = fetch();
 			oop arr = newArrVal(n);

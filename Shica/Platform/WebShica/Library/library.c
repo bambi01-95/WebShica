@@ -56,18 +56,18 @@ struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ�
 
 // Initial agent data: FIXME: set all {0,i*50,0,0,0,0,0,0,0,0}
 struct AgentData allAgentData[12] = {
-	[0] = { 50, 50, 5,0,0,0,0,0,0,0},
-	[1] = {450, 50, 0,5,0,0,0,0,0,0},
-	[2] = {450,450, -5,0,0,0,0,0,0,0},
-	[3] = { 50,450, 0,-5,0,0,0,0,0,0},
-	[4] = {250,250,0,0,0,0,0,0,0,0},
-	[5] = {300,300,0,0,0,0,0,0,0,0},
-	[6] = {350,350,0,0,0,0,0,0,0,0},
-	[7] = {400,400,0,0,0,0,0,0,0,0},
-	[8] = {450,450,0,0,0,0,0,0,0,0},
-	[9] = {500,500,1,-1,1,-1,'r','g','b',1},
-	[10] = {550,550,-1,-1,'r','g','b',1},
-	[11] = {600,600,-1,-1,'r','g','b',1}
+	[0] = { 0,  0, 0,0,0,0,0,0,0,0},
+	[1] = { 50,  0, 0,0,0,0,0,0,0,0},
+	[2] = { 100,  0, 0,0,0,0,0,0,0,0},
+	[3] = { 150,  0, 0,0,0,0,0,0,0,0},
+	[4] = { 200,  0,0,0,0,0,0,0,0,0},
+	[5] = { 250,  0,0,0,0,0,0,0,0,0},
+	[6] = { 300,  0,0,0,0,0,0,0,0,0},
+	[7] = { 350,  0,0,0,0,0,0,0,0,0},
+	[8] = { 400,  0,0,0,0,0,0,0,0,0},
+	[9] = { 450,  0,1,-1,1,-1,'r','g','b',1},
+	[10] = { 0,500,-1,-1,'r','g','b',1},
+	[11] = { 0,550,-1,-1,'r','g','b',1}
 }; // Initialize the agent data array with 12 agents
 
 
@@ -361,6 +361,7 @@ int lib_setvxy(oop stack)
 int lib_setvx(oop stack)
 {
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
+	printf("\tsetVX: vx = %d\n", vx); // print x velocity to console
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
@@ -368,6 +369,7 @@ int lib_setvx(oop stack)
 int lib_setvy(oop stack)
 {
 	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
+	printf("\tsetVY: vy = %d\n", vy); // print y velocity to console
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }

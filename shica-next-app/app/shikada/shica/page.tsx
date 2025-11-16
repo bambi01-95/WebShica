@@ -145,10 +145,10 @@ const ShicaPage = () => {
     const numRobots = robotsRef.current.length;
     const newRobot: Robot = {
       x: 50 * numRobots,
-      y: 50,
-      r: 100,
-      g: 100,
-      b: 100,
+      y: 0,
+      r: 0,
+      g: 0,
+      b: 0,
     };
     robotsRef.current = [...robotsRef.current, newRobot];
     setForceUpdate((prev) => prev + 1); // 強制再レンダリング
