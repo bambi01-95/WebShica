@@ -9,9 +9,18 @@
 
 #define TAGBITS 2
 #define TAGMASK ((1 << TAGBITS) - 1)
-#define TAG_INT_ENT 0x1
-#define TAG_FLT_ENT 0x2
+#define TAG_NON_ENT 0b00
+#define TAG_INT_ENT 0b01
+#define TAG_FLT_ENT 0b10
 
+void isMaskedPtr(oop o)
+{
+	if ((((intptr_t)o) & TAGMASK) == TAG_NON_ENT){
+		printf("Not masked pointer: %ld\n", (((intptr_t)o) & TAGMASK));
+	} else {
+		printf("Masked pointer: %ld\n", (((intptr_t)o) & TAGMASK));
+	}
+}
 
 static oop _newEntity(size_t size, kind_t kind)
 {
@@ -20,15 +29,24 @@ static oop _newEntity(size_t size, kind_t kind)
 		fprintf(stderr, "Out of memory\n");
 		exit(1);
 	}
+	isMaskedPtr(e);
 	e->kind = kind;
 	return e;
 }
 
 kind_t getKind(oop o)
 {
-    if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT) return IntVal;
+#if WEBSHICA
+	return o->kind;
+#else
+    if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT){
+		//print mask bit value
+		printf("Masked value: %ld\n", (((intptr_t)o) & TAGMASK));
+		return IntVal;
+	}
     if ((((intptr_t)o) & TAGMASK) == TAG_FLT_ENT) return FloVal;
     return o->kind;
+#endif
 }
 
 #define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
@@ -44,25 +62,45 @@ oop _checkObject(oop obj, kind_t kind, char *file, int line){
 
 oop newIntVal(int value)
 {
+#if WEBSHICA
+	oop obj = newEntity(IntVal);
+	obj->IntVal.value = value;
+	return obj;
+#else
     return (oop)(((intptr_t)value << TAGBITS) | TAG_INT_ENT);
+#endif
 }
 
 int IntVal_value(oop obj)
 {
 	assert(getKind(obj) == IntVal);
+#if WEBSHICA
+	return obj->IntVal.value;
+#else
     return (intptr_t)obj >> TAGBITS;
+#endif
 }
 
 oop newFloVal(double value)
 {
+#if WEBSHICA
+	oop obj = newEntity(FloVal);
+	obj->FloVal.value = value;
+	return obj;
+#else
     return (oop)(((intptr_t)value << TAGBITS) | TAG_FLT_ENT);
+#endif
 }
 
 double FloVal_value(oop obj)
 {
 	assert(getKind(obj) == FloVal);
+#if WEBSHICA
+    return obj->FloVal.value;
+#else
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
+#endif
 }
 
 oop newStrVal(const char *value)
@@ -300,6 +338,8 @@ oop getIrCode(int index){
 oop newAgent(int id, int nEvents)
 {
 	oop agent = newEntity(Agent);
+	printf("object type of newAgent: %d, getKind: %d\n", agent->kind, getKind(agent));
+	assert(getKind(agent) == Agent);
 	agent->Agent.id = id;
 	agent->Agent.isActive = 0; // active by default
 	agent->Agent.nEvents = nEvents;

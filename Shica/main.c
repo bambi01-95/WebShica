@@ -2649,6 +2649,9 @@ int initWebAgents(int num)
 		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
 		#endif
 		GC_PUSH(oop,agent,newAgent(0,0)); // create a new agent
+		#ifdef DEBUG
+		printf("type of agent: %d\n", getKind(agent));
+		#endif
 		assert(getKind(agent) == Agent); // check if the agent is of type Agent
 		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
 		assert(getKind(((oop)*ctx->roots[0])) == Agent); // check if the root is of type Agent
