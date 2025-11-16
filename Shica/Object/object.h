@@ -25,6 +25,8 @@ typedef enum kind{
 	Agent,
 	Instance,
 	Any,
+
+	RETFLAG,
 } kind_t;
 
 kind_t getKind(oop o);
@@ -115,6 +117,10 @@ struct Any{
 	void **data;
 };
 
+struct RETFLAG{
+	kind_t kind;
+};
+
 union Object{
 	kind_t kind;
 	struct Agent Agent;
@@ -129,6 +135,7 @@ union Object{
 	struct ArrVal ArrVal;
 	struct Instance Instance;
 	struct Any Any;
+	struct RETFLAG RETFLAG;
 };
 
 oop newIntVal(int value);
@@ -186,6 +193,8 @@ oop newInstance(int nFeilds);
 
 oop newAny(int markbit, int nData);
 #define getAnyData(T, obj, index) ((T)((obj)->Any.data[index]))
+
+oop newRETFLAG(void);
 
 extern oop *IrCodeList;
 extern int nIrCode; // index of getIrCode

@@ -385,6 +385,11 @@ oop newAny(int markbit, int nData)
 	return any;
 }
 
+oop newRETFLAG(void)
+{
+	return newEntity(RETFLAG);
+}
+
 
 
 struct EventTable *EventTable = NULL;
@@ -507,6 +512,10 @@ void printObj(oop obj, int indent)
 	}
 	case Any:{
 		printf("Any (not supported now)\n");
+		break;
+	}
+	case RETFLAG:{
+		printf("RETFLAG\n");
 		break;
 	}
 	}

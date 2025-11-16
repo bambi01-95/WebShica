@@ -147,6 +147,15 @@ enum {
 typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
 #define MAKE_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
 
+#if WEBSHICA
+oop retFlags[7];
+void buildRetFlags(){
+	for(int i=0;i<7;++i){
+		retFlags[i] = newRETFLAG();
+	}
+	return;
+}
+#else
 oop retFlags[7] = {
 	MAKE_FLAG(ERROR_F),
 	MAKE_FLAG(NONE_F),
@@ -156,6 +165,7 @@ oop retFlags[7] = {
 	MAKE_FLAG(CONTINUE_F),
 	MAKE_FLAG(TRANSITION_F),
 };
+#endif
 
 oop impleBody(oop code, oop eh, oop agent){
 	// printf("\t kind %d\n", code->kind);
@@ -517,6 +527,9 @@ oop execute(oop prog,oop entity, oop agent)
 						op = fetch();
 						break;
 					}
+					case iSETEVENT:
+						// do nothing, continue to the next step
+						break;
 					default:{
 						reportError(DEVELOPER, 0, "iSETSTATE: unknown opcode %d for event handler initialization", op);
 						return retFlags[ERROR_F]; // return ERROR_F to indicate error
@@ -2624,9 +2637,10 @@ int deleteWebCode(const int index)
 //WARNING: which ctx you use is important -> comctx
 int initWebAgents(int num)
 {
+	ctx = comctx; // use the context for the garbage collector
 	executor_event_init(); // initialize the event system for the executor
 	executor_func_init(); // initialize the standard functions for the executor
-	ctx = comctx; // use the context for the garbage collector
+	buildRetFlags(); // build the return flags for the executor
 	if(num <= 0){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
