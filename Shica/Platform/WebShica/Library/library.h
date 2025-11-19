@@ -26,12 +26,13 @@ extern int WEB_CLICK_STT[3]; // x, y, click status
 
 //AGENT DATA
 struct AgentData {
-	int x,y,vx,vy;
-	int isClick;
-	int distance;
-	int status;
-	char red, green, blue;
-	char isLEDOn;
+	int index; // offset 0
+	int x,y,vx,vy;// offset 4,8,12,16
+	int isClick; // offset 20
+	int distance; // offset 24
+	int status;	 // offset 28
+	char red, green, blue; // offset 32,33,34
+	char isLEDOn; // offset 35
 };
 typedef struct AgentData *AgentPtr;
 

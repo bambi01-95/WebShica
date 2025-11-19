@@ -56,18 +56,18 @@ struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ�
 
 // Initial agent data: FIXME: set all {0,i*50,0,0,0,0,0,0,0,0}
 struct AgentData allAgentData[12] = {
-	[0] = { 0,  0, 0,0,0,0,0,0,0,0},
-	[1] = { 50,  0, 0,0,0,0,0,0,0,0},
-	[2] = { 100,  0, 0,0,0,0,0,0,0,0},
-	[3] = { 150,  0, 0,0,0,0,0,0,0,0},
-	[4] = { 200,  0,0,0,0,0,0,0,0,0},
-	[5] = { 250,  0,0,0,0,0,0,0,0,0},
-	[6] = { 300,  0,0,0,0,0,0,0,0,0},
-	[7] = { 350,  0,0,0,0,0,0,0,0,0},
-	[8] = { 400,  0,0,0,0,0,0,0,0,0},
-	[9] = { 450,  0,1,-1,1,-1,'r','g','b',1},
-	[10] = { 0,500,-1,-1,'r','g','b',1},
-	[11] = { 0,550,-1,-1,'r','g','b',1}
+	[0] = { 0, 0,  0, 0,0,0,0,0,0,0,0},
+	[1] = { 1, 50,  0, 0,0,0,0,0,0,0,0},
+	[2] = { 2, 100,  0, 0,0,0,0,0,0,0,0},
+	[3] = { 3, 150,  0, 0,0,0,0,0,0,0,0},
+	[4] = { 4, 200,  0,0,0,0,0,0,0,0,0},
+	[5] = { 5, 250,  0,0,0,0,0,0,0,0,0},
+	[6] = { 6, 300,  0,0,0,0,0,0,0,0,0},
+	[7] = { 7, 350,  0,0,0,0,0,0,0,0,0},
+	[8] = { 8, 400,  0,0,0,0,0,0,0,0,0},
+	[9] = { 9, 450,  0,0,0,0,0,0,0,0,0},
+	[10] = { 10, 500,  0,0,0,0,0,0,0,0,0},
+	[11] = { 11, 550,  0,0,0,0,0,0,0,0,0}
 }; // Initialize the agent data array with 12 agents
 
 
@@ -133,7 +133,6 @@ int setActiveAgent(int index)
 	}
 	CurrentAgentIndex = index;
 	AN_AGENT_DATA = &allAgentData[index]; // Set the active agent data
-	printf("CAgent %d - x: %d y: %d vx: %d vy: %d\n", index, AN_AGENT_DATA->x, AN_AGENT_DATA->y, AN_AGENT_DATA->vx, AN_AGENT_DATA->vy);
 	return 0; // Success
 }
 
@@ -243,7 +242,7 @@ int self_state_handler(oop eh)
 
 int click_handler(oop eh)
 {
-
+		printf("\t agent %d is clicked [%d]\n", CurrentAgentIndex, WEB_CLICK_STT[2]);
 	if (WEB_CLICK_STT[2]==1) {
 		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x

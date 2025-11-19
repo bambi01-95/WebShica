@@ -2672,19 +2672,20 @@ int initWebAgents(int num)
 	gc_separateContext(num,0); // separate context for the garbage collector
 	assert(num == ctx->nroots); // check if the number of roots is equal to the number of web agents
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	printf("\x1b[34m[C] nRoots: %d\x1b[0m\n\n", ctx->nroots);
 	for(int i = 0; i<num; ++i)
 	{
 		ctx = ctxs[i];
+		ctx->nroots = 0; // reset the number of roots
 		#ifdef DEBUG
-		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
+		printf("\x1b[34m[C] Agent[%d]: Context size %ld: %p -> %p\n\x1b[0m", i, (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
 		#endif
-		GC_PUSH(oop,agent,newAgent(0,0)); // create a new agent
-		#ifdef DEBUG
-		printf("type of agent: %d\n", getKind(agent));
-		#endif
+		oop *slot = (oop *)gc_alloc(sizeof(oop)); // allocate memory for the agent
+		*slot = newAgent(0,0); // create a new agent
+		ctx->roots[ctx->nroots++] = (void *)slot; // add the agent to the roots
+		oop agent = (oop)*ctx->roots[0];
 		assert(getKind(agent) == Agent); // check if the agent is of type Agent
 		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
-		assert(getKind(((oop)*ctx->roots[0])) == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
@@ -2699,18 +2700,16 @@ int executeWebCodes(void)
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
+
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
 		if(agent==retFlags[ERROR_F])continue;
+		// Wen you want to ...
+		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
 			agent = execute(webCodes[i] ,agent , agent);
 		}else{
-			printf("nEvents: %d\n", getObj(agent, Agent, nEvents));
-			if(getObj(agent, Agent, nEvents) == 0){
-				printAgent(agent); // print the agent if it has no events
-				continue; // skip to the next agent
-			}
 			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
