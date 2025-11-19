@@ -9,9 +9,9 @@
 
 #define TAGBITS 2
 #define TAGMASK ((1 << TAGBITS) - 1)
-#define TAG_INT_ENT 0x1
-#define TAG_FLT_ENT 0x2
-
+#define TAG_NON_ENT 0b00
+#define TAG_INT_ENT 0b01
+#define TAG_FLT_ENT 0b10
 
 static oop _newEntity(size_t size, kind_t kind)
 {
@@ -26,9 +26,17 @@ static oop _newEntity(size_t size, kind_t kind)
 
 kind_t getKind(oop o)
 {
-    if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT) return IntVal;
+#if WEBSHICA
+	return o->kind;
+#else
+    if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT){
+		//print mask bit value
+		printf("Masked value: %ld\n", (((intptr_t)o) & TAGMASK));
+		return IntVal;
+	}
     if ((((intptr_t)o) & TAGMASK) == TAG_FLT_ENT) return FloVal;
     return o->kind;
+#endif
 }
 
 #define newEntity(TYPE) _newEntity(sizeof(struct TYPE), TYPE)
@@ -44,25 +52,45 @@ oop _checkObject(oop obj, kind_t kind, char *file, int line){
 
 oop newIntVal(int value)
 {
+#if WEBSHICA
+	oop obj = newEntity(IntVal);
+	obj->IntVal.value = value;
+	return obj;
+#else
     return (oop)(((intptr_t)value << TAGBITS) | TAG_INT_ENT);
+#endif
 }
 
 int IntVal_value(oop obj)
 {
 	assert(getKind(obj) == IntVal);
+#if WEBSHICA
+	return obj->IntVal.value;
+#else
     return (intptr_t)obj >> TAGBITS;
+#endif
 }
 
 oop newFloVal(double value)
 {
+#if WEBSHICA
+	oop obj = newEntity(FloVal);
+	obj->FloVal.value = value;
+	return obj;
+#else
     return (oop)(((intptr_t)value << TAGBITS) | TAG_FLT_ENT);
+#endif
 }
 
 double FloVal_value(oop obj)
 {
 	assert(getKind(obj) == FloVal);
+#if WEBSHICA
+    return obj->FloVal.value;
+#else
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
     return u.d;
+#endif
 }
 
 oop newStrVal(const char *value)
@@ -184,6 +212,7 @@ int intArray_pop(oop a)
 	if (getObj(a, IntArray, size) == 0) fatal("pop: stack is empty");
 	return getObj(a, IntArray, elements)[--getObj(a, IntArray, size)];
 }
+
 int intArray_last(oop a)
 {
 	if (getObj(a, IntArray, size) == 0) fatal("last: stack is empty");
@@ -300,6 +329,8 @@ oop getIrCode(int index){
 oop newAgent(int id, int nEvents)
 {
 	oop agent = newEntity(Agent);
+	printf("object type of newAgent: %d, getKind: %d\n", agent->kind, getKind(agent));
+	assert(getKind(agent) == Agent);
 	agent->Agent.id = id;
 	agent->Agent.isActive = 0; // active by default
 	agent->Agent.nEvents = nEvents;
@@ -343,6 +374,11 @@ oop newAny(int markbit, int nData)
 	}
 	GC_POP(any);
 	return any;
+}
+
+oop newRETFLAG(void)
+{
+	return newEntity(RETFLAG);
 }
 
 
@@ -467,6 +503,10 @@ void printObj(oop obj, int indent)
 	}
 	case Any:{
 		printf("Any (not supported now)\n");
+		break;
+	}
+	case RETFLAG:{
+		printf("RETFLAG\n");
 		break;
 	}
 	}

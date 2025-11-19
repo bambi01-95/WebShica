@@ -27,6 +27,7 @@ const hexToRgb = (hex: string) => {
 };
 
 interface agentObject {
+  index: number;
   x: number;
   y: number;
   vx: number;
@@ -40,17 +41,18 @@ interface agentObject {
   isLEDOn: number;
 }
 const agentObjectOffset = {
-  x: 0,
-  y: 4,
-  vx: 8,
-  vy: 12,
-  isClick: 16,
-  distance: 20,
-  status: 24,
-  red: 28,
-  green: 29,
-  blue: 30,
-  isLEDOn: 31,
+  index: 0,
+  x: 4,
+  y: 8,
+  vx: 12,
+  vy: 16,
+  isClick: 20,
+  distance: 24,
+  status: 28,
+  red: 32,
+  green: 33,
+  blue: 34,
+  isLEDOn: 35,
 };
 
 export interface Robot {
@@ -145,10 +147,10 @@ const ShicaPage = () => {
     const numRobots = robotsRef.current.length;
     const newRobot: Robot = {
       x: 50 * numRobots,
-      y: 50,
-      r: 100,
-      g: 100,
-      b: 100,
+      y: 0,
+      r: 0,
+      g: 0,
+      b: 0,
     };
     robotsRef.current = [...robotsRef.current, newRobot];
     setForceUpdate((prev) => prev + 1); // 強制再レンダリング
@@ -264,24 +266,29 @@ const ShicaPage = () => {
       [0]
     );
     // TEST
+//REVIEW
     for (let i = 0; i < 12; i++) {
+      const index = Module.getValue(
+        agentDataPtr + i * 36 + agentObjectOffset.index,
+        "i32"
+      );
       const x = Module.getValue(
-        agentDataPtr + i * 32 + agentObjectOffset.x,
+        agentDataPtr + i * 36 + agentObjectOffset.x,
         "i32"
       );
       const y = Module.getValue(
-        agentDataPtr + i * 32 + agentObjectOffset.y,
+        agentDataPtr + i * 36 + agentObjectOffset.y,
         "i32"
       );
       const vx = Module.getValue(
-        agentDataPtr + i * 32 + agentObjectOffset.vx,
+        agentDataPtr + i * 36 + agentObjectOffset.vx,
         "i32"
       );
       const vy = Module.getValue(
-        agentDataPtr + i * 32 + agentObjectOffset.vy,
+        agentDataPtr + i * 36 + agentObjectOffset.vy,
         "i32"
       );
-      console.log(`Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
+      console.log(`Agent[${index}] = x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
     }
     // END TEST
 
@@ -380,7 +387,7 @@ const ShicaPage = () => {
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
         Module.setValue(Module.timerPtr, time, "i32");
-
+        console.log("\x1b[31m%s\x1b[0m", "Running web codes...");
         const res = Module.ccall("executeWebCodes", "number", [], []);
         if (res !== 0) {
           addLog(LogLevel.ERROR, "run failed - error in web codes");
@@ -393,9 +400,15 @@ const ShicaPage = () => {
           ["number"],
           [0]
         );
+//REVIEW
         for (let i = 0; i < codes.length; i++) {
           const robot = robotsRef.current[i];
-          const offset = i * 32; // 4 bytes each for x, y, vx, vy
+          const offset = i * 36; // 4 bytes each for x, y, vx, vy
+          const index = Module.getValue(
+            agentptr + offset + agentObjectOffset.index,
+            "i32"
+          );
+          console.log("\x1b[32m%s\x1b[0m", `Agent[${index}] is updating...`);
           const x = Module.getValue(
             agentptr + offset + agentObjectOffset.x,
             "i32"

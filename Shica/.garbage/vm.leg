@@ -718,7 +718,7 @@ ent getIrCode(int index){
 
 ent newAgent(int id, int nEvents)
 {
-	ent agent = newEntity(Agent);
+	GC_PUSH(ent, agent, newEntity(Agent));
 	agent->Agent.id = id;
 	agent->Agent.isActive = 1; // active by default
 	agent->Agent.nEvents = nEvents;
@@ -734,6 +734,7 @@ ent newAgent(int id, int nEvents)
 			agent->Agent.eventHandlers[i] = NULL;
 		}
 	}
+	GC_POP(agent);
 	return agent;
 }
 

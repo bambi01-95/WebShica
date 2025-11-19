@@ -147,6 +147,15 @@ enum {
 typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
 #define MAKE_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
 
+#if WEBSHICA
+oop retFlags[7];
+void buildRetFlags(){
+	for(int i=0;i<7;++i){
+		retFlags[i] = newRETFLAG();
+	}
+	return;
+}
+#else
 oop retFlags[7] = {
 	MAKE_FLAG(ERROR_F),
 	MAKE_FLAG(NONE_F),
@@ -156,6 +165,7 @@ oop retFlags[7] = {
 	MAKE_FLAG(CONTINUE_F),
 	MAKE_FLAG(TRANSITION_F),
 };
+#endif
 
 oop impleBody(oop code, oop eh, oop agent){
 	// printf("\t kind %d\n", code->kind);
@@ -208,6 +218,8 @@ int runNative(oop code){
 				oop ret = impleBody(code, eh, agent);
 				if(ret == retFlags[TRANSITION_F]){
 					getObj(agent,Agent,isActive) = 0;
+					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
+					getObj(agent, Agent, eventHandlers) = NULL;
 					break;
 				}
 				if(ret == retFlags[ERROR_F]){
@@ -273,6 +285,19 @@ oop execute(oop prog,oop entity, oop agent)
 			}
 			continue;
 		}
+#if WEBSHICA
+	    case iGT:printOP(iGT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l > r));  continue;
+		case iGE:printOP(iGE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l >= r)); continue;
+		case iEQ:printOP(iEQ);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l == r)); continue;
+		case iNE:printOP(iNE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l != r)); continue;
+		case iLE:printOP(iLE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l <= r)); continue;
+		case iLT:printOP(iLT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l < r));  continue;
+	    case iADD:printOP(iADD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l + r));  continue;
+	    case iSUB:printOP(iSUB);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l - r));  continue;
+	    case iMUL:printOP(iMUL);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l * r));  continue;
+	    case iDIV:printOP(iDIV);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l / r));  continue;
+	    case iMOD:printOP(iMOD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l % r));  continue;
+#else
 	    case iGT:printOP(iGT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l > r));  continue;
 		case iGE:printOP(iGE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l >= r)); continue;
 		case iEQ:printOP(iEQ);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l == r)); continue;
@@ -284,6 +309,7 @@ oop execute(oop prog,oop entity, oop agent)
 	    case iMUL:printOP(iMUL);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l * r));  continue;
 	    case iDIV:printOP(iDIV);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
+#endif
 		case iARRAY:{
 			int n = fetch();
 			oop arr = newArrVal(n);
@@ -491,7 +517,7 @@ oop execute(oop prog,oop entity, oop agent)
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			pushStack(agent->Agent.stack,  newIntVal(nextStatePos+(*pc)));//relative position:
+			pushStack(getObj(agent, Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position:
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
@@ -517,6 +543,9 @@ oop execute(oop prog,oop entity, oop agent)
 						op = fetch();
 						break;
 					}
+					case iSETEVENT:
+						// do nothing, continue to the next step
+						break;
 					default:{
 						reportError(DEVELOPER, 0, "iSETSTATE: unknown opcode %d for event handler initialization", op);
 						return retFlags[ERROR_F]; // return ERROR_F to indicate error
@@ -2624,9 +2653,10 @@ int deleteWebCode(const int index)
 //WARNING: which ctx you use is important -> comctx
 int initWebAgents(int num)
 {
+	ctx = comctx; // use the context for the garbage collector
 	executor_event_init(); // initialize the event system for the executor
 	executor_func_init(); // initialize the standard functions for the executor
-	ctx = comctx; // use the context for the garbage collector
+	buildRetFlags(); // build the return flags for the executor
 	if(num <= 0){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -2642,16 +2672,20 @@ int initWebAgents(int num)
 	gc_separateContext(num,0); // separate context for the garbage collector
 	assert(num == ctx->nroots); // check if the number of roots is equal to the number of web agents
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	printf("\x1b[34m[C] nRoots: %d\x1b[0m\n\n", ctx->nroots);
 	for(int i = 0; i<num; ++i)
 	{
 		ctx = ctxs[i];
+		ctx->nroots = 0; // reset the number of roots
 		#ifdef DEBUG
-		printf("context size %ld: %p -> %p\n", (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
+		printf("\x1b[34m[C] Agent[%d]: Context size %ld: %p -> %p\n\x1b[0m", i, (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
 		#endif
-		GC_PUSH(oop,agent,newAgent(0,0)); // create a new agent
+		oop *slot = (oop *)gc_alloc(sizeof(oop)); // allocate memory for the agent
+		*slot = newAgent(0,0); // create a new agent
+		ctx->roots[ctx->nroots++] = (void *)slot; // add the agent to the roots
+		oop agent = (oop)*ctx->roots[0];
 		assert(getKind(agent) == Agent); // check if the agent is of type Agent
 		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
-		assert(getKind(((oop)*ctx->roots[0])) == Agent); // check if the root is of type Agent
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
@@ -2666,25 +2700,23 @@ int executeWebCodes(void)
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
+
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
 		if(agent==retFlags[ERROR_F])continue;
+		// Wen you want to ...
+		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
 			agent = execute(webCodes[i] ,agent , agent);
 		}else{
-			printf("nEvents: %d\n", getObj(agent, Agent, nEvents));
-			if(getObj(agent, Agent, nEvents) == 0){
-				printAgent(agent); // print the agent if it has no events
-				continue; // skip to the next agent
-			}
 			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
 					getObj(agent, Agent, isActive) = 0;
-					getObj(agent, Agent, pc) = intArray_pop(getObj(agent, Agent, stack));
+					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
 					getObj(agent, Agent, eventHandlers) = NULL;
 					break;
 				}
