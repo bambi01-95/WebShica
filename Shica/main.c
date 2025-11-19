@@ -1373,11 +1373,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 					int funcIndex = getNode(func, StdFunc, index); // get the index of the standard function
 					int argsCount = 0;
 					struct StdFuncTable func = StdFuncTable[funcIndex];
-					printf("[C] compiling call to standard function %s (index %d)\n", getNode(id, Symbol,name), funcIndex);
 					while(args != nil){
 						node arg = getNode(args, Args, value);
 						printf("[C] argument type expected: %d\n", func.argTypes[argsCount]);
-						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
+						// if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
 						args = getNode(args, Args, next);
 						argsCount++;
 					}

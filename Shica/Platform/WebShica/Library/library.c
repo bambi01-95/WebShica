@@ -410,21 +410,22 @@ int lib_web_rtc_broadcast_send(oop stack)
 	SETVX_FUNC, // setVX function
 	SETVY_FUNC, // setVY function
 	SETCOLOR_FUNC, // setColor function
-	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 	WEB_RTC_BROADCAST_SEND_FUNC,
+
+	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 };
 
 struct StdFuncTable __StdFuncTable__[] =
 {
-	{lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
-	{lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
-	{lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
-	{lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
-	{lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
-	{lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
-	{lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
-	{lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
-	{lib_web_rtc_broadcast_send, 2, (int[]){String, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[LOG_FUNC] = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
+	[SETXY_FUNC] = {lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
+	[SETX_FUNC] = {lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
+	[SETY_FUNC] = {lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
+	[SETVXY_FUNC] = {lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
+	[SETVX_FUNC] = {lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
+	[SETVY_FUNC] = {lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
+	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
+	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, Integer}, Undefined}, // WebRTC broadcast send function takes 2 arguments
 };
 
 int compile_func_init()

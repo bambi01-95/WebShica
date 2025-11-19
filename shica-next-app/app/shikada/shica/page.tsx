@@ -774,6 +774,11 @@ const ShicaPage = () => {
                 <option value={50}>50</option>
                 <option value={25}>25</option>
               </select>
+              <select>
+                <option value="stt">State</option>
+                <option value="send">Send</option>
+                <option value="receive">Receive</option>
+              </select>
             </div>
             {/* BOTTOM */}
             <div className="h-full overflow-hidden">
