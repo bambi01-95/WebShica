@@ -24,28 +24,28 @@ var chat = broadcast("shica","pwd");
 
 const stateChangeSample: string = `// State Change Sample
 stt state1(){
-  clickEH(int x,int y){
-    print("clicked at ", x, ":", y);
-    setVX(-5);
+  entryEH(){
+    setVX(5);
     setColor(225, 255, 255);
-    stt state2;
   }
+  clickEH(int x,int y){stt state2;}
 }
 
 stt state2(){
-  clickEH(int x,int y){
-    print("clicked at ", x, ":", y);
-    setVX(5);
-    setColor(0, 0, 0);
-    stt state1;
+  entryEH(){
+    setVX(-5);
+    setColor(255, 0, 0);
   }
+  clickEH(int x,int y){stt state1;}
 }`; 
 
 
 const sampleCodes: string[] = [
-    webRtcSenderSample,
       webRtcReceiverSample,
     stateChangeSample,
+    webRtcSenderSample,
+
+
     clickSample,
 ];
 

@@ -44,6 +44,22 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       { urls: 'stun:stun1.l.google.com:19302' },
     ],
   };
+  useEffect(() => {
+    userSessions.forEach((agent, uid) => {
+      if (agent.isConnected && agent.currentTopic) {
+        // ユーザーが接続されていて、現在のトピックがある場合
+        const topicName = agent.currentTopic;
+        const topicHost = topicHosts.get(topicName);
+        if (topicHost && topicHost.isActive) {
+          // トピックホストが存在し、アクティブな場合
+          console.log(`🔄 Re-establishing connection for user ${uid} to topic "${topicName}"`);
+          createTopicHostToUserConnection(topicName, uid);
+        }
+      }else{
+        console.log(`ℹ️ User ${uid} is not connected or has no current topic`);
+      }
+    });
+  }, [userSessions.size]);
 
   // クリーンアップ関数
   const cleanup = () => {
@@ -64,10 +80,13 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // 特定のトピック用ホストを初期化
   const initializeTopicHost = async (topicName: string) => {
-    if (topicHosts.has(topicName)) {
-      console.log(`🏢 Topic host for "${topicName}" already exists`);
-      return;
+    // ✅ 既存ホストがあっても最新の状態を確認
+    const existingHost = topicHosts.get(topicName);
+    if (existingHost?.isActive) {
+      console.log(`🏢 Topic host for "${topicName}" is already active`);
+      return; // アクティブな場合のみreturn
     }
+
     console.log(`🏢 Initializing Topic Host for "${topicName}"...`);
 
     const newHost: TopicHost = {
@@ -79,10 +98,11 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
     };
 
     setTopicHosts((prev) => {
-      const newMap = new Map(prev);        // コピーを作る
-      newMap.set(topicName, newHost);      // コピーに追加
-      return newMap;                       // 新しい Map を返す
+      const newMap = new Map(prev);
+      newMap.set(topicName, newHost);
+      return newMap;
     });
+
     // トピック専用の接続マップを初期化
     if (!topicHostConnectionsRef.current.has(topicName)) {
       topicHostConnectionsRef.current.set(topicName, new Map());
@@ -94,11 +114,16 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // 特定のトピックホストにユーザー接続を作成
   const createTopicHostToUserConnection = async (topicName: string, uid: number): Promise<boolean> => {
+    // topicHosts (state) は非同期更新なので、ref を使って即座にチェック
+    const topicHostExists = topicHostConnectionsRef.current.has(topicName);
+    if (!topicHostExists) {
+      console.error(`❌ Topic host for "${topicName}" is not initialized (ref check)`);
+      return false;
+    }
+    
+    // state のチェックは参考情報として残す（後で利用可能）
     const topicHost = topicHosts.get(topicName);
-    if (!topicHost || !topicHost.isActive) {
-      topicHosts.forEach((host, name) => {
-        console.log(`ℹ️ Topic Host "${name}": isActive=${host.isActive}, connectedUsers=${Array.from(host.connectedUsers).join(',')}`);
-      });
+    if (topicHost && !topicHost.isActive) {
       console.error(`❌ Topic host for "${topicName}" is not active`);
       return false;
     }
@@ -220,6 +245,18 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
         dataChannel.onopen = () => {
           console.log(`✅ ${uid} connected to topic "${topicName}" host`);
+          setUserSessions(prev => {
+            const newSessions = new Map(prev);
+            const session = newSessions.get(uid);
+            if (session) {
+              newSessions.set(uid, {
+                ...session,
+                isConnected: true,
+                currentTopic: topicName,
+              });
+            }
+            return newSessions;
+          });
         };
 
         dataChannel.onmessage = (event) => {
@@ -333,6 +370,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // ユーザーがトピックホストからメッセージを受信
   const handleMessageFromTopicHost = (messageData: { message: Message }, uid: number, topicName: string) => {
+    console.log('\t\t get data');
     const { message } = messageData;
 
     setUserSessions((prev) => {
@@ -341,17 +379,36 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       if (!userSession) return prev;
       if (userSession.currentTopic !== topicName) return prev; // 現在のトピックと異なる場合は無視
 
+      // 重複チェック：同じIDのメッセージが既に存在する場合はスキップ
+      const isDuplicate = userSession.messages.some(msg => msg.id === message.id);
+      if (isDuplicate) {
+        console.log(`⚠️ Duplicate message detected for ${uid}, skipping: ${message.id}`);
+        return prev;
+      }
+
       console.log(`👤 ${uid} processing message from topic "${topicName}" host`);
-      Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [uid, JSON.stringify(message)]);//CCALL
-      userSession.messages.push(message);
-      newSessions.set(uid, { ...userSession });
+      // Module.ccall は Shica WASM がロード済みの場合のみ実行
+      if (Module && typeof Module.ccall === 'function') {
+        
+        Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [uid, JSON.stringify(message)]);//CCALL
+      }
+      
+      // イミュータブルな配列更新（スプレッド演算子で新しい配列を作成）
+      newSessions.set(uid, {
+        ...userSession,
+        messages: [...userSession.messages, message],
+      });
       return newSessions;
     });
   };
 
+  // メッセージIDカウンター（重複防止）
+  const messageCounterRef = useRef(0);
+  
   const createMessage = (sender: number, content: string, topicName: string): Message => {
+    messageCounterRef.current += 1;
     return {
-      id: `${sender}-${Date.now()}-${Math.random()}`,
+      id: `${sender}-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substr(2, 9)}`,
       sender,
       content,
     };
@@ -360,8 +417,23 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
   // メッセージ送信
   // Shica: `_sendWebRtcBroadcast(index, channel, msg)`;// JSCALL
   const sendMessage = (uid: number, content: string) => {
+    console.log(`🦌 sendMessage() ${content}--${uid}`);
     const session = userSessions.get(uid);
-    if (!session || !content.trim() || !session.isConnected) return;
+    
+    // 詳細デバッグログ
+    console.log(`🔍 Debug: session exists=${!!session}, content="${content}", contentLength=${content.length}`);
+    if (session) {
+      console.log(`🔍 Debug: isConnected=${session.isConnected}, currentTopic="${session.currentTopic}"`);
+      const userChannels = userToTopicHostDataChannelRef.current.get(uid);
+      const userChannel = userChannels?.get(session.currentTopic);
+      console.log(`🔍 Debug: userChannel exists=${!!userChannel}, readyState=${userChannel?.readyState}`);
+    }
+    
+    if (!session || !content.trim() || !session.isConnected) {
+      console.log('❌session error: missing session, empty content, or not connected');
+      return;
+    }
+    console.log(`🦌 Sending message from user ${uid} in topic "${session.currentTopic}": ${content}`);
 
     const message = createMessage(uid, content, session.currentTopic);
     const messageData = { message };
@@ -375,13 +447,19 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
         userChannel.send(JSON.stringify(messageData));
 
         console.log(`📤 ${uid} sent message to topic "${session.currentTopic}" host`);
-        // 送信者のローカル状態に即座に追加
+        // 送信者のローカル状態に即座に追加（イミュータブル更新）
         setUserSessions((prev) => {
           const newSessions = new Map(prev);
           const updatedSession = newSessions.get(uid);
           if (updatedSession) {
-            updatedSession.messages.push(message);
-            newSessions.set(uid, { ...updatedSession });
+            // 重複チェック
+            const isDuplicate = updatedSession.messages.some(msg => msg.id === message.id);
+            if (!isDuplicate) {
+              newSessions.set(uid, {
+                ...updatedSession,
+                messages: [...updatedSession.messages, message],
+              });
+            }
           }
           return newSessions;
         });
@@ -395,29 +473,55 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // Shica: var chat = broadcast(topic);
   // `_addWebRtcBroadcast(index, channel, password, ptr)`
-  const connectUserToTopic = async (uid: number, topicName: string) => {
-    // トピック名を設定
-    setUserSessions((prev) => {
-      const newSessions = new Map(prev);
-      const session = newSessions.get(uid);
-      if (session) {
-        newSessions.set(uid, {
-          ...session,
-          currentTopic: topicName,
-        });
-      }
-      return newSessions;
-    });
+  const connectUserToTopic = async (uid: number, topicName: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      // トピック名を設定
+      setUserSessions((prev) => {
+        const newSessions = new Map(prev);
+        const session = newSessions.get(uid);
+        if (session) {
+          newSessions.set(uid, {
+            ...session,
+            currentTopic: topicName,
+          });
+        }
+        return newSessions;
+      });
 
-    // トピックホストを初期化（存在しない場合）
-    console.log("🦌 1");
-    await initializeTopicHost(topicName);
-    console.log("🦌 2");
-    const success = await createTopicHostToUserConnection(topicName, uid);
-    console.log("🦌 3");
-    if (success) {
-      console.log(`✅ ${uid} connection process initiated for topic "${topicName}"`);
-    }
+      // トピックホストを初期化（存在しない場合）
+      console.log("🦌 1");
+      await initializeTopicHost(topicName);
+      console.log("🦌 2");
+      
+      // 接続確立を開始
+      const success = await createTopicHostToUserConnection(topicName, uid);
+      console.log("🦌 3");
+      
+      if (!success) {
+        reject(new Error(`Failed to create connection for user ${uid} to topic ${topicName}`));
+        return;
+      }
+      
+      console.log(`🔄 ${uid} connection process initiated for topic "${topicName}"`);
+      
+      // データチャネルが open になるまで待つ
+      const checkInterval = setInterval(() => {
+        const userChannels = userToTopicHostDataChannelRef.current.get(uid);
+        const dataChannel = userChannels?.get(topicName);
+        
+        if (dataChannel && dataChannel.readyState === 'open') {
+          clearInterval(checkInterval);
+          console.log(`✅ ${uid} data channel fully open for topic "${topicName}"`);
+          resolve();
+        }
+      }, 50);
+      
+      // タイムアウト（5秒）
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error(`Timeout waiting for data channel to open for user ${uid}`));
+      }, 5000);
+    });
   };
 
   // Shica: chat.close()相当
@@ -479,20 +583,31 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
     console.log(`🔴 ${uid} disconnected from topic "${topicName}"`);
   };
 
-  // ユーザーの追加: コードエディタとセッションを初期化
+    // ユーザーの追加: コードエディタとセッションを初期化
   const addUser = (id: number) => {
-    if (userSessions.size >= 12) return;
-    const userSession = userSessions.get(id);
-    if (userSession) return;
-    const newUserId = id;
+    if (userSessions.size >= 12 && !userSessions.has(id)) {
+      console.warn(`⚠️ Maximum user limit (12) reached, cannot add user ${id}`);
+      return;
+    }
+    
     setUserSessions((prev) => {
       const newUserSessions = new Map(prev);
-      newUserSessions.set(newUserId, {
-        uid: newUserId,
+      
+      // 既存ユーザーの場合はスキップ（既存の状態を保持）
+      if (newUserSessions.has(id)) {
+        console.log(`ℹ️ User ${id} already exists, keeping current state`);
+        return prev;
+      }
+      
+      // 新規ユーザーを追加
+      newUserSessions.set(id, {
+        uid: id,
         currentTopic: '',
         isConnected: false,
         messages: [],
       });
+      
+      console.log(`✅ User ${id} added to sessions`);
       return newUserSessions;
     });
   };

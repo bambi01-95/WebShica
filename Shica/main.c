@@ -1376,7 +1376,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					while(args != nil){
 						node arg = getNode(args, Args, value);
 						printf("[C] argument type expected: %d\n", func.argTypes[argsCount]);
-						// if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
+						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
 						args = getNode(args, Args, next);
 						argsCount++;
 					}
@@ -1384,7 +1384,6 @@ int emitOn(oop prog,node vars, node ast, node type)
 						reportError(ERROR, getNode(ast,Call,line), "standard function %s expects %d arguments, but got %d", getNode(id, Symbol,name), func.nArgs, argsCount);
 						return 1;
 					}
-
 					emitII(prog, iSCALL, funcIndex); // call the standard function
 					//NOTE: we don't need to clean the stack after the call, because the standard function will do it
 					//      BUT we need to check the return value (not implemented yet)
@@ -2731,7 +2730,6 @@ int executeWebCodes(void)
 }
 int stopWebCodes(void)
 {
-	ctx = comctx; // use the context for the garbage collector
 	return 0; 
 }
 

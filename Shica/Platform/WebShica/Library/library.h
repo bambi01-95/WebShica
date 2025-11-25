@@ -68,7 +68,7 @@ int setActiveAgent(int index); // Set the active agent data by index
 #define WEB_RTC_BROADCAST_RECEIVED_EH 0x06
 
 extern int _web_rtc_broadcast_receive_(void *ptr, char* message);//CCCALL
-extern int _lib_web_rtc_broadcast_send_(int index, char* channel, char* msg);// JSCALL
+extern int _lib_web_rtc_broadcast_send_(int index, char* msg, int num);// JSCALL
 extern int _web_rtc_broadcast_eo_(int index, char* channel, char* password, void* ptr);// JSCALL
 
 int event_handler_init(oop eh);

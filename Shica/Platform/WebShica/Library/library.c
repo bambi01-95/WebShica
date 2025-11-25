@@ -255,6 +255,7 @@ int click_handler(oop eh)
 
 int _web_rtc_broadcast_receive_(void *ptr, char* message)//CCCALL
 {
+	printf("\x1b[31m[C] get data\x1b[0m\n");
 	oop eh = (oop)ptr;
 	oop stack = newStack(0);
 	pushStack(stack, newStrVal(message)); // message
@@ -385,18 +386,19 @@ int lib_setcolor(oop stack)
 	return 0; // return 0 to indicate success
 }
 
-// extern int __lib_web_rtc_broadcast_send__(int index, char* channel, char* msg);// JSCALL
+// extern int __lib_web_rtc_broadcast_send__(int index, char* msg, int num);// JSCALL
 int lib_web_rtc_broadcast_send(oop stack)
 {
 	char* msg = getObj(popStack(stack), StrVal, value); // get message from stack
-	char* channel = getObj(popStack(stack), StrVal, value); // get channel from stack
+	int num = IntVal_value(popStack(stack)); // get channel from stack
+	oop instance = popStack(stack); // get instance from stack
+	assert(getKind(instance) == Instance);
 	int index = CurrentAgentIndex;
-	_lib_web_rtc_broadcast_send_(index, channel, msg); // call the WebRTC broadcast send function
+	_lib_web_rtc_broadcast_send_(index, msg, num); // call the WebRTC broadcast send function
 	if(index < 0){
 		reportError(DEVELOPER, 0, "lib_web_rtc_broadcast_send: Invalid agent index %d\n", index);
 		return -1; // return -1 to indicate error
 	}
-	printf("WebRTC Broadcast Send: channel = %s, msg = %s\n", channel, msg); // print message to console
 	return 0; // return 0 to indicate success
 }
 
@@ -414,7 +416,7 @@ int lib_web_rtc_broadcast_send(oop stack)
 
 	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 };
-
+//<-- argTypes
 struct StdFuncTable __StdFuncTable__[] =
 {
 	[LOG_FUNC] = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
@@ -425,7 +427,7 @@ struct StdFuncTable __StdFuncTable__[] =
 	[SETVX_FUNC] = {lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
 	[SETVY_FUNC] = {lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
 	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
-	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, Integer}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
 };
 
 int compile_func_init()
