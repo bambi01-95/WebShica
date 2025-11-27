@@ -3,7 +3,12 @@
 
 ## MEMO
 
-Hello world
+ISSUEを作成してください。
+次にやる予定の内容
+
+- modyfyt print function
+- Add event Condtion
+- Add web event handler
 
 
 ### CURRENT TASK
