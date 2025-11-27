@@ -268,3 +268,13 @@ User B, C, D... (handleMessageFromTopicHost)
 ## 🤝 コントリビューション
 
 改善提案やバグ報告は歓迎します！
+
+
+## ❗️既知の問題と対処策
+
+### グローバルブリッジ経由で `session error` が発生する
+**原因**  
+`globalThis` に登録した `_sendWebRtcBroadcast` などのブリッジ関数が初期レンダー時の `sendMessage` クロージャを保持し続け、後続の `userSessions` 更新を参照できなくなる。
+
+**解決策**  
+`useCallback` で `_addWebRtcBroadcast` / `_sendWebRtcBroadcast` / `_removeWebRtcBroadcast` を最新ステートに追従させ、`useEffect` の依存配列にそれらを含めて毎回 `globalThis` へ再登録・クリーンアップする。これにより常に最新の `userSessions` を参照でき、`session error` が解消される。

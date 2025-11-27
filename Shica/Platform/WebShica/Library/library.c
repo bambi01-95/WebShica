@@ -252,13 +252,21 @@ int click_handler(oop eh)
 	}
 	return 0; // return 0 to indicate no event
 }
-
-int _web_rtc_broadcast_receive_(void *ptr, char* message)//CCCALL
+//CCALL id: agnet index, ptr: event handler pointer, message: received message
+int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//CCCALL
 {
-	oop eh = (oop)ptr;
+	gc_context *ctx_copy = ctx;
+	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	ctx = ctxs[id]; // use the first web agent context
+	oop *ehp = (oop *)ptr;
+	oop eh = *ehp;
 	oop stack = newStack(0);
+	char buf[3];
+	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
 	pushStack(stack, newStrVal(message)); // message
+	pushStack(stack, newStrVal(buf)); // sender
 	enqueue3(eh, stack); // enqueue the stack
+	ctx = ctx_copy; // restore context
 	return 1;
 }
 
@@ -269,7 +277,10 @@ int web_rtc_broadcast_receive_handler(oop eh)
 }
 
 int web_rtc_broadcast_receive_handler_init(oop eh){
-	eh->EventHandler.data[2] = eh;
+	printf("\x1b[31m[C] web_rtc_broadcast_receive_handler_init called\x1b[0m\n");
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	instance->Instance.fields[2]= eh; // hold event handler pointer
 	return 1;
 }
 
@@ -306,7 +317,7 @@ int compile_eh_init(){
 	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
-	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, event_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
+	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
 };
 
 
@@ -385,18 +396,19 @@ int lib_setcolor(oop stack)
 	return 0; // return 0 to indicate success
 }
 
-// extern int __lib_web_rtc_broadcast_send__(int index, char* channel, char* msg);// JSCALL
+// extern int __lib_web_rtc_broadcast_send__(int index, char* msg, int num);// JSCALL
 int lib_web_rtc_broadcast_send(oop stack)
 {
 	char* msg = getObj(popStack(stack), StrVal, value); // get message from stack
-	char* channel = getObj(popStack(stack), StrVal, value); // get channel from stack
+	int num = IntVal_value(popStack(stack)); // get channel from stack
+	oop instance = popStack(stack); // get instance from stack
+	assert(getKind(instance) == Instance);
 	int index = CurrentAgentIndex;
-	_lib_web_rtc_broadcast_send_(index, channel, msg); // call the WebRTC broadcast send function
+	_lib_web_rtc_broadcast_send_(index, msg, num); // call the WebRTC broadcast send function
 	if(index < 0){
 		reportError(DEVELOPER, 0, "lib_web_rtc_broadcast_send: Invalid agent index %d\n", index);
 		return -1; // return -1 to indicate error
 	}
-	printf("WebRTC Broadcast Send: channel = %s, msg = %s\n", channel, msg); // print message to console
 	return 0; // return 0 to indicate success
 }
 
@@ -410,21 +422,22 @@ int lib_web_rtc_broadcast_send(oop stack)
 	SETVX_FUNC, // setVX function
 	SETVY_FUNC, // setVY function
 	SETCOLOR_FUNC, // setColor function
-	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 	WEB_RTC_BROADCAST_SEND_FUNC,
-};
 
+	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
+};
+//<-- argTypes
 struct StdFuncTable __StdFuncTable__[] =
 {
-	{lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
-	{lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
-	{lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
-	{lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
-	{lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
-	{lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
-	{lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
-	{lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
-	{lib_web_rtc_broadcast_send, 2, (int[]){String, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[LOG_FUNC] = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
+	[SETXY_FUNC] = {lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
+	[SETX_FUNC] = {lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
+	[SETY_FUNC] = {lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
+	[SETVXY_FUNC] = {lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
+	[SETVX_FUNC] = {lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
+	[SETVY_FUNC] = {lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
+	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
+	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
 };
 
 int compile_func_init()
@@ -474,11 +487,11 @@ oop web_rtc_broadcast_eo(oop stack)
 	GC_PUSH(oop,instance,newInstance(3));
 	getInstanceField(instance, 0) = popStack(stack); // channel
 	getInstanceField(instance, 1) = popStack(stack); // password
-	getInstanceField(instance, 2) = NULL; // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
+	getInstanceField(instance, 2) = newIntVal(12); // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
 	_web_rtc_broadcast_eo_(CurrentAgentIndex,
 							   getObj(getInstanceField(instance,0), StrVal, value),
 	                           getObj(getInstanceField(instance,1), StrVal, value),
-	                           (void*)instance->Instance.fields[2]);// set internal pointer
+	                           (void*)&instance->Instance.fields[2]);// set internal pointer
 	GC_POP(instance);
 	return instance;
 }

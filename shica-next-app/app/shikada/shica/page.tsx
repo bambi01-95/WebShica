@@ -2,7 +2,7 @@
 import { useShicaWebRTC } from '@/hooks/shikada/optbroadcast';
 import FileLists from "@/component/code/FileLists";
 import { ShicaCodeEditor } from "@/component/code/ShicaCodeEditor";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Output, { Log, LogLevel } from "@/component/code/Output";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useShica";
@@ -109,30 +109,39 @@ const ShicaPage = () => {
      connectUserToTopic,
      sendMessage,
      disconnectUserFromTopic,
+     userSessions,
   } = useShicaWebRTC(Module, isReady);
 
-  const _addWebRtcBroadcast = (number: number, channel: string, password: string, ptr: number) => {
+  const _addWebRtcBroadcast = useCallback(async (number: number, channel: string, password: string, ptr: any) => {
     console.log(`🛜 Adding WebRTC Broadcast User: ${number} to channel: ${channel}`);
-    connectUserToTopic(number, channel);
-  };
-  const _sendWebRtcBroadcast = (index: number, channel: string, msg: string) => {
-    console.log(`📡 Sending WebRTC Broadcast Message from User: ${index} to channel: ${channel}`);
-    sendMessage(index, msg);
-  };
-  const _removeWebRtcBroadcast = (number: number, channel: string) => {
-    disconnectUserFromTopic(number, channel);
-  };
+    await addUser(number, ptr);
+    console.log(`🔍 After addUser: session exists=${userSessions.has(number)}`);
+    await connectUserToTopic(number, channel, ptr);
+    console.log(`✅ User ${number} fully connected to ${channel}`);
+  }, [addUser, connectUserToTopic, userSessions]);
 
-  // JSCALL
+  const _sendWebRtcBroadcast = useCallback((index: number, msg: string, num: number) => {
+    console.log(`📡 Sending WebRTC Broadcast Message from User: ${index} to ${num}`);
+    sendMessage(index, msg);
+  }, [sendMessage]);
+
+  const _removeWebRtcBroadcast = useCallback((number: number, channel: string) => {
+    disconnectUserFromTopic(number, channel);
+  }, [disconnectUserFromTopic]);
+
   useEffect(() => {
-    if (isReady) {
-      // グローバルに登録
-      (globalThis as any)._addWebRtcBroadcast = _addWebRtcBroadcast;
-      (globalThis as any)._sendWebRtcBroadcast = _sendWebRtcBroadcast;
-      (globalThis as any)._removeWebRtcBroadcast = _removeWebRtcBroadcast;
-      console.log("🌐 Registered WebRTC bridge functions to globalThis");
-    }
-  }, [isReady]);
+    if (!isReady) return;
+    (globalThis as any)._addWebRtcBroadcast = _addWebRtcBroadcast;
+    (globalThis as any)._sendWebRtcBroadcast = _sendWebRtcBroadcast;
+    (globalThis as any)._removeWebRtcBroadcast = _removeWebRtcBroadcast;
+    console.log("🌐 Registered WebRTC bridge functions to globalThis");
+
+    return () => {
+      delete (globalThis as any)._addWebRtcBroadcast;
+      delete (globalThis as any)._sendWebRtcBroadcast;
+      delete (globalThis as any)._removeWebRtcBroadcast;
+    };
+  }, [isReady, _addWebRtcBroadcast, _sendWebRtcBroadcast, _removeWebRtcBroadcast]);
   
   //for user sample code
   const [clickXY, setClickXY] = useState<{ x: number; y: number }>({
@@ -162,13 +171,13 @@ const ShicaPage = () => {
       ...prev,
       {
         filename: `Agent${codes.length}`,
-        code: sampleCodes[0],
+        code: sampleCodes[1],
         compiled: false,
       },
     ]);
     setSelectedIndex(codes.length); // 新しく追加したファイルを選択
     addRobot();
-    addUser(codes.length);//WebRTC OptBroadcast user add
+    addUser(codes.length, 0);//WebRTC OptBroadcast user add
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");
@@ -310,6 +319,12 @@ const ShicaPage = () => {
       } else {
         addLog(LogLevel.INFO, "Initialized web codes");
         addLog(LogLevel.SUCCESS, `touch ${codes[0].filename}`);
+        
+        // Initialize WebRTC sessions for initial agents
+        for (let i = 0; i < codes.length; i++) {
+          addUser(i,0); // Add user with dummy pointer
+          console.log(`🔧 Initialized WebRTC session for Agent ${i}`);
+        }
       }
     }
   }, [Module]);
@@ -774,6 +789,11 @@ const ShicaPage = () => {
                 <option value={50}>50</option>
                 <option value={25}>25</option>
               </select>
+              <select>
+                <option value="stt">State</option>
+                <option value="send">Send</option>
+                <option value="receive">Receive</option>
+              </select>
             </div>
             {/* BOTTOM */}
             <div className="h-full overflow-hidden">
@@ -797,7 +817,7 @@ const ShicaPage = () => {
               className="text-sm text-gray-500"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Shica IDE - Powered by Shikada
+              Shica IDE - Powered by Programming System Lab.
             </span>
           </div>
         </div>
