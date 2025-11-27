@@ -529,17 +529,17 @@ oop execute(oop prog,oop entity, oop agent)
 			oop *ehs = entity->Agent.eventHandlers = (oop*)gc_beAtomic(malloc(sizeof(oop*) * ehSize)); //initialize the event handlers
 			for(int i=0; i<ehSize; ++i){
 				op = fetch();
-				oop eoEhData = NULL;
+				oop instance = NULL;
 				switch(op){
 					case iGETGLOBALVAR:{
 						l = fetch();
-						eoEhData = agent->Agent.stack->Stack.elements[l];
+						instance = agent->Agent.stack->Stack.elements[l];
 						op = fetch();
 						break;
 					}
 					case iGETSTATEVAR:{
 						l = fetch();
-						eoEhData = agent->Agent.stack->Stack.elements[agent->Agent.rbp + l];
+						instance = agent->Agent.stack->Stack.elements[agent->Agent.rbp + l];
 						op = fetch();
 						break;
 					}
@@ -556,10 +556,11 @@ oop execute(oop prog,oop entity, oop agent)
 				int eventID = fetch(); // get the event ID
 				int nThreads = fetch(); // get the number of threads
 				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler <------ ERROR: FIX HERE
-				if(eoEhData == NULL){
+				if(instance == NULL){
 					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}else{
-					ehs[i]->EventHandler.data[0]/*event object eh data[0] should be hold instance data*/ = eoEhData;
+					ehs[i]->EventHandler.data[0]/*event object eh data[0] should be hold instance data*/ = instance;
+					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}
 				for(int j=0; j<nThreads; ++j){
 					op = fetch();
@@ -1435,8 +1436,16 @@ int emitOn(oop prog,node vars, node ast, node type)
 			node args = getNode(ast, Print,arguments);
 			node local_vars = getNode(vars, EmitContext, local_vars);
 			int nArgs = 0;
-			while (args != nil) {
-				node value = getNode(args, Args, value);
+			//reverse the args order
+			node revArgs = nil;
+			while(args != nil){
+				node copy = getNode(args, Args, next);	
+				args->Args.next = revArgs;
+				revArgs = args;
+				args = copy;	
+			}
+			while (revArgs != nil) {
+				node value = getNode(revArgs, Args, value);
 				int argType = parseType(vars, value);
 				if(argType == -1) return 1; // type error
 				if(emitOn(prog, vars, value, TYPES[argType])) return 1; // compile argument
@@ -1448,7 +1457,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 						reportError(ERROR, getNode(ast, Print, line), "print statement does not support type %d", argType);
 						return 1;
 				}
-				args = getNode(args, Args, next);
+				revArgs = getNode(revArgs, Args, next);
 				nArgs++;
 			}
 			emitI(prog, flashPRINT); // print the result
@@ -2701,7 +2710,7 @@ int executeWebCodes(void)
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
-
+		printf("\n\x1b[34m[C] Agent[%d] ----------------- \x1b[0m\n", i);
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory

@@ -14,6 +14,23 @@ stt state(){
     }
 }`;
 
+const WebRtcReceiverSample_v2: string = `// Receiver v2
+// Receiver
+var chat = broadcast("shica","pwd");
+stt state1(){
+    chat.received(str from, str msg){
+      setColor(0,0,0);
+      stt state2;
+    }
+}
+
+stt state2(){
+    chat.received(str from, str msg){
+      setColor(255,255,255);
+      stt state1;
+    }
+}`;
+
 const webRtcSenderSample: string = `// Sender
 var chat = broadcast("shica","pwd");
   stt state(){
@@ -69,10 +86,10 @@ stt on{
 
 
 const sampleCodes: string[] = [
-    webRtcReceiverSample,
+    WebRtcReceiverSample_v2,
     webRtcSenderSample,
+    webRtcReceiverSample,
     stateChangeSample,
-
     clickSample,
 ];
 

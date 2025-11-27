@@ -252,18 +252,21 @@ int click_handler(oop eh)
 	}
 	return 0; // return 0 to indicate no event
 }
-//CCALL
-int _web_rtc_broadcast_receive_(void *ptr, char* message)//CCCALL
+//CCALL id: agnet index, ptr: event handler pointer, message: received message
+int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//CCCALL
 {
-	printf("\x1b[31m[C] get data\x1b[0m\n");
-	printf("\x1b[31m[C] message: %s\x1b[0m\n", message);
-	printf("\x1b[31m[C] ptr: %p: kind %d (want %d)\x1b[0m\n", ptr, ((oop)ptr)->kind, EventHandler);
-	//ptr: (void*)instance->Instance.fields[2]
-	// oop ehp = (oop)ptr;
-	// oop eh = ehp;
-	// oop stack = newStack(0);
-	// pushStack(stack, newStrVal(message)); // message
-	// enqueue3(eh, stack); // enqueue the stack
+	gc_context *ctx_copy = ctx;
+	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	ctx = ctxs[id]; // use the first web agent context
+	oop *ehp = (oop *)ptr;
+	oop eh = *ehp;
+	oop stack = newStack(0);
+	char buf[3];
+	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
+	pushStack(stack, newStrVal(message)); // message
+	pushStack(stack, newStrVal(buf)); // sender
+	enqueue3(eh, stack); // enqueue the stack
+	ctx = ctx_copy; // restore context
 	return 1;
 }
 
@@ -274,9 +277,10 @@ int web_rtc_broadcast_receive_handler(oop eh)
 }
 
 int web_rtc_broadcast_receive_handler_init(oop eh){
+	printf("\x1b[31m[C] web_rtc_broadcast_receive_handler_init called\x1b[0m\n");
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
-	instance->Instance.fields[2]= eh;
+	instance->Instance.fields[2]= eh; // hold event handler pointer
 	return 1;
 }
 
@@ -313,7 +317,7 @@ int compile_eh_init(){
 	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
-	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, event_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
+	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
 };
 
 
@@ -483,7 +487,7 @@ oop web_rtc_broadcast_eo(oop stack)
 	GC_PUSH(oop,instance,newInstance(3));
 	getInstanceField(instance, 0) = popStack(stack); // channel
 	getInstanceField(instance, 1) = popStack(stack); // password
-	getInstanceField(instance, 2) = NULL; // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
+	getInstanceField(instance, 2) = newIntVal(12); // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
 	_web_rtc_broadcast_eo_(CurrentAgentIndex,
 							   getObj(getInstanceField(instance,0), StrVal, value),
 	                           getObj(getInstanceField(instance,1), StrVal, value),

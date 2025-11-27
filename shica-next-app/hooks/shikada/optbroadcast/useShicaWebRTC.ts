@@ -407,7 +407,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       // Module.ccall は Shica WASM がロード済みの場合のみ実行
       if (Module && typeof Module.ccall === 'function') {
         console.log(`get message ${message.content} from ${userSession.currentTopic} pointer address:`, userSession.eventHandlerPtrAddr);
-        Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [userSession.eventHandlerPtrAddr, message.content]);//CCALL
+        Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'number', 'string', 'number'], [uid, userSession.eventHandlerPtrAddr, message.content, message.sender]);//CCALL
       }
       
       // イミュータブルな配列更新（スプレッド演算子で新しい配列を作成）
