@@ -19,6 +19,9 @@ export interface TopicHost {
 
 export interface Session {
   currentTopic: string;
+// Address of the event-handler pointer stored in fields[2].
+// (points to the location that holds the actual event-handler function pointer)
+  eventHandlerPtrAddr: any;// C pointer to 
   isConnected: boolean;
   messages: Message[];
 }

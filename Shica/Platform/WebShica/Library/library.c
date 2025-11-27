@@ -252,14 +252,18 @@ int click_handler(oop eh)
 	}
 	return 0; // return 0 to indicate no event
 }
-
+//CCALL
 int _web_rtc_broadcast_receive_(void *ptr, char* message)//CCCALL
 {
 	printf("\x1b[31m[C] get data\x1b[0m\n");
-	oop eh = (oop)ptr;
-	oop stack = newStack(0);
-	pushStack(stack, newStrVal(message)); // message
-	enqueue3(eh, stack); // enqueue the stack
+	printf("\x1b[31m[C] message: %s\x1b[0m\n", message);
+	printf("\x1b[31m[C] ptr: %p: kind %d (want %d)\x1b[0m\n", ptr, ((oop)ptr)->kind, EventHandler);
+	//ptr: (void*)instance->Instance.fields[2]
+	// oop ehp = (oop)ptr;
+	// oop eh = ehp;
+	// oop stack = newStack(0);
+	// pushStack(stack, newStrVal(message)); // message
+	// enqueue3(eh, stack); // enqueue the stack
 	return 1;
 }
 
@@ -270,7 +274,9 @@ int web_rtc_broadcast_receive_handler(oop eh)
 }
 
 int web_rtc_broadcast_receive_handler_init(oop eh){
-	eh->EventHandler.data[2] = eh;
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	instance->Instance.fields[2]= eh;
 	return 1;
 }
 
@@ -481,7 +487,7 @@ oop web_rtc_broadcast_eo(oop stack)
 	_web_rtc_broadcast_eo_(CurrentAgentIndex,
 							   getObj(getInstanceField(instance,0), StrVal, value),
 	                           getObj(getInstanceField(instance,1), StrVal, value),
-	                           (void*)instance->Instance.fields[2]);// set internal pointer
+	                           (void*)&instance->Instance.fields[2]);// set internal pointer
 	GC_POP(instance);
 	return instance;
 }

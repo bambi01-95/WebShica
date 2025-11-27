@@ -39,12 +39,39 @@ stt state2(){
   clickEH(int x,int y){stt state1;}
 }`; 
 
+const radioButtonGroupSample: string = `// Radio Button Group Sample
+var chat = broadcast("shica","pwd");
+
+stt off(){
+  entryEH(){
+    setColor(255, 0, 0);
+  }
+  clickEH(int x,int y){
+    chat.send("Button OFF clicked",0);
+    stt on;
+  }
+}
+  
+stt on{
+  entryEH(){
+    setColor(0, 255, 0);
+  }
+  clickEH(int x,int y){
+    chat.send("Button ON clicked",0);
+    stt off;
+  }
+  chat.received(str from, str msg){
+    print("msg from ", from, ": ", msg);
+    stt off;
+  }
+}`;
+
+
 
 const sampleCodes: string[] = [
-      webRtcReceiverSample,
-    stateChangeSample,
+    webRtcReceiverSample,
     webRtcSenderSample,
-
+    stateChangeSample,
 
     clickSample,
 ];

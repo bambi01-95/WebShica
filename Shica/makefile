@@ -41,6 +41,7 @@ NATIVEOUT = shica
 FLAGS = -DMSGCS -DDEBUG
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode"
+WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
 WEB_SHICA_ERROR_FUNC = "_getNumOfErrorMsg", "_getErrorMsg"
 
 # コンパイルフラグ
@@ -52,7 +53,7 @@ WEB_SHICA_FLAGS = -O3 \
          -s WASM=1 \
          -s INITIAL_MEMORY=128MB \
          -s ENVIRONMENT=web \
-         -s EXPORTED_FUNCTIONS='[$(WEB_SHICA_FUNC), $(WEB_SHICA_ERROR_FUNC)]' \
+         -s EXPORTED_FUNCTIONS='[$(WEB_SHICA_FUNC), $(WEB_SHICA_LIB_FUNC), $(WEB_SHICA_ERROR_FUNC)]' \
 		 -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP32","HEAPU8","FS"]' \
          --no-entry \
 		 --js-library ./Platform/WebShica/shica-lib.js \

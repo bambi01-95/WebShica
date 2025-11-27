@@ -373,6 +373,23 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
     console.log('\t\t get data');
     const { message } = messageData;
 
+    // const userSession = userSessions.get(uid);
+    // if(!userSession){console.error(`❌ No session found for user ${uid}`); return;}
+    // if(userSession.currentTopic !== topicName){
+    //   console.error(`❌ User ${uid} current topic mismatch: expected "${userSession.currentTopic}", got "${topicName}"`);
+    //   return;
+    // }
+    // if(!Module || typeof Module.ccall !== 'function'){
+    //   console.error(`❌ Module or Module.ccall is not available`);
+    //   return;
+    // }
+    // if(userSession.eventHandlerPtrAddr === 0){
+    //   console.error(`❌ User ${uid} has no valid event handler pointer address`);
+    //   return;
+    // }
+    // console.log(`get message pointer address:`, userSession.eventHandlerPtrAddr);
+    // Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [userSession.eventHandlerPtrAddr, message.content]);//CCALL
+
     setUserSessions((prev) => {
       const newSessions = new Map(prev);
       const userSession = newSessions.get(uid);
@@ -389,16 +406,17 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       console.log(`👤 ${uid} processing message from topic "${topicName}" host`);
       // Module.ccall は Shica WASM がロード済みの場合のみ実行
       if (Module && typeof Module.ccall === 'function') {
-        
-        Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [uid, JSON.stringify(message)]);//CCALL
+        console.log(`get message ${message.content} from ${userSession.currentTopic} pointer address:`, userSession.eventHandlerPtrAddr);
+        Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [userSession.eventHandlerPtrAddr, message.content]);//CCALL
       }
       
       // イミュータブルな配列更新（スプレッド演算子で新しい配列を作成）
-      newSessions.set(uid, {
-        ...userSession,
-        messages: [...userSession.messages, message],
-      });
-      return newSessions;
+      // newSessions.set(uid, {
+      //   ...userSession,
+      //   messages: [...userSession.messages, message],
+      // });
+      // return newSessions;
+      return prev;
     });
   };
 
@@ -473,15 +491,18 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // Shica: var chat = broadcast(topic);
   // `_addWebRtcBroadcast(index, channel, password, ptr)`
-  const connectUserToTopic = async (uid: number, topicName: string): Promise<void> => {
+  const connectUserToTopic = async (uid: number, topicName: string, eventHandlerPtrAddr: number): Promise<void> => {
     return new Promise(async (resolve, reject) => {
       // トピック名を設定
       setUserSessions((prev) => {
         const newSessions = new Map(prev);
         const session = newSessions.get(uid);
+        //red color for debug
+        console.log("   ",`ptr address set for user ${uid}:`, session?.eventHandlerPtrAddr);
         if (session) {
           newSessions.set(uid, {
             ...session,
+            eventHandlerPtrAddr: eventHandlerPtrAddr,
             currentTopic: topicName,
           });
         }
@@ -584,10 +605,15 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
   };
 
     // ユーザーの追加: コードエディタとセッションを初期化
-  const addUser = (id: number) => {
+  const addUser = (id: number, eventHandlerPtrAddr: any) => {
     if (userSessions.size >= 12 && !userSessions.has(id)) {
       console.warn(`⚠️ Maximum user limit (12) reached, cannot add user ${id}`);
       return;
+    }
+    if(eventHandlerPtrAddr !== 0){
+      console.log(`🛜 Adding user ${id} with event handler pointer address:`, eventHandlerPtrAddr);
+    }else{
+      console.log(`🛜 Adding user ${id} with dummy event handler pointer address`);
     }
     
     setUserSessions((prev) => {
@@ -603,6 +629,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       newUserSessions.set(id, {
         uid: id,
         currentTopic: '',
+        eventHandlerPtrAddr: eventHandlerPtrAddr,
         isConnected: false,
         messages: [],
       });
@@ -637,7 +664,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       await disconnectUserFromTopic(uid, session.currentTopic);
     } else {
       if (session.currentTopic) {
-        await connectUserToTopic(uid, session.currentTopic);
+        await connectUserToTopic(uid, session.currentTopic,0);
       }
     }
   };

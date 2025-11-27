@@ -114,9 +114,9 @@ const ShicaPage = () => {
 
   const _addWebRtcBroadcast = useCallback(async (number: number, channel: string, password: string, ptr: any) => {
     console.log(`🛜 Adding WebRTC Broadcast User: ${number} to channel: ${channel}`);
-    await addUser(number);
+    await addUser(number, ptr);
     console.log(`🔍 After addUser: session exists=${userSessions.has(number)}`);
-    await connectUserToTopic(number, channel);
+    await connectUserToTopic(number, channel, ptr);
     console.log(`✅ User ${number} fully connected to ${channel}`);
   }, [addUser, connectUserToTopic, userSessions]);
 
@@ -171,13 +171,13 @@ const ShicaPage = () => {
       ...prev,
       {
         filename: `Agent${codes.length}`,
-        code: sampleCodes[0],
+        code: sampleCodes[1],
         compiled: false,
       },
     ]);
     setSelectedIndex(codes.length); // 新しく追加したファイルを選択
     addRobot();
-    addUser(codes.length);//WebRTC OptBroadcast user add
+    addUser(codes.length, 0);//WebRTC OptBroadcast user add
     const ret = Module?.ccall("addWebCode", "number", [], []);
     if (ret !== 0) {
       console.error("Failed to add web code");
@@ -322,7 +322,7 @@ const ShicaPage = () => {
         
         // Initialize WebRTC sessions for initial agents
         for (let i = 0; i < codes.length; i++) {
-          addUser(i);
+          addUser(i,0); // Add user with dummy pointer
           console.log(`🔧 Initialized WebRTC session for Agent ${i}`);
         }
       }
