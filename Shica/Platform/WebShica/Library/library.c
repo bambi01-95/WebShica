@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include "library.h"
 #include <stdarg.h>
+#include <time.h>
 
-#define STAGE_WIDTH  500
-#define STAGE_HEIGHT 500
+#define STAGE_WIDTH  480
+#define STAGE_HEIGHT 480
 #define AGENT_SIZE   20
 //red print
 void console(const char *msg, ...)
@@ -192,8 +193,8 @@ int collision_calculation(int n) {
         struct AgentData *a = &allAgentData[i];
 
         // --- Collision with walls ---
-        if (a->x < 0 || a->x > STAGE_WIDTH ||
-            a->y < 0 || a->y > STAGE_HEIGHT) {
+        if (a->x < -20 || a->x > STAGE_WIDTH ||
+            a->y < -20 || a->y > STAGE_HEIGHT) {
 			console("Agent %d collided with wall at position (%d, %d)\n", a->index, a->x, a->y);
             a->isCollision = 1;
         }
@@ -245,21 +246,40 @@ int event_handler_init(oop eh){
 
 int timer_handler(oop eh)
 {
-	int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
-	if (WEB_TIMER-time >=1000) {
-		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
-		eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
+		console("timer_handler: now=%d, last=%d\n", now, IntVal_value(eh->EventHandler.data[0]));
+		eh->EventHandler.data[0] = newIntVal(now);
+		int count = IntVal_value(eh->EventHandler.data[1]) + 1;
+		eh->EventHandler.data[1] = newIntVal(count);
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
-		return 1; // return 1 to indicate success
+		enqueue3(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
+	//when using web js timer
+	// int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
+	// if (WEB_TIMER-time >=1000) {
+	// 	eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
+	// 	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	// 	oop stack = newStack(0);
+	// 	enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+	// 	return 1; // return 1 to indicate success
+	// }
+	// return 0; // return 0 to indicate no event
 }
 
 int timer_handler_init(oop eh){
-	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
-	eh->EventHandler.data[1] = 0;
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	eh->EventHandler.data[0] = newIntVal(now); //start time
+	eh->EventHandler.data[1] = newIntVal(0);   //count
 	return 1;
+	//when using web js timer
+	// eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	// eh->EventHandler.data[1] = 0;
+	// return 1;
 }
 
 //When touch agent
@@ -356,6 +376,36 @@ int web_rtc_broadcast_receive_handler_init(oop eh){
 	return 1;
 }
 
+int timer_sec_handler(oop eh){
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	oop* fields = getObj(instance, Instance, fields);
+	assert(fields != NULL);
+
+	oop obj = fields[0];
+	assert(obj != NULL);
+	assert(getKind(obj) == IntVal);
+	int interval = IntVal_value(obj);
+
+	int pre = IntVal_value(fields[2]);	
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+
+	if(now - pre >= interval){
+		fields[2] = newIntVal(now);
+		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
+		oop stack = newStack(0);
+		enqueue3(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
+	}
+	return 0;
+}
+int timer_min_handler(oop eh){
+	return 0;
+}
+int timer_hour_handler(oop eh){
+	return 0;
+}
 
 int compile_eh_init(){
 	//standard event handler
@@ -390,6 +440,9 @@ int compile_eh_init(){
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
 	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,      event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
 };
 
 
@@ -517,6 +570,22 @@ int lib_web_rtc_broadcast_send(oop stack)
 	return 0; // return 0 to indicate success
 }
 
+int lib_timer_reset(oop stack)
+{
+	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
+	oop instance = popStack(stack); // get timer object from stack
+	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
+	assert(getKind(instance) == Instance);
+	assert(getKind(initVal) == IntVal);
+	//DEBUG POINT
+	getInstanceField(instance, 0) = newIntVal(1); // reset interval to 0
+	getInstanceField(instance, 1) = initVal; // reset the timer to initial value
+	time_t t = time(NULL);
+	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // reset label to current time
+	GC_POP(initVal);
+	return 0;
+}
+
 // Function initialization
  enum {
 	LOG_FUNC,   // log 
@@ -532,6 +601,7 @@ int lib_web_rtc_broadcast_send(oop stack)
 	GETVY_FUNC, // get velocity Y 
 	SETCOLOR_FUNC, // set Color 
 	WEB_RTC_BROADCAST_SEND_FUNC,
+	T_TIMER_RESET_FUNC,
 	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 };
 //<-- argTypes
@@ -550,6 +620,7 @@ struct StdFuncTable __StdFuncTable__[] =
 	[GETVY_FUNC] = {lib_getvy, 0, NULL, Integer}, // getVY function returns an integer
 	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
 	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[T_TIMER_RESET_FUNC] = {lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 };
 
 int compile_func_init()
@@ -617,9 +688,19 @@ oop web_rtc_broadcast_eo(oop stack)
 }
 
 oop time_eo(oop stack){
-	// Placeholder implementation for timer EO
-	printf("timer_eo called\n");
-	return 0;
+/*
+0: interval
+1: count 
+2: label (hold time for comparison)
+*/
+	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
+	oop* fields = getObj(instance, Instance, fields);
+	fields[0] = newIntVal(0); // interval
+	fields[1] = newIntVal(0); // count
+	time_t t = time(NULL);
+	fields[2] = newIntVal((int)(t % 10000)); // label
+	GC_POP(instance);
+	return instance;
 }
 
 enum {
@@ -651,7 +732,17 @@ int compile_eo_init(){
 	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
 	func = newStdFunc(WEB_RTC_BROADCAST_SEND_FUNC);sym = newSymbol("send");
 	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
-
+//TIMER EO
+	sym = intern("timer");
+	eo = newEventObject(sym, TIME_EO);// var t = timer(interval, label);
+	func = newEventH(T_TIMER_SEC_EH);sym = newSymbol("sec");
+	putFuncToEo(eo, func, sym, 0);// t.sec(second);
+	func = newEventH(T_TIMER_MIN_EH);sym = newSymbol("min");
+	putFuncToEo(eo, func, sym, 1);// t.min(minute);
+	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hour");
+	putFuncToEo(eo, func, sym, 2);// t.hour(hour);
+	func = newStdFunc(T_TIMER_RESET_FUNC);sym = newSymbol("reset");
+	putFuncToEo(eo, func, sym, 3);// t.reset();
 	return 0; // return 0 to indicate success
 }
 

@@ -7,9 +7,37 @@ stt state(){
 }`;
 
 const touchSample: string = `// Touch Event Sample
+stt state1(){
+  entryEH(){
+    setColor(0, 0, 0);// black
+  }
+  touchEH(int c){stt state2;}
+}
+
+stt state2(){
+  entryEH(){
+    setColor(255, 0, 0);// red
+  }
+  touchEH(int c){stt state1;}
+}`;
+
+const timerSample: string = `// Timer Event Sample
 stt state(){
-  touchEH(int count){
-    print("touched with id ", count);
+  entryEH(){
+    setVX(10);
+  }
+  timerEH(int sec){
+    print(sec, " seconds passed");
+    setVX(-getVX());
+  }
+}`;
+
+
+const timerEOSample: string = `// Timer Event Sample
+var t = time();
+stt state(){
+  t.secondEH(int sec){
+    print("1 second passed", sec);
   }
 }`;
 
@@ -104,8 +132,9 @@ stt on{
 
 
 const sampleCodes: string[] = [
-    collisionSample,
+    timerSample,
     touchSample,
+    collisionSample,
     radioButtonGroupSample,
     WebRtcReceiverSample_v2,
     webRtcSenderSample,
