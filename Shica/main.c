@@ -568,9 +568,11 @@ oop execute(oop prog,oop entity, oop agent)
 					printOP(iSETPROCESS);
 					l = fetch(); // get the aPos
 					r = fetch(); // get the cPos
+					printf("helo1");
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
+			printf("helo2");
 			op = fetch();
 			assert(op == iIMPL);
 			printOP(iIMPL);

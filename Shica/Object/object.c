@@ -224,11 +224,11 @@ int intArray_last(oop a)
 oop newQue3(int nArgs)
 {
 	GC_PUSH(oop, q, newEntity(IntQue3));
-	q->IntQue3.nArgs = nArgs;
+	q->IntQue3.nArgs = nArgs==0 ? 1 : nArgs;
 	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
-	for (int i = 0;  i < IntQue3Size;  ++i) {
-		q->IntQue3.que[i] = (oop)gc_beAtomic(gc_alloc(sizeof(oop) * nArgs));
-	}
+	// for (int i = 0;  i < IntQue3Size;  ++i) {
+	// 	q->IntQue3.que[i] = (oop)gc_beAtomic(gc_alloc(sizeof(oop) * nArgs));
+	// }//don't need to allocate stacks now
 	GC_POP(q);
 	return q;
 }

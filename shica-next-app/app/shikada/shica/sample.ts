@@ -15,8 +15,12 @@ stt state(){
 
 const collisionSample: string = `// Collision Event Sample
 stt state(){
+  entryEH(){
+    setVX(5);
+  }
   collisionEH(){
     print("collision detected!");
+    setVX(-getVX());
   }
 }`;
 
@@ -100,8 +104,8 @@ stt on{
 
 
 const sampleCodes: string[] = [
-    touchSample,
     collisionSample,
+    touchSample,
     radioButtonGroupSample,
     WebRtcReceiverSample_v2,
     webRtcSenderSample,
