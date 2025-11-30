@@ -29,7 +29,7 @@ struct AgentData {
 	int index; // offset 0
 	int x,y,vx,vy;// offset 4,8,12,16
 	int isClick; // offset 20
-	int distance; // offset 24
+	int isCollision; // offset 24
 	int status;	 // offset 28
 	char red, green, blue; // offset 32,33,34
 	char isLEDOn; // offset 35
@@ -55,6 +55,9 @@ int **getAllAgentDataPtr(); // Get all agent data pointers
 int getAllAgentDataSizePtr(); // Get the size of all agent data pointers
 
 int setActiveAgent(int index); // Set the active agent data by index
+
+/*================ COLLISION =================*/
+int collision_calculation(int n);
 
 /*================Event Handler==============*/
 #define ENTRY_EH        0x00 // Entry Handler

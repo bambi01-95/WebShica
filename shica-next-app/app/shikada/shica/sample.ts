@@ -6,6 +6,20 @@ stt state(){
   }
 }`;
 
+const touchSample: string = `// Touch Event Sample
+stt state(){
+  touchEH(int count){
+    print("touched with id ", count);
+  }
+}`;
+
+const collisionSample: string = `// Collision Event Sample
+stt state(){
+  collisionEH(){
+    print("collision detected!");
+  }
+}`;
+
 const webRtcReceiverSample: string = `// Receiver
 var chat = broadcast("shica","pwd");
 stt state(){
@@ -86,6 +100,9 @@ stt on{
 
 
 const sampleCodes: string[] = [
+    touchSample,
+    collisionSample,
+    radioButtonGroupSample,
     WebRtcReceiverSample_v2,
     webRtcSenderSample,
     webRtcReceiverSample,

@@ -3,7 +3,21 @@
 #define SHICA_LIBRARY_C
 #include <stdlib.h>
 #include "library.h"
+#include <stdarg.h>
 
+#define STAGE_WIDTH  500
+#define STAGE_HEIGHT 500
+#define AGENT_SIZE   20
+//red print
+void console(const char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	printf("\x1b[31m[C]: ");
+	vprintf(msg, ap);
+	printf("\x1b[0m");
+	va_end(ap);
+}
 char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
 int   WebTextPos  = 0;
 
@@ -112,7 +126,7 @@ int *initAnAgentDataPtr(){
 	AN_AGENT_DATA->vx = 0; // x velocity
 	AN_AGENT_DATA->vy = 0; // y velocity
 	AN_AGENT_DATA->isClick = 0; // is click
-	AN_AGENT_DATA->distance = 0; // distance
+	AN_AGENT_DATA->isCollision = 0; // collision
 	AN_AGENT_DATA->status = 0; // status
 	AN_AGENT_DATA->red = 0; // red
 	AN_AGENT_DATA->green = 0; // green
@@ -162,12 +176,54 @@ int getAllAgentDataSizePtr(){
     return ALL_AGENT_SIZE;
 }
 
-
-
-
 /*
+	COLLISION DETECTION FUNCTION
+*/
+
+
+int collision_calculation(int n) {
+
+    // Reset collision status for all agents
+    for (int i = 0; i < n; i++) {
+        allAgentData[i].isCollision = 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        struct AgentData *a = &allAgentData[i];
+
+        // --- Collision with walls ---
+        if (a->x < 0 || a->x + AGENT_SIZE > STAGE_WIDTH ||
+            a->y < 0 || a->y + AGENT_SIZE > STAGE_HEIGHT) {
+            a->isCollision = 1;
+        }
+
+        // --- Collision with other agents ---
+        for (int j = i + 1; j < n; j++) {
+            struct AgentData *b = &allAgentData[j];
+
+            int ax1 = a->x;
+            int ay1 = a->y;
+            int ax2 = a->x + AGENT_SIZE;
+            int ay2 = a->y + AGENT_SIZE;
+
+            int bx1 = b->x;
+            int by1 = b->y;
+            int bx2 = b->x + AGENT_SIZE;
+            int by2 = b->y + AGENT_SIZE;
+
+            // AABB (Axis-Aligned Bounding Box) collision detection
+            if (!(ax2 < bx1 || ax1 > bx2 || ay2 < by1 || ay1 > by2)) {
+                a->isCollision = 1;
+                b->isCollision = 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* ---------------------------------------------------
  * Event handler for the web environment
- */
+ *---------------------------------------------------*/
 
 
 int event_handler(oop eh){
@@ -205,24 +261,37 @@ int timer_handler_init(oop eh){
 	return 1;
 }
 
+//When touch agent
 int touch_handler(oop eh)
 {
-	int touch = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(touch))); // enqueue a stack with value
-		printf("touch event: %d\n", touch);
-		return 1; // return 1 to indicate success
+	if(WEB_CLICK_STT[2]==1){
+		console("touch_handler: click status = %d\n", WEB_CLICK_STT[2]);
+		struct AgentData *ag = &allAgentData[CurrentAgentIndex];
+		if( (ag->x <= WEB_CLICK_STT[0]+AGENT_SIZE) && (ag->x >= WEB_CLICK_STT[0]-AGENT_SIZE) &&
+			(ag->y <= WEB_CLICK_STT[1]+AGENT_SIZE) && (ag->y >= WEB_CLICK_STT[1]-AGENT_SIZE) ){
+			oop stack = newStack(0);
+			assert(getKind(eh->EventHandler.data[0]) == IntVal);
+			int count = IntVal_value(eh->EventHandler.data[0]) + 1;
+			eh->EventHandler.data[0] = newIntVal(count);
+			enqueue3(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value 1
+			printf("touch event: agent %d touched at (%d, %d)\n", CurrentAgentIndex, WEB_CLICK_STT[0], WEB_CLICK_STT[1]);
+			return 1; // return 1 to indicate success
+		}
 	}
 	return 0; // return 0 to indicate no event
 }
+int touch_handler_init(oop eh){
+	eh->EventHandler.data[0] = newIntVal(0);
+	return 1;
+}
+
+//When collision detected
 int collision_handler(oop eh)
 {
-	int collision = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
+	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
+	if(ag->isCollision == 1){
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue a stack with value
-		printf("collision event: %d\n", collision);
+		console("collision event: agent %d collided\n", CurrentAgentIndex);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -313,8 +382,8 @@ int compile_eh_init(){
  struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0,NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char[]) {Integer}, 2},      // TIMER_EH
-	[TOUCH_EH] = {touch_handler,      event_handler_init, 1,(char[]){Integer}, 0},      // TOUCH_EH
-	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
+	[TOUCH_EH] = {touch_handler,      touch_handler_init, 1,(char[]){Integer}, 1},      // TOUCH_EH
+	[COLLISION_EH] = {collision_handler,  event_handler_init, 0,NULL, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
 	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH

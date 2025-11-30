@@ -6,9 +6,14 @@
 ISSUEを作成してください。
 次にやる予定の内容
 
-- modyfyt print function
-- Add event Condtion
-- Add web event handler
+[o] Add web event handler
+    [-] timer
+    [-] collision
+    [-] touch
+[-] modyfyt print function
+    | reportErrorのような仕様にする。
+    | lock変数を作成して、print関数を使用中にはlockをかけて、変数が動かないようにする。
+[-] Add event Condtion
 
 
 ### CURRENT TASK

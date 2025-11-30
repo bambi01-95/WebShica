@@ -2708,6 +2708,7 @@ int initWebAgents(int num)
 int executeWebCodes(void)
 {
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	int ret = collision_calculation(nWebAgents);
 	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
 		printf("\n\x1b[34m[C] Agent[%d] ----------------- \x1b[0m\n", i);
