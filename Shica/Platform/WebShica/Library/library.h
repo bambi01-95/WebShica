@@ -29,7 +29,7 @@ struct AgentData {
 	int index; // offset 0
 	int x,y,vx,vy;// offset 4,8,12,16
 	int isClick; // offset 20
-	int distance; // offset 24
+	int isCollision; // offset 24
 	int status;	 // offset 28
 	char red, green, blue; // offset 32,33,34
 	char isLEDOn; // offset 35
@@ -56,16 +56,25 @@ int getAllAgentDataSizePtr(); // Get the size of all agent data pointers
 
 int setActiveAgent(int index); // Set the active agent data by index
 
+/*================ COLLISION =================*/
+int collision_calculation(int n);
+
 /*================Event Handler==============*/
-#define ENTRY_EH        0x00 // Entry Handler
-#define EXIT_EH         0x00 // Exit Handler
-#define EVENT_EH        0x00 // Event Handler
-#define	TIMER_EH	    0x01 
-#define	TOUCH_EH	    0x02
-#define	COLLISION_EH	0x03
-#define	SELF_STATE_EH	0x04
-#define CLICK_EH		0x05
-#define WEB_RTC_BROADCAST_RECEIVED_EH 0x06
+enum {
+	ENTRY_EH = 0,
+	EXIT_EH,
+	EVENT_EH,
+	TIMER_EH,
+	TOUCH_EH,
+	COLLISION_EH,
+	SELF_STATE_EH,
+	CLICK_EH,
+	WEB_RTC_BROADCAST_RECEIVED_EH,
+	T_TIMER_SEC_EH, // Timer second event handler
+	T_TIMER_MIN_EH, // Timer minute event handler
+	T_TIMER_HOUR_EH, // Timer hour event handler
+	END_EH,
+};
 
 extern int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender);//CCALL
 extern int _lib_web_rtc_broadcast_send_(int index, char* msg, int num);// JSCALL

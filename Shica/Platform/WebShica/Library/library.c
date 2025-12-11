@@ -3,7 +3,22 @@
 #define SHICA_LIBRARY_C
 #include <stdlib.h>
 #include "library.h"
+#include <stdarg.h>
+#include <time.h>
 
+#define STAGE_WIDTH  480
+#define STAGE_HEIGHT 480
+#define AGENT_SIZE   20
+//red print
+void console(const char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	printf("\x1b[31m[C]: ");
+	vprintf(msg, ap);
+	printf("\x1b[0m");
+	va_end(ap);
+}
 char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
 int   WebTextPos  = 0;
 
@@ -112,7 +127,7 @@ int *initAnAgentDataPtr(){
 	AN_AGENT_DATA->vx = 0; // x velocity
 	AN_AGENT_DATA->vy = 0; // y velocity
 	AN_AGENT_DATA->isClick = 0; // is click
-	AN_AGENT_DATA->distance = 0; // distance
+	AN_AGENT_DATA->isCollision = 0; // collision
 	AN_AGENT_DATA->status = 0; // status
 	AN_AGENT_DATA->red = 0; // red
 	AN_AGENT_DATA->green = 0; // green
@@ -162,67 +177,144 @@ int getAllAgentDataSizePtr(){
     return ALL_AGENT_SIZE;
 }
 
-
-
-
 /*
+	COLLISION DETECTION FUNCTION
+*/
+
+
+int collision_calculation(int n) {
+
+    // Reset collision status for all agents
+    for (int i = 0; i < n; i++) {
+        allAgentData[i].isCollision = 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        struct AgentData *a = &allAgentData[i];
+
+        // --- Collision with walls ---
+        if (a->x < -20 || a->x > STAGE_WIDTH ||
+            a->y < -20 || a->y > STAGE_HEIGHT) {
+			console("Agent %d collided with wall at position (%d, %d)\n", a->index, a->x, a->y);
+            a->isCollision = 1;
+        }
+
+        // --- Collision with other agents ---
+        for (int j = i + 1; j < n; j++) {
+            struct AgentData *b = &allAgentData[j];
+
+            int ax1 = a->x;
+            int ay1 = a->y;
+            int ax2 = a->x + AGENT_SIZE;
+            int ay2 = a->y + AGENT_SIZE;
+
+            int bx1 = b->x;
+            int by1 = b->y;
+            int bx2 = b->x + AGENT_SIZE;
+            int by2 = b->y + AGENT_SIZE;
+
+            // AABB (Axis-Aligned Bounding Box) collision detection
+            if (!(ax2 < bx1 || ax1 > bx2 || ay2 < by1 || ay1 > by2)) {
+                a->isCollision = 1;
+                b->isCollision = 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* ---------------------------------------------------
  * Event handler for the web environment
- */
+ *---------------------------------------------------*/
 
 
 int event_handler(oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		enqueue(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 		return 1;
 	}
 	return 0; // return 0 to indicate no event
 }
 int event_handler_init(oop eh){
 #ifdef DEBUG
-	printf("event_handler_init called\n");
+	console("event_handler_init called\n");
 #endif
 	return 1;
 }
 
 int timer_handler(oop eh)
 {
-	int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
-	if (WEB_TIMER-time >=1000) {
-		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
-		eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
+		console("timer_handler: now=%d, last=%d\n", now, IntVal_value(eh->EventHandler.data[0]));
+		eh->EventHandler.data[0] = newIntVal(now);
+		int count = IntVal_value(eh->EventHandler.data[1]) + 1;
+		eh->EventHandler.data[1] = newIntVal(count);
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
-		return 1; // return 1 to indicate success
+		enqueue(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
+	//when using web js timer
+	// int time = IntVal_value(eh->EventHandler.data[0]);//Integer type
+	// if (WEB_TIMER-time >=1000) {
+	// 	eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
+	// 	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	// 	oop stack = newStack(0);
+	// 	enqueue(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+	// 	return 1; // return 1 to indicate success
+	// }
+	// return 0; // return 0 to indicate no event
 }
 
 int timer_handler_init(oop eh){
-	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
-	eh->EventHandler.data[1] = 0;
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	eh->EventHandler.data[0] = newIntVal(now); //start time
+	eh->EventHandler.data[1] = newIntVal(0);   //count
 	return 1;
+	//when using web js timer
+	// eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
+	// eh->EventHandler.data[1] = 0;
+	// return 1;
 }
 
+//When touch agent
 int touch_handler(oop eh)
 {
-	int touch = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
-		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(touch))); // enqueue a stack with value
-		printf("touch event: %d\n", touch);
-		return 1; // return 1 to indicate success
+	if(WEB_CLICK_STT[2]==1){
+		console("touch_handler: click status = %d\n", WEB_CLICK_STT[2]);
+		struct AgentData *ag = &allAgentData[CurrentAgentIndex];
+		if( (ag->x <= WEB_CLICK_STT[0]+AGENT_SIZE) && (ag->x >= WEB_CLICK_STT[0]-AGENT_SIZE) &&
+			(ag->y <= WEB_CLICK_STT[1]+AGENT_SIZE) && (ag->y >= WEB_CLICK_STT[1]-AGENT_SIZE) ){
+			oop stack = newStack(0);
+			assert(getKind(eh->EventHandler.data[0]) == IntVal);
+			int count = IntVal_value(eh->EventHandler.data[0]) + 1;
+			eh->EventHandler.data[0] = newIntVal(count);
+			enqueue(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value 1
+			printf("touch event: agent %d touched at (%d, %d)\n", CurrentAgentIndex, WEB_CLICK_STT[0], WEB_CLICK_STT[1]);
+			return 1; // return 1 to indicate success
+		}
 	}
 	return 0; // return 0 to indicate no event
 }
+int touch_handler_init(oop eh){
+	eh->EventHandler.data[0] = newIntVal(0);
+	return 1;
+}
+
+//When collision detected
 int collision_handler(oop eh)
 {
-	int collision = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
+	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
+	console("collision_handler: isCollision = %d\n", ag->isCollision);
+	if(ag->isCollision == 1){
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue3(eh, pushStack(stack, newIntVal(collision))); // enqueue a stack with value
-		printf("collision event: %d\n", collision);
+		console("collision event: agent %d collided\n", CurrentAgentIndex);
+		enqueue(eh, stack); // enqueue a stack
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -231,9 +323,9 @@ int collision_handler(oop eh)
 int self_state_handler(oop eh)
 {
 	int state = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
+	if (eh->Queue.head < eh->Queue.tail) {
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
+		enqueue(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
 		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
 	}
@@ -247,7 +339,7 @@ int click_handler(oop eh)
 		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
 		pushStack(stack, newIntVal(WEB_CLICK_STT[1])); // y
-		enqueue3(eh, stack); // enqueue the stack
+		enqueue(eh, stack); // enqueue the stack
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -265,7 +357,7 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
 	pushStack(stack, newStrVal(message)); // message
 	pushStack(stack, newStrVal(buf)); // sender
-	enqueue3(eh, stack); // enqueue the stack
+	enqueue(eh, stack); // enqueue the stack
 	ctx = ctx_copy; // restore context
 	return 1;
 }
@@ -284,6 +376,36 @@ int web_rtc_broadcast_receive_handler_init(oop eh){
 	return 1;
 }
 
+int timer_sec_handler(oop eh){
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	oop* fields = getObj(instance, Instance, fields);
+	assert(fields != NULL);
+
+	oop obj = fields[0];
+	assert(obj != NULL);
+	assert(getKind(obj) == IntVal);
+	int interval = IntVal_value(obj);
+
+	int pre = IntVal_value(fields[2]);	
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+
+	if(now - pre >= interval){
+		fields[2] = newIntVal(now);
+		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
+		oop stack = newStack(0);
+		enqueue(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
+	}
+	return 0;
+}
+int timer_min_handler(oop eh){
+	return 0;
+}
+int timer_hour_handler(oop eh){
+	return 0;
+}
 
 int compile_eh_init(){
 	//standard event handler
@@ -313,11 +435,14 @@ int compile_eh_init(){
  struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0,NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char[]) {Integer}, 2},      // TIMER_EH
-	[TOUCH_EH] = {touch_handler,      event_handler_init, 1,(char[]){Integer}, 0},      // TOUCH_EH
-	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
+	[TOUCH_EH] = {touch_handler,      touch_handler_init, 1,(char[]){Integer}, 1},      // TOUCH_EH
+	[COLLISION_EH] = {collision_handler,  event_handler_init, 0,NULL, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
 	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,      event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
 };
 
 
@@ -332,10 +457,12 @@ int lib_log(oop stack)
 {
 	int value = IntVal_value(popStack(stack)); // get value from stack
 	printf("log: %d\n", value); // print value to console
-	return 0; // return 0 to indicate success
+	return 0;
 }
 
-// This function sets the x and y coordinates of the agent
+/*
+	position functions
+*/
 int lib_setxy(oop stack)
 {
 	int y = IntVal_value(popStack(stack)); // get x coordinate from stack
@@ -343,20 +470,35 @@ int lib_setxy(oop stack)
 	AN_AGENT_DATA->x = x; // set x coordinate
 	AN_AGENT_DATA->y = y; // set y coordinate
 	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
-	return 0; // return 0 to indicate success
+	return 0;
 }
 int lib_setx(oop stack)
 {
 	int x = IntVal_value(popStack(stack)); // get x coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
-	return 0; // return 0 to indicate success
+	return 0;
 }
 int lib_sety(oop stack)
 {
 	int y = IntVal_value(popStack(stack)); // get y coordinate from stack
 	AN_AGENT_DATA->y = y; // set y coordinate
-	return 0; // return 0 to indicate success
+	return 0;
 }
+
+int lib_getx(oop stack)
+{
+	pushStack(stack, newIntVal(AN_AGENT_DATA->x)); // push x coordinate to stack
+	return 0;
+}
+
+int lib_gety(oop stack)
+{
+	pushStack(stack, newIntVal(AN_AGENT_DATA->y)); // push y coordinate to stack
+	return 0;
+}
+/*
+	velocity functions
+*/
 
 int lib_setvxy(oop stack)
 {
@@ -364,14 +506,14 @@ int lib_setvxy(oop stack)
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	AN_AGENT_DATA->vy = vy; // set y velocity
-	printf("setVXY: vx = %d, vy = %d\n", vx, vy); // print velocities to console
+	console("setVXY: vx = %d, vy = %d\n", vx, vy); // print velocities to console
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvx(oop stack)
 {
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
-	printf("\tsetVX: vx = %d\n", vx); // print x velocity to console
+	console("\tsetVX: vx = %d\n", vx); // print x velocity to console
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
@@ -379,10 +521,26 @@ int lib_setvx(oop stack)
 int lib_setvy(oop stack)
 {
 	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
-	printf("\tsetVY: vy = %d\n", vy); // print y velocity to console
+	console("\tsetVY: vy = %d\n", vy); // print y velocity to console
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
+
+int lib_getvx(oop stack)
+{
+	pushStack(stack, newIntVal(AN_AGENT_DATA->vx)); // push x velocity to stack
+	return 0; // return 0 to indicate success
+}
+
+int lib_getvy(oop stack)
+{
+	pushStack(stack, newIntVal(AN_AGENT_DATA->vy)); // push y velocity to stack
+	return 0; // return 0 to indicate success
+}
+
+/*
+	color functions
+*/
 
 int lib_setcolor(oop stack)
 {
@@ -392,7 +550,7 @@ int lib_setcolor(oop stack)
 	AN_AGENT_DATA->red = (char)red; // set red value
 	AN_AGENT_DATA->green = (char)green; // set green value
 	AN_AGENT_DATA->blue = (char)blue; // set blue value
-	printf("setColor: r = %d, g = %d, b = %d\n", red, green, blue); // print color values to console
+	console("setColor: r = %d, g = %d, b = %d\n", red, green, blue); // print color values to console
 	return 0; // return 0 to indicate success
 }
 
@@ -412,32 +570,57 @@ int lib_web_rtc_broadcast_send(oop stack)
 	return 0; // return 0 to indicate success
 }
 
+int lib_timer_reset(oop stack)
+{
+	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
+	oop instance = popStack(stack); // get timer object from stack
+	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
+	assert(getKind(instance) == Instance);
+	assert(getKind(initVal) == IntVal);
+	//DEBUG POINT
+	getInstanceField(instance, 0) = newIntVal(1); // reset interval to 0
+	getInstanceField(instance, 1) = initVal; // reset the timer to initial value
+	time_t t = time(NULL);
+	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // reset label to current time
+	GC_POP(initVal);
+	return 0;
+}
+
 // Function initialization
  enum {
-	LOG_FUNC,   // log function
-	SETXY_FUNC, // setXY function
-	SETX_FUNC,  // setX function
-	SETY_FUNC,  // setY function
-	SETVXY_FUNC, // setVXY function
-	SETVX_FUNC, // setVX function
-	SETVY_FUNC, // setVY function
-	SETCOLOR_FUNC, // setColor function
+	LOG_FUNC,   // log 
+	SETXY_FUNC, // set X & Y position
+	SETX_FUNC,  // set X position
+	SETY_FUNC,  // set Y position
+	GETX_FUNC,  // get X position
+	GETY_FUNC,  // get Y position
+	SETVXY_FUNC, // set velocity of X & Y 
+	SETVX_FUNC, // set velocity X 
+	SETVY_FUNC, // set velocity Y 
+	GETVX_FUNC, // get velocity X 
+	GETVY_FUNC, // get velocity Y 
+	SETCOLOR_FUNC, // set Color 
 	WEB_RTC_BROADCAST_SEND_FUNC,
-
+	T_TIMER_RESET_FUNC,
 	NUMBER_OF_FUNCS,/* DO NOT REMOVE THIS LINE */
 };
 //<-- argTypes
 struct StdFuncTable __StdFuncTable__[] =
 {
-	[LOG_FUNC] = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
+	[LOG_FUNC]   = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
 	[SETXY_FUNC] = {lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
-	[SETX_FUNC] = {lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
-	[SETY_FUNC] = {lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
+	[SETX_FUNC]  = {lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
+	[SETY_FUNC]  = {lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument
+	[GETX_FUNC]  = {lib_getx, 0, NULL, Integer}, // getX function returns an integer
+	[GETY_FUNC]  = {lib_gety, 0, NULL, Integer}, // getY function returns an integer
 	[SETVXY_FUNC] = {lib_setvxy, 2, (int[]){Integer, Integer}, Undefined}, // setVXY function takes 2 arguments
 	[SETVX_FUNC] = {lib_setvx, 1, (int[]){Integer}, Undefined}, // setVX function takes 1 argument
 	[SETVY_FUNC] = {lib_setvy, 1, (int[]){Integer}, Undefined}, // setVY function takes 1 argument
+	[GETVX_FUNC] = {lib_getvx, 0, NULL, Integer}, // getVX function returns an integer
+	[GETVY_FUNC] = {lib_getvy, 0, NULL, Integer}, // getVY function returns an integer
 	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
 	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[T_TIMER_RESET_FUNC] = {lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 };
 
 int compile_func_init()
@@ -451,18 +634,26 @@ int compile_func_init()
 
 	FUNC = intern("setX");
 	FUNC->Symbol.value = newStdFunc(SETX_FUNC); // setX function
-
 	FUNC = intern("setY");
 	FUNC->Symbol.value = newStdFunc(SETY_FUNC); // setY function
+
+	FUNC = intern("getX");
+	FUNC->Symbol.value = newStdFunc(GETX_FUNC); // getX function
+	FUNC = intern("getY");
+	FUNC->Symbol.value = newStdFunc(GETY_FUNC); // getY function
 
 	FUNC = intern("setVXY");
 	FUNC->Symbol.value = newStdFunc(SETVXY_FUNC); // setVXY function
 
 	FUNC = intern("setVX");
 	FUNC->Symbol.value = newStdFunc(SETVX_FUNC); 
-
 	FUNC = intern("setVY");
 	FUNC->Symbol.value = newStdFunc(SETVY_FUNC);
+
+	FUNC = intern("getVX");
+	FUNC->Symbol.value = newStdFunc(GETVX_FUNC); 
+	FUNC = intern("getVY");
+	FUNC->Symbol.value = newStdFunc(GETVY_FUNC);
 
 	FUNC = intern("setColor");
 	FUNC->Symbol.value = newStdFunc(SETCOLOR_FUNC); // setColor function
@@ -497,9 +688,19 @@ oop web_rtc_broadcast_eo(oop stack)
 }
 
 oop time_eo(oop stack){
-	// Placeholder implementation for timer EO
-	printf("timer_eo called\n");
-	return 0;
+/*
+0: interval
+1: count 
+2: label (hold time for comparison)
+*/
+	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
+	oop* fields = getObj(instance, Instance, fields);
+	fields[0] = newIntVal(1); // interval
+	fields[1] = newIntVal(0); // count
+	time_t t = time(NULL);
+	fields[2] = newIntVal((int)(t % 10000)); // label
+	GC_POP(instance);
+	return instance;
 }
 
 enum {
@@ -516,7 +717,7 @@ eo_func_t __EventObjectFuncTable__[2] = {
 //nArgs, nFuncs, argTypes
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {2, 2, (int[]){String, String}}, // WebRTC broadcast event object with 2 arguments and 2 functions
-	[TIME_EO] = {1, 1, (int[]){Integer}}, // Timer event object with 1 argument and 1 function
+	[TIME_EO] = {0, 4, NULL}, // Timer event object with 1 argument and 1 function
 };
 
 int compile_eo_init(){
@@ -531,7 +732,17 @@ int compile_eo_init(){
 	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
 	func = newStdFunc(WEB_RTC_BROADCAST_SEND_FUNC);sym = newSymbol("send");
 	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
-
+//TIMER EO
+	sym = intern("timer");
+	eo = newEventObject(sym, TIME_EO);// var t = timer(interval, label);
+	func = newEventH(T_TIMER_SEC_EH);sym = newSymbol("sec");
+	putFuncToEo(eo, func, sym, 0);// t.sec(second);
+	func = newEventH(T_TIMER_MIN_EH);sym = newSymbol("min");
+	putFuncToEo(eo, func, sym, 1);// t.min(minute);
+	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hour");
+	putFuncToEo(eo, func, sym, 2);// t.hour(hour);
+	func = newStdFunc(T_TIMER_RESET_FUNC);sym = newSymbol("reset");
+	putFuncToEo(eo, func, sym, 3);// t.reset();
 	return 0; // return 0 to indicate success
 }
 

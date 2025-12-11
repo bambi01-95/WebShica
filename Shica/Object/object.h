@@ -19,7 +19,7 @@ typedef enum kind{
 	ArrVal,
 	IntArray,
 	Stack,
-	IntQue3,
+	Queue,
 	Thread,
 	EventHandler,
 	Agent,
@@ -66,10 +66,10 @@ struct Stack{
 	oop *elements;
 };
 
-struct IntQue3{
+struct Queue{
 	kind_t kind; // kind of the queue
-	char tail, head,size,nArgs;
-	oop que[3];
+	char tail, head,size,nArgs,capacity;
+	oop *que;
 };
 typedef int (*opfunc)(oop q);
 
@@ -128,7 +128,7 @@ union Object{
 	struct Thread Thread;
 	struct IntArray IntArray;
 	struct Stack Stack;
-	struct IntQue3 IntQue3;	
+	struct Queue Queue;	
 	struct IntVal IntVal;
 	struct FloVal FloVal;
 	struct StrVal StrVal;
@@ -161,11 +161,11 @@ void intArray_append(oop a, int value);
 int intArray_pop(oop a);
 int intArray_last(oop a);
 
-#define IntQue3Size 3
+#define QueueSize 4
 
-oop newQue3(int nArgs);
-void enqueue3(oop eh, oop value);
-oop dequeue3(oop thread);
+oop newQueue(int nArgs);
+void enqueue(oop eh, oop value);
+oop dequeue(oop thread);
 
 struct EventTable{
 	int (*eh)(oop eh); // event handler function

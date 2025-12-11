@@ -30,8 +30,6 @@ kind_t getKind(oop o)
 	return o->kind;
 #else
     if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT){
-		//print mask bit value
-		printf("Masked value: %ld\n", (((intptr_t)o) & TAGMASK));
 		return IntVal;
 	}
     if ((((intptr_t)o) & TAGMASK) == TAG_FLT_ENT) return FloVal;
@@ -219,16 +217,15 @@ int intArray_last(oop a)
 	return getObj(a, IntArray, elements)[getObj(a, IntArray, size) - 1];
 }
 
-// IntQue3
+// Queue
 
-oop newQue3(int nArgs)
+oop newQueue(int nArgs)
 {
-	GC_PUSH(oop, q, newEntity(IntQue3));
-	q->IntQue3.nArgs = nArgs;
-	q->IntQue3.tail = q->IntQue3.head = q->IntQue3.size = 0;
-	for (int i = 0;  i < IntQue3Size;  ++i) {
-		q->IntQue3.que[i] = (oop)gc_beAtomic(gc_alloc(sizeof(oop) * nArgs));
-	}
+	GC_PUSH(oop, q, newEntity(Queue));
+	q->Queue.nArgs = nArgs==0 ? 1 : nArgs;
+	q->Queue.tail = q->Queue.head = q->Queue.size = 0;
+	q->Queue.capacity = QueueSize;
+	q->Queue.que = (oop*)gc_beAtomic(gc_alloc(sizeof(oop) * QueueSize));
 	GC_POP(q);
 	return q;
 }
@@ -239,36 +236,35 @@ oop dupStack(oop stack)
 	return stack;
 }
 
-void enqueue3(const oop eh,const oop newStack)//value should be stack
+void enqueue(const oop eh,const oop newStack)//value should be stack
 {
 	assert(getKind(eh) == EventHandler);
 	assert(getKind(newStack) == Stack);
 	oop *threads = getObj(eh, EventHandler, threads);
 
-
 	for (int i = 0; i < getObj(eh, EventHandler, size); ++i) {
 		oop q = getObj(threads[i], Thread, queue);
-		if (getObj(q, IntQue3, size) >= IntQue3Size) {
-			fprintf(stderr, "enqueue3: queue is full\n");//need to fix this
-			getObj(q, IntQue3, size) = IntQue3Size; // reset size to max
-			//exit(1);
+		if (getObj(q, Queue, size) >= getObj(q, Queue, capacity)) {
+			getObj(q, Queue, capacity) *= 2;
+			gc_pushRoot((void*)q);
+			q->Queue.que = realloc(q->Queue.que, sizeof(oop) * getObj(q, Queue, capacity));
+			gc_popRoots(1);
 		}
-		getObj(q, IntQue3, que)[getObj(q, IntQue3, tail)] = i==0 ? newStack : dupStack(newStack);
-		getObj(q, IntQue3, tail) = (getObj(q, IntQue3, tail) + 1) % IntQue3Size;
-		getObj(q, IntQue3, size)++;
+		getObj(q, Queue, que)[getObj(q, Queue, tail)] = i==0 ? newStack : dupStack(newStack);
+		getObj(q, Queue, tail) = (getObj(q, Queue, tail) + 1) % getObj(q, Queue, capacity);
+		getObj(q, Queue, size)++;
 	}
 }
 
-oop dequeue3(oop thread)
+oop dequeue(oop thread)
 {
 	oop q = thread->Thread.queue;
-	if (q->IntQue3.size == 0) {
+	if (q->Queue.size == 0) {
 		return NULL; // queue is empty
 	}
-	oop stack = thread->Thread.stack =  q->IntQue3.que[q->IntQue3.head];
-
-	q->IntQue3.head = (q->IntQue3.head + 1) % IntQue3Size;
-	q->IntQue3.size--;
+	oop stack = thread->Thread.stack =  q->Queue.que[q->Queue.head];
+	q->Queue.head = (q->Queue.head + 1) % getObj(q, Queue, capacity);
+	q->Queue.size--;
 	thread->Thread.inProgress = 1; // mark thread as in progress
 	thread->Thread.rbp = 0;
 	thread->Thread.pc = thread->Thread.apos; // reset program counter to the start position
@@ -285,7 +281,7 @@ oop newThread(int aPos, int cPos,int ehIndex)
 	thread->Thread.stack = NULL;
 	thread->Thread.rbp = 0; // base pointer
 	thread->Thread.pc = 0; // program counter
-	thread->Thread.queue = newQue3(EventTable[ehIndex].nArgs);
+	thread->Thread.queue = newQueue(EventTable[ehIndex].nArgs);
 	GC_POP(thread);
 	return thread;
 }
@@ -465,14 +461,14 @@ void printObj(oop obj, int indent)
 		for(int i = 0; i< size; i++)printObj(ele[i],indent + 1);
 		break;
 	}
-	case IntQue3:{
-		printf("IntQue3\n");
-		int pos = obj->IntQue3.head;
-		for(int i = 0; i < obj->IntQue3.size; i++){
-			if(obj->IntQue3.que[pos] != NULL){
-				printObj(obj->IntQue3.que[pos], indent + 1); 
+	case Queue:{
+		printf("Queue\n");
+		int pos = obj->Queue.head;
+		for(int i = 0; i < obj->Queue.size; i++){
+			if(obj->Queue.que[pos] != NULL){
+				printObj(obj->Queue.que[pos], indent + 1); 
 			}
-			pos = (pos + 1) % IntQue3Size;
+			pos = (pos + 1) % obj->Queue.capacity;
 		}
 		break;
 	}

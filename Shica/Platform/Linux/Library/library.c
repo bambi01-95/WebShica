@@ -7,7 +7,7 @@ int event_handler(oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		enqueue(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 	}
 	return 0; // return 0 to indicate no event
 }
@@ -28,13 +28,12 @@ int timer_handler(oop eh){
 		eh->EventHandler.data[0] = newIntVal(now);
 		eh->EventHandler.data[1]++;
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+		enqueue(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
 }
-
-int timer_handler_init(oop eh){
+int timer_handler_init(oop eh){//normal timer handler (not EO)
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	eh->EventHandler.data[0] = newIntVal(now); //start time
@@ -68,10 +67,12 @@ int timer_sec_handler(oop eh){
 	int now = (int)(t % 10000);
 
 	if(now - pre >= interval){
+		printf("timer_sec_handler: interval %d reached\n", interval);
+		printf("pre: %d, now: %d\n", pre, now);
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
 		oop stack = newStack(0);
-		enqueue3(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		enqueue(eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0;
@@ -83,7 +84,7 @@ int timer_hour_handler(oop eh){
 	return 0;
 }
 
- struct EventTable __EventTable__[] = {
+struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0, NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char []){Integer}, 2},      // TIMER_EH
 	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
@@ -167,7 +168,7 @@ oop time_eo(oop stack){
 */
 	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
 	oop* fields = getObj(instance, Instance, fields);
-	fields[0] = newIntVal(0); // interval
+	fields[0] = newIntVal(1); // interval
 	fields[1] = newIntVal(0); // count
 	time_t t = time(NULL);
 	fields[2] = newIntVal((int)(t % 10000)); // label
