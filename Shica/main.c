@@ -178,8 +178,8 @@ oop impleBody(oop code, oop eh, oop agent){
 		oop thread = threads[i];
 		if(getObj(thread, Thread, inProgress) == 1){
 			ret = execute(code,thread, agent);
-		}else if(getObj(thread, Thread, queue)->IntQue3.size > 0){
-			getObj(thread, Thread, stack) = dequeue3(thread);
+		}else if(getObj(thread, Thread, queue)->Queue.size > 0){
+			getObj(thread, Thread, stack) = dequeue(thread);
 			assert(getObj(thread, Thread, stack) != NULL);
 			ret = execute(code, thread, agent);
 		}
@@ -2382,17 +2382,17 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors Stack done\n");
 			return;
 		}
-		case IntQue3:{
-			dprintf("markExecutors IntQue3\n");
-			int pos = ptr->IntQue3.head;
-			for(int i = 0; i < ptr->IntQue3.size; i++){
-				if(ptr->IntQue3.que[pos] != NULL){
-					gc_mark(ptr->IntQue3.que[pos]); 
+		case Queue:{
+			dprintf("markExecutors Queue\n");
+			int pos = ptr->Queue.head;
+			for(int i = 0; i < ptr->Queue.size; i++){
+				if(ptr->Queue.que[pos] != NULL){
+					gc_mark(ptr->Queue.que[pos]); 
 				}
-				pos = (pos + 1) % IntQue3Size;
+				pos = (pos + 1) % ptr->Queue.capacity;
 			}
-			//que[3] is fixed size
-			dprintf("markExecutors IntQue3 done\n");
+			gc_markOnly(ptr->Queue.que); // mark the queue elements
+			dprintf("markExecutors Queue done\n");
 			return;
 		}
 		case Thread:{
