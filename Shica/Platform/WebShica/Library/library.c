@@ -323,7 +323,7 @@ int collision_handler(oop eh)
 int self_state_handler(oop eh)
 {
 	int state = 0;
-	if (eh->IntQue3.head < eh->IntQue3.tail) {
+	if (eh->Queue.head < eh->Queue.tail) {
 		oop stack = newStack(0);
 		enqueue(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
 		printf("self state event: %d\n", state);
@@ -695,7 +695,7 @@ oop time_eo(oop stack){
 */
 	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
 	oop* fields = getObj(instance, Instance, fields);
-	fields[0] = newIntVal(0); // interval
+	fields[0] = newIntVal(1); // interval
 	fields[1] = newIntVal(0); // count
 	time_t t = time(NULL);
 	fields[2] = newIntVal((int)(t % 10000)); // label
@@ -717,7 +717,7 @@ eo_func_t __EventObjectFuncTable__[2] = {
 //nArgs, nFuncs, argTypes
 struct EventObjectTable __EventObjectTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = {2, 2, (int[]){String, String}}, // WebRTC broadcast event object with 2 arguments and 2 functions
-	[TIME_EO] = {1, 1, (int[]){Integer}}, // Timer event object with 1 argument and 1 function
+	[TIME_EO] = {0, 4, NULL}, // Timer event object with 1 argument and 1 function
 };
 
 int compile_eo_init(){
