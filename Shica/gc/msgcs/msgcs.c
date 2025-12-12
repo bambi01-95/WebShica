@@ -23,6 +23,16 @@ void gcfatal(const char *fmt, ...)
     va_end(ap);
     exit(1);
 }
+void gc_check_ctx(const gc_context *ctx)
+{
+    if (!ctx) gcfatal("gc context is NULL");
+    if (!ctx->memory) gcfatal("gc context memory is NULL");
+    if (!ctx->memend) gcfatal("gc context memend is NULL");
+    if (!ctx->memnext) gcfatal("gc context memnext is NULL");
+    if (ctx->memory >= ctx->memend) gcfatal("gc context memory >= memend");
+    if (ctx->memnext < ctx->memory || ctx->memnext >= ctx->memend)
+        gcfatal("gc context memnext out of bounds");
+}
 
 void print_gc_header(const gc_header *ptr);
 /* MEMO

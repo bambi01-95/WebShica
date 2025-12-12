@@ -58,6 +58,8 @@ typedef struct gc_context gc_context;
 
 gc_context *newGCContext(const int size); // create a new GC context with given size
 
+void gc_check_ctx(const gc_context *ctx); // check the validity of the GC context
+
 extern unsigned int nctx; // number of processes (contexts) using the GC
 extern gc_context gc_ctx; // whole memory context
 extern gc_context *ctx; // current context

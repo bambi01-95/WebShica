@@ -217,6 +217,11 @@ int runNative(oop code){
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				oop ret = impleBody(code, eh, agent);
 				if(ret == retFlags[TRANSITION_F]){
+					//initialize event objects
+					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
+						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
+						reinitializeEventObject(eh2);
+					}
 					getObj(agent,Agent,isActive) = 0;
 					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
 					getObj(agent, Agent, eventHandlers) = NULL;
@@ -2728,6 +2733,10 @@ int executeWebCodes(void)
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
 				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
+					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
+						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
+						reinitializeEventObject(eh2);
+					}
 					getObj(agent, Agent, isActive) = 0;
 					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
 					getObj(agent, Agent, eventHandlers) = NULL;

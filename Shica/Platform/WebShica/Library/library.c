@@ -347,18 +347,24 @@ int click_handler(oop eh)
 //CCALL id: agnet index, ptr: event handler pointer, message: received message
 int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//CCCALL
 {
-	gc_context *ctx_copy = ctx;
-	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	gc_context *copy_ctx = ctx;
+	gc_context **ctxs = (gc_context **)ctx->roots;
 	ctx = ctxs[id]; // use the first web agent context
+	gc_check_ctx(ctx); // check the validity of the context
 	oop *ehp = (oop *)ptr;
 	oop eh = *ehp;
+	if(getKind(eh) != EventHandler){
+		ctx = copy_ctx; // restore context
+		return 1;
+	}// this agent does not have event handler
+	console("agnet %d received message from %d: %s\n", id, sender, message);
 	oop stack = newStack(0);
 	char buf[3];
 	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
 	pushStack(stack, newStrVal(message)); // message
 	pushStack(stack, newStrVal(buf)); // sender
 	enqueue(eh, stack); // enqueue the stack
-	ctx = ctx_copy; // restore context
+	ctx = copy_ctx; // restore context
 	return 1;
 }
 
@@ -372,7 +378,7 @@ int web_rtc_broadcast_receive_handler_init(oop eh){
 	printf("\x1b[31m[C] web_rtc_broadcast_receive_handler_init called\x1b[0m\n");
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
-	instance->Instance.fields[2]= eh; // hold event handler pointer
+	instance->Instance.fields[0]= eh; // hold event handler pointer
 	return 1;
 }
 
@@ -676,13 +682,13 @@ oop web_rtc_broadcast_eo(oop stack)
 2: eh internal pointer
 */
 	GC_PUSH(oop,instance,newInstance(3));
-	getInstanceField(instance, 0) = popStack(stack); // channel
-	getInstanceField(instance, 1) = popStack(stack); // password
-	getInstanceField(instance, 2) = newIntVal(12); // placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
+	getInstanceField(instance, 0) = NULL ;// placeholder for internal pointer (web_rtc_broadcast_receive__ will set this)
+	getInstanceField(instance, 1) = popStack(stack); // channel
+	getInstanceField(instance, 2) = popStack(stack); // password
 	_web_rtc_broadcast_eo_(CurrentAgentIndex,
-							   getObj(getInstanceField(instance,0), StrVal, value),
-	                           getObj(getInstanceField(instance,1), StrVal, value),
-	                           (void*)&instance->Instance.fields[2]);// set internal pointer
+							   getObj(getInstanceField(instance,1), StrVal, value),
+	                           getObj(getInstanceField(instance,2), StrVal, value),
+	                           (void*)&instance->Instance.fields[0]);// set internal pointer
 	GC_POP(instance);
 	return instance;
 }
@@ -709,7 +715,7 @@ enum {
 	END_EO, /* DO NOT REMOVE THIS LINE */
 };
 
-eo_func_t __EventObjectFuncTable__[2] = {
+eo_func_t __EventObjectFuncTable__[] = {
 	[WEB_RTC_BROADCAST_EO] = web_rtc_broadcast_eo,
 	[TIME_EO] = time_eo,
 };

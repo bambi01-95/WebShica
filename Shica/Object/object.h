@@ -219,6 +219,7 @@ struct EventObjectTable{
 };
 extern struct EventObjectTable *EventObjectTable;
 void setEventObjectTable(struct EventObjectTable *tables);
+void reinitializeEventObject(oop eh);
 
 int printAgent(oop agent);
 void printObj(oop obj, int indent);
