@@ -132,12 +132,12 @@ stt on{
 
 
 const sampleCodes: string[] = [
+    WebRtcReceiverSample_v2,
+    webRtcSenderSample,
     timerSample,
     touchSample,
     collisionSample,
     radioButtonGroupSample,
-    WebRtcReceiverSample_v2,
-    webRtcSenderSample,
     webRtcReceiverSample,
     stateChangeSample,
     clickSample,

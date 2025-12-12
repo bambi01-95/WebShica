@@ -423,7 +423,7 @@ const ShicaPage = () => {
             agentptr + offset + agentObjectOffset.index,
             "i32"
           );
-          console.log("\x1b[32m%s\x1b[0m", `Agent[${index}] is updating...`);
+          console.log(`Agent[${index}] is updating...`);
           const x = Module.getValue(
             agentptr + offset + agentObjectOffset.x,
             "i32"
