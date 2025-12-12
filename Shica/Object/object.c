@@ -402,6 +402,19 @@ void setEventObjectTable(struct EventObjectTable *table)
 {
 	EventObjectTable = table;
 }
+void reinitializeEventObject(oop eh)
+{
+	assert(getKind(eh) == EventHandler);
+// initialize event objects
+	if(eh->EventHandler.data[0] == NULL || getKind(eh->EventHandler.data[0]) != Instance){
+			return;//not event object
+	}
+	if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
+	){
+		eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
+	}
+	return;
+}
 
 int printAgent(oop agent)
 {

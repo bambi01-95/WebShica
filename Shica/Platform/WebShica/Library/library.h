@@ -101,7 +101,7 @@ extern struct StdFuncTable __StdFuncTable__[];
 int compile_func_init();
 
 /*=============== Event Object Table ===============*/
-extern  eo_func_t __EventObjectFuncTable__[2];
+extern  eo_func_t __EventObjectFuncTable__[];
 int compile_eo_init();
 
 /*================END =========================*/

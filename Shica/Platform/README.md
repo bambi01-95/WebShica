@@ -13,8 +13,11 @@ enum{
 };
 struct EventTable __EventTable__[] ={
 
-}
+};
 struct StdFuncTable __StdFuncTable__[] ={
     
-}
+};
+struct EventObjectTable __EventObjectTable__[] = {
+
+};
 ```

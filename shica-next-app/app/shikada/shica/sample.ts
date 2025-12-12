@@ -109,22 +109,18 @@ stt off(){
   entryEH(){
     setColor(255, 0, 0);
   }
-  clickEH(int x,int y){
+  touchEH(int c){
     chat.send("Button OFF clicked",0);
     stt on;
   }
 }
   
-stt on{
+stt on(){
   entryEH(){
     setColor(0, 255, 0);
   }
-  clickEH(int x,int y){
-    chat.send("Button ON clicked",0);
-    stt off;
-  }
+  touchEH(int c){stt off;}
   chat.received(str from, str msg){
-    print("msg from ", from, ": ", msg);
     stt off;
   }
 }`;
@@ -132,6 +128,8 @@ stt on{
 
 
 const sampleCodes: string[] = [
+  radioButtonGroupSample,
+  radioButtonGroupSample,
     WebRtcReceiverSample_v2,
     webRtcSenderSample,
     timerSample,
