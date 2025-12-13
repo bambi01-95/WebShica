@@ -237,12 +237,15 @@ const ShicaPage = () => {
             logLevel = LogLevel.INFO;
             break;
           case "2":
-            logLevel = LogLevel.WARN;
+            logLevel = LogLevel.LOG;
             break;
           case "3":
-            logLevel = LogLevel.ERROR;
+            logLevel = LogLevel.WARN;
             break;
           case "4":
+            logLevel = LogLevel.ERROR;
+            break;
+          case "5":
             logLevel = LogLevel.FATAL;
             break;
           default:

@@ -530,7 +530,7 @@ int locked = 0; // for print functions
 			continue;
 		}
 #ifdef WEBSHICA
-#define reportMessage(TYPE,AGENT_INDEX, FMT) _reportError(TYPE, AGENT_INDEX, "%s", FMT)
+#define reportMessage(AGENT_INDEX, FMT) _reportError(LOG, AGENT_INDEX, "%s", FMT)
 		case iPRINT:{
 			printOP(iPRINT);
 			char buf[32];
@@ -552,16 +552,13 @@ int locked = 0; // for print functions
 			printOP(sPRINT);
 			oop obj = pop();
 			char *str = StrVal_value(obj);
-			printf("str: %s\n", str);
 			log_message = strcatlog(log_message, str);
-			printf("log_message: %s\n", log_message);
 			locked = 1;
 			continue;
 		}
 		case flashPRINT:{
-			reportMessage(INFO, getCurrentAgentIndex(),log_message);
-			printf("flash print: %s\n", log_message);
-			gc_popRoots(1); // pop log_message
+			reportMessage(getCurrentAgentIndex(),log_message);
+			gc_popRoots(1); // pop log_message (pushed from strcatlog)
 			locked = 0;
 			log_message = 0;
 			continue;
