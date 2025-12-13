@@ -387,7 +387,6 @@ int timer_sec_handler(oop eh){
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
 	assert(fields != NULL);
-
 	oop obj = fields[0];
 	assert(obj != NULL);
 	assert(getKind(obj) == IntVal);
