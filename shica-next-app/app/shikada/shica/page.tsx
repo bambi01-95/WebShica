@@ -222,13 +222,6 @@ const ShicaPage = () => {
     if (!Module || !isReady) return;
     const numErrors = Module.ccall("getNumOfErrorMsg", "number", [], []);
     if (numErrors > 0) {
-      const errorType = [
-        "WARNING",
-        "ERROR",
-        "FATAL",
-        "DEVELOPER",
-        "UNSUPPORTED",
-      ];
       for (let i = 0; i < numErrors; i++) {
         const errorMsg = Module.ccall("getErrorMsg", "string", [], []);
         const errorLevel = errorMsg.charAt(0);
@@ -409,6 +402,7 @@ const ShicaPage = () => {
           clearInterval(intervalRef.current!);
           return;
         }
+        processError();
         const agentptr = Module.ccall(
           "getAnAgentDataPtr",
           "number",

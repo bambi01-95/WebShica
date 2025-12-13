@@ -140,6 +140,10 @@ int *getAnAgentDataPtr(int index){
 	return (int*)&allAgentData[index]; // Return pointer to the agent data at the given index
 }
 
+int getCurrentAgentIndex(){
+	return CurrentAgentIndex;
+}
+
 int setActiveAgent(int index)
 {
 	if (index < 0 || index >= ALL_AGENT_SIZE) {

@@ -31,7 +31,30 @@ UserFunc Name: should start with a lowwer letter
 #include "./Tool/tool.h"
 
 #ifdef WEBSHICA
+//LOG STYLE:125) 0 type| 4 line | other 
+#define LOG_MAX_SIZE 120
 #include "./Platform/WebShica/Library/library.h"
+//EXECUTOR 
+// ONLY CALL xPRINT
+char *strcatlog(char *dest, const char *src){
+
+	if(dest==NULL){
+		gc_pushRoot((void*)&src);
+		dest = (char*)gc_beAtomic(gc_alloc(sizeof(char)*(LOG_MAX_SIZE)));
+		dest[0] = '\0';
+		gc_popRoots(1);
+		gc_pushRoot((void*)&dest);//should be poped flashPRINT
+	}
+	if(src==NULL)return dest;
+	unsigned int len = 0;
+	while(dest[len] != '\0') len++;
+	while(*src != '\0'){
+		dest[len++] = *src++;
+		if(len >= LOG_MAX_SIZE -1) break;
+	}
+	dest[len] = '\0';
+	return dest;
+}
 #else // LINUX
 #include "./Platform/Linux/Library/library.h"
 #endif
@@ -267,14 +290,24 @@ oop execute(oop prog,oop entity, oop agent)
 			return retFlags[ERROR_F]; // should never reach here
 		}
 	}
+#ifdef WEBSHICA
+char *log_message = 0; // for logging
+int locked = 0; // for print functions
+#endif 
 
 # define fetch()	code[(*pc)++]
 
     for (;;) {
 
+#ifdef WEBSHICA
+	if (opstep-- <= 0 && !locked) {
+		return retFlags[CONTINUE_F]; // return CONTINUE_F to indicate that the execution is not finished
+	}
+#else
 	if (opstep-- <= 0) {
 		return retFlags[CONTINUE_F]; // return CONTINUE_F to indicate that the execution is not finished
 	}
+#endif
 
 	int op = fetch();
 	int l = 0, r = 0;
@@ -290,7 +323,7 @@ oop execute(oop prog,oop entity, oop agent)
 			}
 			continue;
 		}
-#if WEBSHICA
+#ifdef WEBSHICA
 	    case iGT:printOP(iGT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l > r));  continue;
 		case iGE:printOP(iGE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l >= r)); continue;
 		case iEQ:printOP(iEQ);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l == r)); continue;
@@ -496,6 +529,45 @@ oop execute(oop prog,oop entity, oop agent)
 			}
 			continue;
 		}
+#ifdef WEBSHICA
+#define reportMessage(TYPE,AGENT_INDEX, FMT) _reportError(TYPE, AGENT_INDEX, "%s", FMT)
+		case iPRINT:{
+			printOP(iPRINT);
+			char buf[32];
+			sprintf(buf, "%d", IntVal_value(pop()));
+			log_message = strcatlog(log_message, buf);
+			locked = 1;
+			continue;
+		}
+		case fPRINT:{
+			printOP(fPRINT);
+			oop obj = pop();
+			char buf[32];
+			sprintf(buf, "%f", FloVal_value(obj));
+			log_message = strcatlog(log_message, buf);
+			locked = 1;
+			continue;
+		}
+		case sPRINT:{
+			printOP(sPRINT);
+			oop obj = pop();
+			char *str = StrVal_value(obj);
+			printf("str: %s\n", str);
+			log_message = strcatlog(log_message, str);
+			printf("log_message: %s\n", log_message);
+			locked = 1;
+			continue;
+		}
+		case flashPRINT:{
+			reportMessage(INFO, getCurrentAgentIndex(),log_message);
+			printf("flash print: %s\n", log_message);
+			gc_popRoots(1); // pop log_message
+			locked = 0;
+			log_message = 0;
+			continue;
+		}
+#undef reportMessage
+#else
 		case iPRINT:{
 			printOP(iPRINT);
 			int val = IntVal_value(pop());
@@ -519,6 +591,7 @@ oop execute(oop prog,oop entity, oop agent)
 			printf("\n");
 			continue;
 		}
+#endif // Print
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
