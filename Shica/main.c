@@ -522,7 +522,7 @@ oop execute(oop prog,oop entity, oop agent)
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			pushStack(getObj(agent, Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position:
+			pushStack(getObj(agent, Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position: 
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
@@ -564,6 +564,7 @@ oop execute(oop prog,oop entity, oop agent)
 				if(instance == NULL){
 					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}else{
+					assert(instance->kind == Instance);
 					ehs[i]->EventHandler.data[0]/*event object eh data[0] should be hold instance data*/ = instance;
 					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}
@@ -573,11 +574,9 @@ oop execute(oop prog,oop entity, oop agent)
 					printOP(iSETPROCESS);
 					l = fetch(); // get the aPos
 					r = fetch(); // get the cPos
-					printf("helo1");
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
-			printf("helo2");
 			op = fetch();
 			assert(op == iIMPL);
 			printOP(iIMPL);
@@ -734,17 +733,17 @@ void appendS0T1(node name, int pos,int type)
 	}
 	node *lists = type == APSTATE ? states : transitions;
 	int *listSize = type == APSTATE ? &nstates : &ntransitions;
-	for (int i = 0;  i < *listSize;  ++i) {
-		node stateName = getNode(lists[i], Pair,a);
-		if (stateName == name) {
-			printf("state %s already exists\n", getNode(name, Symbol,name));
-			return;
-		}
-	}
 
 	gc_pushRoot((void*)&name);
 	switch(type){
 		case APSTATE:{
+			for (int i = 0;  i < *listSize;  ++i) {
+				node stateName = getNode(lists[i], Pair,a);
+				if (stateName == name) {
+					printf("state %s already exists\n", getNode(name, Symbol,name));
+					return;
+				}
+			}
 			states = realloc(states, sizeof(node) * (nstates + 1));
 			states[nstates] = newPair(name, newInteger(pos));
 			nstates++;
@@ -1569,47 +1568,53 @@ int emitOn(oop prog,node vars, node ast, node type)
 
 			// compile events  
 			node *eventList = events->Block.statements;
-			int nElements = 0;
-			int elements[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
-			int nEventHandlers = 0;
+			int isEntryExit = 0;
+			int process_sizes[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
+			int nEventHandlers = 0;// number of unique event handlers	
 			node preid =  FALSE;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
 			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
-
+			printf("Block size: %d\n", getNode(events, Block, size));
 			for (int i = 0;  i < getNode(events, Block, size);  ++i) {
+				printf("Compiling event %d/%d\n", i+1, getNode(events, Block, size));//remove
 				if(eventList[i] == NULL){
 					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
 					popUserTypeIndex(vars);
-					return 1;
-				}
-				if((getNode(eventList[i], Event,id) == entryEH) || (getNode(eventList[i], Event,id) == exitEH)){
-					dprintf("entryEH or exitEH\n");
-					elements[nElements++] = 0; // collect empty events
-					continue;
+					return 1; // eventList[i] is NULL
 				}
 				if(getType(eventList[i])!=Event){
 					fatal("file %s line %d emitOn: eventList[%d] is not an Event", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 					popUserTypeIndex(vars);
-					return 1;
+					return 1; // eventList[i] is not an Event
+				}
+				if((getNode(eventList[i], Event,id) == entryEH) || (getNode(eventList[i], Event,id) == exitEH)){
+					dprintf("entryEH or exitEH\n");
+					isEntryExit++;
+					process_sizes[nEventHandlers++] = 0; // collect empty events
+					continue;
 				}
 				else if(getNode(eventList[i], Event,id) != preid) {
 					dprintf("new event\n");
-					nEventHandlers++;
 					preid = getNode(eventList[i], Event,id);
-					elements[nElements]=1; // collect unique events
+					process_sizes[nEventHandlers++]=1; // collect unique events
 				}else if(getNode(eventList[i], Event,id) == preid){
 					dprintf("same event\n");
-					elements[nElements]++;
+					process_sizes[nEventHandlers]+=1; // increment number of event handlers block
+				}else{
+					fatal("file %s line %d emitOn: unreachable code", __FILE__, __LINE__);
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					popUserTypeIndex(vars);
+					return 1; // unreachable code
 				}
 				dprintf("eventList[%d]: %s\n", i, getNode(eventList[i], Event,id)->Symbol.name);
 				if(emitOn(prog, vars, eventList[i], type)) {
 					popUserTypeIndex(vars);
-					return 1; // compile each event
+					return 1; // error compiling event
 				}
-			}
+			}// end for
 			dprintf("Finished collecting events\n");
 
 			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
@@ -1622,10 +1627,13 @@ int emitOn(oop prog,node vars, node ast, node type)
 					return 1; // compile entryEH
 				}
 			}
-			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
-			for(int i =0 ,  ehi =0;  i < getNode(events, Block, size);  ++i) {
-				if(elements[i] == 0){ ehi++;continue;} // skip empty events
-				node id = getNode(eventList[i], Event,id);
+			emitII(prog, iSETSTATE, nEventHandlers - isEntryExit); // set the number of events and position
+			printf("Number of event handlers: %d\n", nEventHandlers);//remove
+			// OPECODE FOR EVENTS
+			for(int ei =0 ,  ehi =0; ehi < nEventHandlers;  ehi++) {
+				if(process_sizes[ehi] == 0){ ei++;continue;} // skip empty events
+				printf("Make Opcode for Event %d\n", ehi);//remove
+				node id = getNode(eventList[ei], Event,id);
 
 				if(getType(id) == GetField)//chat.received()
 				{
@@ -1645,19 +1653,27 @@ int emitOn(oop prog,node vars, node ast, node type)
 						}
 						_i++;
 					}
-				}
+				}//end if
 
 				node eh = getNode(id,Symbol,value);
-
 				int eventID = getNode(eh, EventH, index); // get event ID
-				emitIII(prog, iSETEVENT, eventID, elements[ehi]); // emit SETEVENT instruction
-				for(int j = 0; j < elements[ehi]; ++j) {
-					node event = eventList[i++];
+				emitIII(prog, iSETEVENT, eventID, process_sizes[ehi]); // emit SETEVENT instruction
+#if DEBUG
+				if(process_sizes[ehi] <= 0){
+					fatal("file %s line %d emitOn: process_sizes[%d] is %d", __FILE__, __LINE__, ehi, process_sizes[ehi]);
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					popUserTypeIndex(vars);
+					return 1; // process_sizes[ehi] is invalid
+				}
+#endif
+				printf("Number of events for this handler: %d\n", process_sizes[ehi]);//remove
+				for(int j = 0; j < process_sizes[ehi]; ++j) {
+					printf("Event List index: %d\n", ei);//remove
+					node event = eventList[ei++];//<< this makes error
 					node posPair = getNode(event, Event,block);
 					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a))/*action*/,Integer_value(getNode(posPair,Pair,b))/*condition*/); // set the position of the event handler)
 				}
-				ehi++; // increment event handler index
-			}
+			}// end for
 			emitI(prog, iIMPL);
 			// exitEH
 			for(int i = 0; i < getNode(events, Block, size); i++){
@@ -2736,6 +2752,11 @@ int executeWebCodes(void)
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
 						reinitializeEventObject(eh2);
+					}
+					if(getKind(agent->Agent.stack->Stack.elements[0]) == Instance){
+						printf("OK instance\n");
+					}else{
+						printf("NOT instance\n");
 					}
 					getObj(agent, Agent, isActive) = 0;
 					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
