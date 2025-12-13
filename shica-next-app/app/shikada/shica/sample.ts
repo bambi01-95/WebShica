@@ -90,6 +90,7 @@ stt state1(){
   entryEH(){
     setVX(5);
     setColor(225, 255, 255);
+    print("state1 entered");
   }
   clickEH(int x,int y){stt state2;}
 }
@@ -98,6 +99,7 @@ stt state2(){
   entryEH(){
     setVX(-5);
     setColor(255, 0, 0);
+    print("state2 entered");
   }
   clickEH(int x,int y){stt state1;}
 }`; 
@@ -128,6 +130,7 @@ stt on(){
 
 
 const sampleCodes: string[] = [
+    stateChangeSample,
   radioButtonGroupSample,
   radioButtonGroupSample,
     WebRtcReceiverSample_v2,
@@ -137,7 +140,7 @@ const sampleCodes: string[] = [
     collisionSample,
     radioButtonGroupSample,
     webRtcReceiverSample,
-    stateChangeSample,
+
     clickSample,
 ];
 

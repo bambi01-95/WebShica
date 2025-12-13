@@ -35,6 +35,7 @@ struct AgentData {
 	char isLEDOn; // offset 35
 };
 typedef struct AgentData *AgentPtr;
+int getCurrentAgentIndex();
 
 /*==============   TIMER  ================= */
 int *initWebTimerPtr();

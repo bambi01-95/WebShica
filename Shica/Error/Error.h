@@ -18,6 +18,7 @@ void _stop(const char *file, int line);
 typedef enum {
     DEVELOPER,
     INFO,
+    LOG,
     WARNING,
     ERROR,
     FATAL,
