@@ -110,16 +110,18 @@ var chat = broadcast("shica","pwd");
 stt off(){
   entryEH(){
     setColor(255, 0, 0);
+    print("Im OFF");
   }
   touchEH(int c){
-    chat.send("Button OFF clicked",0);
     stt on;
   }
 }
   
 stt on(){
   entryEH(){
+    chat.send("Im ON",0);
     setColor(0, 255, 0);
+    print("Im ON");
   }
   touchEH(int c){stt off;}
   chat.received(str from, str msg){
