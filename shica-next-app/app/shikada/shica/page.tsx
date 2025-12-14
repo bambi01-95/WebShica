@@ -238,7 +238,9 @@ const ShicaPage = () => {
             break;
           case "2":
             logLevel = LogLevel.LOG;
-            break;
+            const logMessage = `[${errorLine} %] ${errorMessage}`;
+            addLog(logLevel, logMessage);
+            continue;
           case "3":
             logLevel = LogLevel.WARN;
             break;
