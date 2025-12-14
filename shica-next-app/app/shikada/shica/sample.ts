@@ -130,18 +130,18 @@ stt on(){
 
 
 const sampleCodes: string[] = [
-    stateChangeSample,
-  radioButtonGroupSample,
-  radioButtonGroupSample,
-    WebRtcReceiverSample_v2,
-    webRtcSenderSample,
-    timerSample,
-    touchSample,
-    collisionSample,
-    radioButtonGroupSample,
-    webRtcReceiverSample,
+// stateChangeSample,
+radioButtonGroupSample,
+radioButtonGroupSample,
+WebRtcReceiverSample_v2,
+webRtcSenderSample,
+timerSample,
+touchSample,
+collisionSample,
+radioButtonGroupSample,
+webRtcReceiverSample,
 
-    clickSample,
+clickSample,
 ];
 
 

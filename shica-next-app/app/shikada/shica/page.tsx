@@ -129,11 +129,30 @@ const ShicaPage = () => {
     disconnectUserFromTopic(number, channel);
   }, [disconnectUserFromTopic]);
 
+  const addWebRtcBroadcastRef = useRef(_addWebRtcBroadcast);
+  const sendWebRtcBroadcastRef = useRef(_sendWebRtcBroadcast);
+  const removeWebRtcBroadcastRef = useRef(_removeWebRtcBroadcast);
+
+  useEffect(() => {
+    addWebRtcBroadcastRef.current = _addWebRtcBroadcast;
+  }, [_addWebRtcBroadcast]);
+
+  useEffect(() => {
+    sendWebRtcBroadcastRef.current = _sendWebRtcBroadcast;
+  }, [_sendWebRtcBroadcast]);
+
+  useEffect(() => {
+    removeWebRtcBroadcastRef.current = _removeWebRtcBroadcast;
+  }, [_removeWebRtcBroadcast]);
+
   useEffect(() => {
     if (!isReady) return;
-    (globalThis as any)._addWebRtcBroadcast = _addWebRtcBroadcast;
-    (globalThis as any)._sendWebRtcBroadcast = _sendWebRtcBroadcast;
-    (globalThis as any)._removeWebRtcBroadcast = _removeWebRtcBroadcast;
+    (globalThis as any)._addWebRtcBroadcast = (...args: Parameters<typeof _addWebRtcBroadcast>) =>
+      addWebRtcBroadcastRef.current?.(...args);
+    (globalThis as any)._sendWebRtcBroadcast = (...args: Parameters<typeof _sendWebRtcBroadcast>) =>
+      sendWebRtcBroadcastRef.current?.(...args);
+    (globalThis as any)._removeWebRtcBroadcast = (...args: Parameters<typeof _removeWebRtcBroadcast>) =>
+      removeWebRtcBroadcastRef.current?.(...args);
     console.log("🌐 Registered WebRTC bridge functions to globalThis");
 
     return () => {
@@ -141,7 +160,7 @@ const ShicaPage = () => {
       delete (globalThis as any)._sendWebRtcBroadcast;
       delete (globalThis as any)._removeWebRtcBroadcast;
     };
-  }, [isReady, _addWebRtcBroadcast, _sendWebRtcBroadcast, _removeWebRtcBroadcast]);
+  }, [isReady]);
   
   //for user sample code
   const [clickXY, setClickXY] = useState<{ x: number; y: number }>({
