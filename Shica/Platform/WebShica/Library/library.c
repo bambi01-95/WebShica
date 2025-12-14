@@ -464,8 +464,21 @@ int compile_eh_init(){
 
 int lib_log(oop stack)
 {
-	int value = IntVal_value(popStack(stack)); // get value from stack
-	printf("log: %d\n", value); // print value to console
+	oop val = popStack(stack); // get value from stack
+	switch(getKind(val)) {
+		case IntVal:
+			console("LOG: %d\n", IntVal_value(val));
+			break;
+		case FloVal:
+			console("LOG: %f\n", getObj(val, FloVal, value));
+			break;
+		case StrVal:
+			console("LOG: %s\n", getObj(val, StrVal, value));
+			break;
+		default:
+			console("LOG: [Unsupported type]\n");
+			break;
+	}
 	return 0;
 }
 
@@ -616,7 +629,7 @@ int lib_timer_reset(oop stack)
 //<-- argTypes
 struct StdFuncTable __StdFuncTable__[] =
 {
-	[LOG_FUNC]   = {lib_log, 1, (int[]){Integer}, Undefined}, // log function takes 1 argument
+	[LOG_FUNC]   = {lib_log, 1, (int[]){Undefined}, Undefined}, // log function takes 1 argument
 	[SETXY_FUNC] = {lib_setxy, 2, (int[]){Integer, Integer}, Undefined}, // setXY function takes 2 arguments
 	[SETX_FUNC]  = {lib_setx, 1, (int[]){Integer}, Undefined}, // setX function takes 1 argument
 	[SETY_FUNC]  = {lib_sety, 1, (int[]){Integer}, Undefined}, // setY function takes 1 argument

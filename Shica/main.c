@@ -936,7 +936,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 		case Undefined:
 		case Integer:{
 			printTYPE(_Integer_);
-			if(type != TYPES[Integer]){
+			if(type == TYPES[Undefined]){
+				// allow any type
+				dprintf("[C] type undefined, allow any type\n");
+			}else if(type != TYPES[Integer]){
 				printf("[C] type mismatch: expected %d, got Integer\n", GET_OOP_FLAG(type));
 				reportError(ERROR, 0, "type mismatch: expected %d, got Integer", GET_OOP_FLAG(type));
 				return 1;
@@ -946,7 +949,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 		}
 		case String:{
 			printTYPE(_String_);
-			if(type != TYPES[String]){
+			if(type == TYPES[Undefined]){
+				// allow any type
+				dprintf("[C] type undefined, allow any type\n");
+			}else if(type != TYPES[String]){
 				reportError(ERROR, 0, "type mismatch: expected %d, got String", GET_OOP_FLAG(type));
 				return 1;
 			}
