@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #endif
 
+
+
 void _fatal(const char *file, int line, const char *msg, ...)
 {
 	va_list ap;

@@ -106,8 +106,7 @@ const char *getOpcodeName(int opcode);
 #define printOP(op) printf("%s\n", getOpcodeName(op))
 #else
 const char *getOpcodeName(int opcode);
-#define printOP(op) (void)0 
-// no-op in release mode
+#define printOP(op) (void)0
 #endif // DEBUG
 
 

@@ -109,7 +109,7 @@ var chat = broadcast("shica","pwd");
 
 stt off(){
   entryEH(){
-    setColor(255, 0, 0);
+    setColor(0, 0, 0);
     print("Im OFF");
   }
   touchEH(int c){
@@ -120,7 +120,7 @@ stt off(){
 stt on(){
   entryEH(){
     chat.send("Im ON",0);
-    setColor(0, 255, 0);
+    setColor(255, 0, 0);
     print("Im ON");
   }
   touchEH(int c){stt off;}

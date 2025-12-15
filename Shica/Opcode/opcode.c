@@ -10,7 +10,6 @@ const char *getOpcodeName(int opcode) {
     }
     return _opcode_names[opcode];
 }
-#define printOP(op) printf("%s\n", getOpcodeName(op))
 #else
 const char *getOpcodeName(int opcode) {
     return "_PLEASE_COMPILE_WITH_DEBUG_: opcode_names not available";

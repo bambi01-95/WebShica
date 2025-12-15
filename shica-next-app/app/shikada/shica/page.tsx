@@ -314,7 +314,6 @@ const ShicaPage = () => {
         agentDataPtr + i * 36 + agentObjectOffset.vy,
         "i32"
       );
-      console.log(`Agent[${index}] = x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`);
     }
     // END TEST
 
@@ -419,7 +418,6 @@ const ShicaPage = () => {
       intervalRef.current = setInterval(() => {
         if (!Module || !isReady) return;
         Module.setValue(Module.timerPtr, time, "i32");
-        console.log("\x1b[31m%s\x1b[0m", "Running web codes...");
         const res = Module.ccall("executeWebCodes", "number", [], []);
         if (res !== 0) {
           addLog(LogLevel.ERROR, "run failed - error in web codes");
@@ -441,7 +439,6 @@ const ShicaPage = () => {
             agentptr + offset + agentObjectOffset.index,
             "i32"
           );
-          console.log(`Agent[${index}] is updating...`);
           const x = Module.getValue(
             agentptr + offset + agentObjectOffset.x,
             "i32"
@@ -472,9 +469,6 @@ const ShicaPage = () => {
             agentptr + offset + agentObjectOffset.y,
             robot.y,
             "i32"
-          );
-          console.log(
-            `Agent ${i} - x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy} r: ${robot.r}, g: ${robot.g}, b: ${robot.b}`
           );
         }
         setForceUpdate((prev) => prev + 1); // 位置更新を画面に反映

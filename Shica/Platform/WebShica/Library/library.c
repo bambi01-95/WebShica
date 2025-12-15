@@ -23,8 +23,9 @@ char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
 int   WebTextPos  = 0;
 
 int store(const char* msg) {
-	printf("store called with msg: \n%s\n", msg);
-
+#ifdef DEBUG
+	console("store called with msg: \n%s\n", msg);
+#endif
 	int len = 0;
 	while (msg[len] != '\0' && len < WEBTEXT_MAX_SIZE) {
 		WebText[len] = msg[len];
@@ -32,11 +33,13 @@ int store(const char* msg) {
 	}
 	WebText[len] = '\0'; // Null-terminate the string
 	if (len >= WEBTEXT_MAX_SIZE) {
-		printf("Error: Message too long to store in WebText\n");
+		console("Error: Message too long to store in WebText\n");
 		return 0; // Error: message too long
 	}
 	WebTextPos = 0; 
-	printf("end of store function\n");
+#ifdef DEBUG	
+	console("end of store function\n");
+#endif
 	return 1;
 }
 
@@ -290,7 +293,6 @@ int timer_handler_init(oop eh){
 int touch_handler(oop eh)
 {
 	if(WEB_CLICK_STT[2]==1){
-		console("touch_handler: click status = %d\n", WEB_CLICK_STT[2]);
 		struct AgentData *ag = &allAgentData[CurrentAgentIndex];
 		if( (ag->x <= WEB_CLICK_STT[0]+AGENT_SIZE) && (ag->x >= WEB_CLICK_STT[0]-AGENT_SIZE) &&
 			(ag->y <= WEB_CLICK_STT[1]+AGENT_SIZE) && (ag->y >= WEB_CLICK_STT[1]-AGENT_SIZE) ){
@@ -299,7 +301,6 @@ int touch_handler(oop eh)
 			int count = IntVal_value(eh->EventHandler.data[0]) + 1;
 			eh->EventHandler.data[0] = newIntVal(count);
 			enqueue(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value 1
-			printf("touch event: agent %d touched at (%d, %d)\n", CurrentAgentIndex, WEB_CLICK_STT[0], WEB_CLICK_STT[1]);
 			return 1; // return 1 to indicate success
 		}
 	}
@@ -314,10 +315,8 @@ int touch_handler_init(oop eh){
 int collision_handler(oop eh)
 {
 	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
-	console("collision_handler: isCollision = %d\n", ag->isCollision);
 	if(ag->isCollision == 1){
 		oop stack = newStack(0);
-		console("collision event: agent %d collided\n", CurrentAgentIndex);
 		enqueue(eh, stack); // enqueue a stack
 		return 1; // return 1 to indicate success
 	}
@@ -330,7 +329,6 @@ int self_state_handler(oop eh)
 	if (eh->Queue.head < eh->Queue.tail) {
 		oop stack = newStack(0);
 		enqueue(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
-		printf("self state event: %d\n", state);
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -338,7 +336,6 @@ int self_state_handler(oop eh)
 
 int click_handler(oop eh)
 {
-		printf("\t agent %d is clicked [%d]\n", CurrentAgentIndex, WEB_CLICK_STT[2]);
 	if (WEB_CLICK_STT[2]==1) {
 		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
@@ -358,10 +355,11 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	oop *ehp = (oop *)ptr;
 	oop eh = *ehp;
 	if(getKind(eh) != EventHandler){
+		_reportError(LOG, 1111, "%d do not have eh", id);	
 		ctx = copy_ctx; // restore context
 		return 1;
 	}// this agent does not have event handler
-	console("agnet %d received message from %d: %s\n", id, sender, message);
+	_reportError(LOG, 1111, "%d have eh", id);	
 	oop stack = newStack(0);
 	char buf[3];
 	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
@@ -379,7 +377,6 @@ int web_rtc_broadcast_receive_handler(oop eh)
 }
 
 int web_rtc_broadcast_receive_handler_init(oop eh){
-	printf("\x1b[31m[C] web_rtc_broadcast_receive_handler_init called\x1b[0m\n");
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	instance->Instance.fields[0]= eh; // hold event handler pointer
@@ -418,7 +415,9 @@ int timer_hour_handler(oop eh){
 
 int compile_eh_init(){
 	//standard event handler
-	printf("compile_eh_init\n");
+#ifdef DEBUG
+	 console("compile_eh_init\n");
+#endif
 	node EH = NULL;
 
 	EH = intern("eventEH");
@@ -491,7 +490,6 @@ int lib_setxy(oop stack)
 	int x = IntVal_value(popStack(stack)); // get y coordinate from stack
 	AN_AGENT_DATA->x = x; // set x coordinate
 	AN_AGENT_DATA->y = y; // set y coordinate
-	printf("setXY: x = %d, y = %d\n", x, y); // print coordinates to console
 	return 0;
 }
 int lib_setx(oop stack)
@@ -528,14 +526,12 @@ int lib_setvxy(oop stack)
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	AN_AGENT_DATA->vy = vy; // set y velocity
-	console("setVXY: vx = %d, vy = %d\n", vx, vy); // print velocities to console
 	return 0; // return 0 to indicate success
 }
 
 int lib_setvx(oop stack)
 {
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
-	console("\tsetVX: vx = %d\n", vx); // print x velocity to console
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
@@ -543,7 +539,6 @@ int lib_setvx(oop stack)
 int lib_setvy(oop stack)
 {
 	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
-	console("\tsetVY: vy = %d\n", vy); // print y velocity to console
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
@@ -572,7 +567,6 @@ int lib_setcolor(oop stack)
 	AN_AGENT_DATA->red = (char)red; // set red value
 	AN_AGENT_DATA->green = (char)green; // set green value
 	AN_AGENT_DATA->blue = (char)blue; // set blue value
-	console("setColor: r = %d, g = %d, b = %d\n", red, green, blue); // print color values to console
 	return 0; // return 0 to indicate success
 }
 
@@ -596,7 +590,6 @@ int lib_timer_reset(oop stack)
 {
 	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
 	oop instance = popStack(stack); // get timer object from stack
-	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
 	assert(getKind(instance) == Instance);
 	assert(getKind(initVal) == IntVal);
 	//DEBUG POINT

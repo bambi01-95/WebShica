@@ -1,9 +1,3 @@
-#ifndef DEBUG //for executer
-#define DEBUG 0
-#endif
-
-
-
 /*
 GLOBAL VARIABLES: should start with a capital letter
 Struct Name: should start with a capital letter
@@ -146,11 +140,7 @@ int executor_func_init()
 ////////////////////////////////////////////////////////
 
 
-#if DEBUG
-#define dprintf(...) printf("line %d: ", __LINE__); printf(__VA_ARGS__); printf("\n");
-#else
-#define dprintf(...) ;
-#endif
+
 
 
 #define push(O)	pushStack(stack, O)
@@ -2808,9 +2798,10 @@ int executeWebCodes(void)
 {
 	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
 	int ret = collision_calculation(nWebAgents);
-	printf("nWebAgents: %d\n", nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
-		printf("\n\x1b[34m[C] Agent[%d] ----------------- \x1b[0m\n", i);
+#ifdef DEBUG
+		printf("\n\x1b[34m[C] Agendd[%d] ----------------- \x1b[0m\n", i);
+#endif
 		setActiveAgent(i); // set the agent as active
 		ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory

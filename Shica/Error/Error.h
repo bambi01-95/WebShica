@@ -7,6 +7,12 @@
 #define MESSAGE_MAX_LENGTH 100
 #define DEVELOPER_EMAIL "hiroto.shikada@gmail.com"
 
+#if DEBUG
+#define dprintf(...) do{printf("%s line %d: ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n");}while(0)
+#else
+#define dprintf(...) (void)0
+#endif//
+
 void _fatal(const char *file, int line, const char *msg, ...);
 #define fatal(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
