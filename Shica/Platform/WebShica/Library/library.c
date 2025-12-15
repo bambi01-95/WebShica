@@ -355,11 +355,15 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	oop *ehp = (oop *)ptr;
 	oop eh = *ehp;
 	if(getKind(eh) != EventHandler){
+		#ifdef DEBUG //remove
 		_reportError(LOG, 1111, "%d do not have eh", id);	
+		#endif
 		ctx = copy_ctx; // restore context
 		return 1;
 	}// this agent does not have event handler
+	#ifdef DEBUG//remove
 	_reportError(LOG, 1111, "%d have eh", id);	
+	#endif
 	oop stack = newStack(0);
 	char buf[3];
 	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION

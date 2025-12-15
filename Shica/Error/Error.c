@@ -145,7 +145,6 @@ char* getErrorMsg(void)
     }
     webErrorMsg[index] = '\0'; // Null-terminate the string
     errorListHeader = current->next; // Remove the first error from the list
-    printf("getErrorMsg: %s\n", webErrorMsg);
     return webErrorMsg; // Return the message of the first error
 #undef MAX_CODE_LINE
 }

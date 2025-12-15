@@ -181,7 +181,6 @@ oop retFlags[7] = {
 #endif
 
 oop impleBody(oop code, oop eh, oop agent){
-	// printf("\t kind %d\n", code->kind);
 	assert(getKind(code) == IntArray);
 	assert(getKind(eh) == EventHandler);
 	assert(getKind(agent) == Agent);
@@ -254,7 +253,7 @@ int runNative(oop code){
 oop execute(oop prog,oop entity, oop agent)
 {
 
-	printf("Execute Start: entity kind %d\n", getKind(entity));
+	dprintf("Execute Start: entity kind %d\n", getKind(entity));
 	int opstep = 20; // number of operations to execute before returning
     int* code = getObj(prog, IntArray, elements);
 	int size = getObj(prog, IntArray, size);
@@ -701,9 +700,8 @@ int locked = 0; // for print functions
 			printOP(iHALT);
 			pop();//first rbp
 			for(int i = 0;  i < getObj(stack, Stack, size);  ++i) {
-				printf("%d ", IntVal_value(getObj(stack, Stack, elements)[i]));
+				dprintf("%3d:<%p>\n",i, (stack->Stack.elements[i]));
 			}
-			printf("\n");
 			return stack; // return the answer
 		}
 	    default:{
@@ -788,7 +786,7 @@ int collectSttTrans()
 void appendS0T1(node name, int pos,int type)
 {
 	if(type != 0 && type != 1) {
-		printf("type must be 0 or 1, got %d\n", type);
+		dprintf("type must be 0 or 1, got %d\n", type);
 		return;//error
 	}
 	node *lists = type == APSTATE ? states : transitions;
@@ -800,7 +798,7 @@ void appendS0T1(node name, int pos,int type)
 			for (int i = 0;  i < *listSize;  ++i) {
 				node stateName = getNode(lists[i], Pair,a);
 				if (stateName == name) {
-					printf("state %s already exists\n", getNode(name, Symbol,name));
+					dprintf("state %s already exists\n", getNode(name, Symbol,name));
 					return;
 				}
 			}
@@ -838,7 +836,7 @@ void setTransPos(oop prog){
 }
 
 #if DEBUG
-#define printTYPE(OP) printf("emit %s\n", #OP)
+#define printTYPE(OP) dprintf("emit %s\n", #OP)
 #else
 #define printTYPE(OP) ;
 #endif
@@ -930,7 +928,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 				// allow any type
 				dprintf("[C] type undefined, allow any type\n");
 			}else if(type != TYPES[Integer]){
-				printf("[C] type mismatch: expected %d, got Integer\n", GET_OOP_FLAG(type));
+				dprintf("[C] type mismatch: expected %d, got Integer\n", GET_OOP_FLAG(type));
 				reportError(ERROR, 0, "type mismatch: expected %d, got Integer", GET_OOP_FLAG(type));
 				return 1;
 			}
@@ -1122,7 +1120,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 									reportError(ERROR, 
 										getNode(ast,SetVar,line), "event object %s expects %d arguments, but got more", 
 										getNode(sym, Symbol,name), eo.nArgs);
-									printf("index %d eo.nArgs %d argsCount %d\n", index, eo.nArgs, argsCount);
+									dprintf("index %d eo.nArgs %d argsCount %d\n", index, eo.nArgs, argsCount);
 									return 1;
 								}
 								node arg = getNode(args, Args, value);
@@ -1197,7 +1195,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					int scope = getNode(ast, SetVar,scope);
 					switch(scope) {
 						case SCOPE_LOCAL:{
-							printf("defining local variable %s\n", getNode(sym, Symbol,name));
+							dprintf("defining local variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
 							struct RetVarFunc var = insertVariable(vars, sym, declaredType);
 							if(var.index == -1)return 1; //type error
@@ -1205,14 +1203,14 @@ int emitOn(oop prog,node vars, node ast, node type)
 							return 0;
 						}
 						case SCOPE_STATE_LOCAL:{
-							printf("defining state variable %s\n", getNode(sym, Symbol,name));
+							dprintf("defining state variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
 							struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, state_vars),sym, declaredType, NULL);
 							emitII(prog, iSETSTATEVAR, var.index);
 							return 0;
 						}
 						case SCOPE_GLOBAL:{
-							printf("defining global variable %s\n", getNode(sym, Symbol,name));
+							dprintf("defining global variable %s\n", getNode(sym, Symbol,name));
 							if(emitOn(prog,vars, rhs, declaredType)) return 1;
 							struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, global_vars),sym, declaredType, NULL);
 							emitII(prog, iSETGLOBALVAR, var.index);
@@ -1448,7 +1446,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					struct StdFuncTable func = StdFuncTable[funcIndex];
 					while(args != nil){
 						node arg = getNode(args, Args, value);
-						printf("[C] argument type expected: %d\n", func.argTypes[argsCount]);
+						dprintf("[C] argument type expected: %d\n", func.argTypes[argsCount]);
 						if(emitOn(prog, vars, arg, TYPES[func.argTypes[argsCount]]))return 1; // compile argument
 						args = getNode(args, Args, next);
 						argsCount++;
@@ -1641,9 +1639,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
 			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
-			printf("Block size: %d\n", getNode(events, Block, size));
+			dprintf("Block size: %d\n", getNode(events, Block, size));
 			for (int i = 0;  i < getNode(events, Block, size);  ++i) {
-				printf("Compiling event %d/%d\n", i+1, getNode(events, Block, size));//remove
+				dprintf("Compiling event %d/%d\n", i+1, getNode(events, Block, size));
 				if(eventList[i] == NULL){
 					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
 					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
@@ -1694,11 +1692,11 @@ int emitOn(oop prog,node vars, node ast, node type)
 				}
 			}
 			emitII(prog, iSETSTATE, nEventHandlers - isEntryExit); // set the number of events and position
-			printf("Number of event handlers: %d\n", nEventHandlers);//remove
+			dprintf("Number of event handlers: %d\n", nEventHandlers);//remove
 			// OPECODE FOR EVENTS
 			for(int ei =0 ,  ehi =0; ehi < nEventHandlers;  ehi++) {
 				if(process_sizes[ehi] == 0){ ei++;continue;} // skip empty events
-				printf("Make Opcode for Event %d\n", ehi);//remove
+				dprintf("Make Opcode for Event %d\n", ehi);//remove
 				node id = getNode(eventList[ei], Event,id);
 
 				if(getType(id) == GetField)//chat.received()
@@ -1732,9 +1730,9 @@ int emitOn(oop prog,node vars, node ast, node type)
 					return 1; // process_sizes[ehi] is invalid
 				}
 #endif
-				printf("Number of events for this handler: %d\n", process_sizes[ehi]);//remove
+				dprintf("Number of events for this handler: %d\n", process_sizes[ehi]);//remove
 				for(int j = 0; j < process_sizes[ehi]; ++j) {
-					printf("Event List index: %d\n", ei);//remove
+					dprintf("Event List index: %d\n", ei);//remove
 					node event = eventList[ei++];//<< this makes error
 					node posPair = getNode(event, Event,block);
 					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a))/*action*/,Integer_value(getNode(posPair,Pair,b))/*condition*/); // set the position of the event handler)
@@ -1804,7 +1802,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
-				printf("\t appendVarialbe\n");
+				dprintf("\t appendVarialbe\n");
 				struct RetVarFunc var =  appendVariable(
 					getNode(vars, EmitContext, local_vars), 
 					getNode(params, Eparams, id), 
@@ -1814,7 +1812,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					popUserTypeIndex(vars);
 					return 1; // type error
 				}
-				printf("\t finished appendVarialbe\n");
+				dprintf("\t finished appendVarialbe\n");
 				if(getNode(params, Eparams, cond) !=  FALSE){
 					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
 					if(emitOn(prog, vars, getNode(params, Eparams, cond), getNode(params, Eparams, type))) return 1; // compile condition if exists
@@ -2074,7 +2072,7 @@ simple:
 
 oop compile()
 {
-	printf("compiling...\n");
+	dprintf("compiling...\n");
     GC_PUSH(oop, prog, intArray_init()); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
 #if DEBUG
@@ -2088,19 +2086,19 @@ int roots = gc_ctx.nroots;
 		if (ISTAG_FLAG(result)) {
 			break;
 		}
-		printf("compiling statement %d\n", line);
+		dprintf("compiling statement %d\n", line);
 		if(emitOn(prog, vars, result, NULL))return NULL;
 		result = parserRetFlags[PARSER_READY];
-		printf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
+		dprintf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
 	}
 	if(result == parserRetFlags[PARSER_FINISH]){
-		printf("compilation finished\n");
+		dprintf("compilation finished\n");
 		emitI (prog, iHALT); // end of program
-		printf("total variable size %d\n", getNode(vars, EmitContext, global_vars)->Array.size);
+		dprintf("total variable size %d\n", getNode(vars, EmitContext, global_vars)->Array.size);
 		prog->IntArray.elements[1] = getNode(vars, EmitContext, global_vars)->Array.size; // store number of variables
 		setTransPos(prog); // set transition positions
 	}else if(result == parserRetFlags[PARSER_ERROR]){
-		printf("compilation error\n");
+		dprintf("compilation error\n");
 		GC_POP(vars); // pop context variables from GC roots
 		return NULL;
 	}
@@ -2114,7 +2112,7 @@ int roots = gc_ctx.nroots;
 #endif
 	GC_POP(prog); // pop program code from GC roots
 
-	printf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
+	dprintf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
     return prog;
 }
 
@@ -2620,11 +2618,11 @@ void collectWeb(void)
 {
 	assert(ctx == comctx); // check if the context is equal to the compilation context
 	gc_markOnly(webCodes); // mark the web codes
-	printf("collectWeb: nWebCodes=%d, size %lu\n", nWebCodes, sizeof(oop) * maxNumWebCodes);
+	dprintf("collectWeb: nWebCodes=%d, size %lu\n", nWebCodes, sizeof(oop) * maxNumWebCodes);
 	if(nWebCodes > 0) {
 		for(int i = 0; i < nWebCodes; ++i){
 			if(webCodes[i] != NULL){//manualy mark web codes cause they are called from both side.
-				printf("\tmarking web code %d, size %lu\n", i, sizeof(int) * (webCodes[i]->IntArray.size));
+				dprintf("\tmarking web code %d, size %lu\n", i, sizeof(int) * (webCodes[i]->IntArray.size));
 				gc_markOnly(webCodes[i]); // mark the web code
 				gc_markOnly(webCodes[i]->IntArray.elements); // mark the web code elements
 			}
@@ -2655,7 +2653,7 @@ int addWebCode(void)
 {
 	assert(ctx == comctx); // check if the context is equal to the compilation context
 	if(nWebCodes >= maxNumWebCodes){
-		printf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+		dprintf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
@@ -2665,7 +2663,7 @@ int addWebCode(void)
 
 int compile_init(int index)
 {
-	printf("compile_init\n");
+	dprintf("compile_init\n");
 	webCodes[index] = NULL; // initialize the web code
 	ctx = comctx; // use the context for the garbage collector
 	ctx->nroots = 0; // reset the number of roots
@@ -2687,20 +2685,20 @@ int compile_init(int index)
     FALSE = newInteger(0);gc_pushRoot( FALSE);
     TRUE  = newInteger(1);gc_pushRoot(TRUE);
 
-	printf("compile_event_init\n");
+	dprintf("compile_event_init\n");
 	compile_event_init(); // initialize the event system
-	printf("compile_func_init\n");
+	dprintf("compile_func_init\n");
 	compile_func_init(); // initialize the standard functions
-	printf("compile_eo_init\n");
+	dprintf("compile_eo_init\n");
 	compile_eo_init(); // initialize the eo system
-	printf("compile_init done\n");
+	dprintf("compile_init done\n");
 	return 1;
 }
 
 int compile_finalize()
 {
 	// garbage collection
-	rprintf("Running garbage collector...\n");
+	dprintf("Running garbage collector...\n");
     gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
 	gc_collect(); // collect garbage
@@ -2710,7 +2708,7 @@ int compile_finalize()
 //CCALL
 int compileWebCode(const int index, const char *code)
 {
-	printf("nroot: %d\n", ctx->nroots);
+	dprintf("nroot: %d\n", ctx->nroots);
 	if(index < 0 || index >= maxNumWebCodes){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -2727,8 +2725,10 @@ int compileWebCode(const int index, const char *code)
 		return 1; // return 1 to indicate failure
 	}
 	// print bytecode 
-	printf("Printing bytecode for web code %d:\n", index);
+	dprintf("Printing bytecode for web code %d:\n", index);
+#if DEBUG
 	printCode(webCodes[index]);
+#endif
 	compile_finalize(); // finalize the compilation
 	return 0; 
 }
@@ -2819,11 +2819,6 @@ int executeWebCodes(void)
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
 						reinitializeEventObject(eh2);
-					}
-					if(getKind(agent->Agent.stack->Stack.elements[0]) == Instance){
-						printf("OK instance\n");
-					}else{
-						printf("NOT instance\n");
 					}
 					getObj(agent, Agent, isActive) = 0;
 					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
