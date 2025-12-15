@@ -411,6 +411,9 @@ void reinitializeEventObject(oop eh)
 	}
 	if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
 	){
+		#ifdef DEBUG
+		_reportError(WARNING,0000, "%s", "init event object");
+		#endif
 		eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
 	}
 	return;

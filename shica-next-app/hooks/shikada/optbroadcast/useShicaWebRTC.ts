@@ -370,25 +370,8 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
 
   // ユーザーがトピックホストからメッセージを受信
   const handleMessageFromTopicHost = (messageData: { message: Message }, uid: number, topicName: string) => {
-    console.log('\t\t get data');
-    const { message } = messageData;
 
-    // const userSession = userSessions.get(uid);
-    // if(!userSession){console.error(`❌ No session found for user ${uid}`); return;}
-    // if(userSession.currentTopic !== topicName){
-    //   console.error(`❌ User ${uid} current topic mismatch: expected "${userSession.currentTopic}", got "${topicName}"`);
-    //   return;
-    // }
-    // if(!Module || typeof Module.ccall !== 'function'){
-    //   console.error(`❌ Module or Module.ccall is not available`);
-    //   return;
-    // }
-    // if(userSession.eventHandlerPtrAddr === 0){
-    //   console.error(`❌ User ${uid} has no valid event handler pointer address`);
-    //   return;
-    // }
-    // console.log(`get message pointer address:`, userSession.eventHandlerPtrAddr);
-    // Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'string'], [userSession.eventHandlerPtrAddr, message.content]);//CCALL
+    const { message } = messageData;
 
     setUserSessions((prev) => {
       const newSessions = new Map(prev);
@@ -396,6 +379,7 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       if (!userSession) return prev;
       if (userSession.currentTopic !== topicName) return prev; // 現在のトピックと異なる場合は無視
 
+      
       // 重複チェック：同じIDのメッセージが既に存在する場合はスキップ
       const isDuplicate = userSession.messages.some(msg => msg.id === message.id);
       if (isDuplicate) {
@@ -406,17 +390,14 @@ export const useShicaWebRTC = (Module: any, isReady: boolean) => {
       console.log(`👤 ${uid} processing message from topic "${topicName}" host`);
       // Module.ccall は Shica WASM がロード済みの場合のみ実行
       if (Module && typeof Module.ccall === 'function') {
-        console.log(`get message ${message.content} from ${userSession.currentTopic} pointer address:`, userSession.eventHandlerPtrAddr);
+        console.log("call ccall");
         Module.ccall('_web_rtc_broadcast_receive_', 'number', ['number', 'number', 'string', 'number'], [uid, userSession.eventHandlerPtrAddr, message.content, message.sender]);//CCALL
       }
-      
-      // イミュータブルな配列更新（スプレッド演算子で新しい配列を作成）
-      // newSessions.set(uid, {
-      //   ...userSession,
-      //   messages: [...userSession.messages, message],
-      // });
-      // return newSessions;
-      return prev;
+      newSessions.set(uid, {
+        ...userSession,
+        messages: [...userSession.messages, message],
+      });
+      return newSessions;
     });
   };
 

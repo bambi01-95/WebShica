@@ -9,6 +9,8 @@
 #include <emscripten.h>
 #endif
 
+extern int nWebAgents; // number of web agents
+
 #define   WEBTEXT_MAX_SIZE   2048 // 2024 bytes
 extern char  WebText[WEBTEXT_MAX_SIZE];
 extern int   WebTextPos;

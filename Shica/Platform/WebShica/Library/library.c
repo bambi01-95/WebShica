@@ -6,6 +6,9 @@
 #include <stdarg.h>
 #include <time.h>
 
+
+int nWebAgents = 0; // number of web agents
+
 #define STAGE_WIDTH  480
 #define STAGE_HEIGHT 480
 #define AGENT_SIZE   20
@@ -19,6 +22,10 @@ void console(const char *msg, ...)
 	printf("\x1b[0m");
 	va_end(ap);
 }
+
+
+
+
 char  WebText[WEBTEXT_MAX_SIZE] = {0}; // Initialize WebText with zeros
 int   WebTextPos  = 0;
 
@@ -355,13 +362,13 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	oop *ehp = (oop *)ptr;
 	oop eh = *ehp;
 	if(getKind(eh) != EventHandler){
-		#ifdef DEBUG //remove
+		#ifdef DEBUG
 		_reportError(LOG, 1111, "%d do not have eh", id);	
 		#endif
 		ctx = copy_ctx; // restore context
 		return 1;
 	}// this agent does not have event handler
-	#ifdef DEBUG//remove
+	#ifdef DEBUG
 	_reportError(LOG, 1111, "%d have eh", id);	
 	#endif
 	oop stack = newStack(0);

@@ -501,6 +501,7 @@ const ShicaPage = () => {
     if (!Module || !isReady) return;
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return;
+    console.log(`Click at (${x}, ${y}), rect:`, rect);
     const xc = x - rect.left - 20 < 0 ? 0 : Math.round(x - rect.left - 20);
     const yc = y - rect.top - 20 < 0 ? 0 : Math.round(y - rect.top - 20);
     if (isRunning) {

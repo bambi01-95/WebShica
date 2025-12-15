@@ -101,6 +101,23 @@ void collectErrorList(void)
     }
     return ;
 }
+//return number of errors
+static int revErrorListHeader(void)
+{
+    ErrorList *prev = NULL;
+    ErrorList *curr = errorListHeader;
+    ErrorList *next = NULL;
+    int count = 0;
+    while (curr != NULL) {
+        next = curr->next;   // 次ノードを保存
+        curr->next = prev;   // ポインタを反転
+        prev = curr;         // prev を進める
+        curr = next;         // curr を進める
+        count++;
+    }
+    errorListHeader = prev;  // 新しい先頭
+    return count;
+}
 
 
 
@@ -110,13 +127,7 @@ char webErrorMsg[MESSAGE_MAX_LENGTH];
 
 int getNumOfErrorMsg()
 {
-    int count = 0;
-    ErrorList *current = errorListHeader;
-    while (current != NULL) {
-        count++;
-        current = current->next;
-    }
-    return count;
+    return revErrorListHeader();
 }
 /* ERROR FORMAT: 
     [type][line][message]

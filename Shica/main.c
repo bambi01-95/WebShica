@@ -2610,7 +2610,7 @@ int nWebCodes = 0; // number of web codes
 
 unsigned int maxNumWebAgents = 1; // maximum number of web agents
 oop *webAgents = NULL; // web agents
-int nWebAgents = 0; // number of web agents
+
 
 
 
