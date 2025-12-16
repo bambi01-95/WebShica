@@ -1737,9 +1737,10 @@ int emitOn(oop prog,node vars, node ast, node type)
 					node event = eventList[ei++];//<< this makes error
 					node posPair = getNode(event, Event,block);
 					int opPos = prog->IntArray.size;
+					int cPos = Integer_value(getNode(posPair,Pair,b));
 					emitIII(prog, iSETPROCESS ,
 						Integer_value(getNode(posPair,Pair,a)) - opPos/*rel action pos from op pos*/, 
-						Integer_value(getNode(posPair,Pair,b)) - opPos/*rel condition pos from op pos*/
+						cPos == 0 ? 0 : cPos - opPos/*rel condition pos from op pos*/
 					); 
 				}
 			}// end for

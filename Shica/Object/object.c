@@ -243,6 +243,12 @@ void enqueue(const oop eh,const oop newStack)//value should be stack
 	oop *threads = getObj(eh, EventHandler, threads);
 
 	for (int i = 0; i < getObj(eh, EventHandler, size); ++i) {
+		//eval data by event condition
+		// int cPos = getObj(threads[i], Thread, cpos);
+		// if(cPos != 0){// eh have condition
+		// 	if(evaluate(cPos, newStack)) continue; // condition not met, skip this thread;
+		// }
+		//push new data into the queue
 		oop q = getObj(threads[i], Thread, queue);
 		if (getObj(q, Queue, size) >= getObj(q, Queue, capacity)) {
 			getObj(q, Queue, capacity) *= 2;
