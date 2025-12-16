@@ -175,7 +175,7 @@ void enqueue(oop eh, oop value);
 oop dequeue(oop thread);
 
 struct EventTable{
-	int (*eh)(oop eh); // event handler function
+	int (*eh)(oop exec, oop eh); // event handler function
 	int (*init)(oop eh); // initialize function
 	int nArgs; // number of arguments for the event handler
 	char *argTypes; // types of arguments for the event handler

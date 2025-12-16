@@ -742,12 +742,12 @@ int executeWebCodes(void)
 		// Wen you want to ...
 		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, current_gc_ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
-			agent = execute(WebExecs[i], agent);
+			WebExecs[i] = execute(WebExecs[i], agent);
 		}else{
 			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
-				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
+				EventTable[getObj(eh, EventHandler, EventH)].eh(WebExecs[i], eh);
 				if(impleBody(WebExecs[i], eh)==retFlags[TRANSITION_F]){
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
@@ -810,24 +810,25 @@ int runNative(oop code){
 	oop exec = newRunCtx(agent, code);
 	GC_POP(agent);
 	gc_pushRoot(exec);
-	agent = execute(exec, agent);
-	if(agent == retFlags[ERROR_F]){
-		GC_POP(agent);
+	exec = execute(exec, agent);
+	if(exec->RunCtx.agent == retFlags[ERROR_F]){
+		GC_POP(exec);
 		return 1; // return 1 to indicate error
 	}
 	dprintf("agent: %d\n", getObj(agent, Agent, isActive));
 	while(1){
 		if(getObj(agent, Agent, isActive) == 0) {
-			agent = execute(exec, agent);
-			if(agent == retFlags[ERROR_F]){
-				GC_POP(agent);
+			exec = execute(exec, agent);
+			if(exec->RunCtx.agent == retFlags[ERROR_F]){
+				GC_POP(exec);
 				return 1; // return 1 to indicate error
 			}
 		}else{
+			agent = exec->RunCtx.agent;
 			for(int i = 0; i< getObj(agent,Agent,nEvents); ++i){
 				// get event data
 				oop eh = getObj(agent,Agent,eventHandlers)[i];
-				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
+				EventTable[getObj(eh, EventHandler, EventH)].eh(exec, eh);
 				oop ret = impleBody(exec, eh);
 				if(ret == retFlags[TRANSITION_F]){
 					//initialize event objects
@@ -841,13 +842,13 @@ int runNative(oop code){
 					break;
 				}
 				if(ret == retFlags[ERROR_F]){
-					GC_POP(agent);
+					GC_POP(exec);
 					return 1; // return 1 to indicate error
 				}
 			}
 		}
 	}
-	GC_POP(agent);
+	GC_POP(exec);
 	return 0; // return 0 to indicate success
 }
 

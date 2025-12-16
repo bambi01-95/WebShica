@@ -242,7 +242,7 @@ int collision_calculation(int n) {
  *---------------------------------------------------*/
 
 
-int event_handler(oop eh){
+int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
@@ -258,7 +258,7 @@ int event_handler_init(oop eh){
 	return 1;
 }
 
-int timer_handler(oop eh)
+int timer_handler(oop exec, oop eh)
 {
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
@@ -297,7 +297,7 @@ int timer_handler_init(oop eh){
 }
 
 //When touch agent
-int touch_handler(oop eh)
+int touch_handler(oop exec, oop eh)
 {
 	if(WEB_CLICK_STT[2]==1){
 		struct AgentData *ag = &allAgentData[CurrentAgentIndex];
@@ -319,7 +319,7 @@ int touch_handler_init(oop eh){
 }
 
 //When collision detected
-int collision_handler(oop eh)
+int collision_handler(oop exec, oop eh)
 {
 	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
 	if(ag->isCollision == 1){
@@ -330,7 +330,7 @@ int collision_handler(oop eh)
 	return 0; // return 0 to indicate no event
 }
 
-int self_state_handler(oop eh)
+int self_state_handler(oop exec, oop eh)
 {
 	int state = 0;
 	if (eh->Queue.head < eh->Queue.tail) {
@@ -341,7 +341,7 @@ int self_state_handler(oop eh)
 	return 0; // return 0 to indicate no event
 }
 
-int click_handler(oop eh)
+int click_handler(oop exec, oop eh)
 {
 	if (WEB_CLICK_STT[2]==1) {
 		oop stack = newStack(0);
@@ -381,7 +381,7 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	return 1;
 }
 
-int web_rtc_broadcast_receive_handler(oop eh)
+int web_rtc_broadcast_receive_handler(oop exec, oop eh)
 {
 	// Placeholder for WebRTC broadcast receive event handling
 	return 0; // return 0 to indicate no event
@@ -394,7 +394,7 @@ int web_rtc_broadcast_receive_handler_init(oop eh){
 	return 1;
 }
 
-int timer_sec_handler(oop eh){
+int timer_sec_handler(oop exec, oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -417,10 +417,10 @@ int timer_sec_handler(oop eh){
 	}
 	return 0;
 }
-int timer_min_handler(oop eh){
+int timer_min_handler(oop exec, oop eh){
 	return 0;
 }
-int timer_hour_handler(oop eh){
+int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
 

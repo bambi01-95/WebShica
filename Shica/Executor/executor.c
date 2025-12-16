@@ -501,7 +501,7 @@ int locked = 0; // for print functions
 			assert(op == iIMPL);
 			printOP(iIMPL);
 			entity->Agent.isActive = 1; // set the agent to active
-			return entity; // return the entity
+			return exec; // return the entity
 		}
 		case iSETEVENT:{
 			printOP(iSETEVENT);

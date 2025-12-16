@@ -3,7 +3,7 @@
 #define LIBRARY_C
 #include "library.h"
 
-int event_handler(oop eh){
+int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
@@ -19,7 +19,7 @@ int event_object_handler_init(oop eh){
 }
 
 #include <time.h>
-int timer_handler(oop eh){
+int timer_handler(oop exec, oop eh){
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
@@ -49,7 +49,7 @@ int compile_eh_init(){
 	return 0; // return 0 to indicate success
 }
 
-int timer_sec_handler(oop eh){
+int timer_sec_handler(oop exec, oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -73,10 +73,10 @@ int timer_sec_handler(oop eh){
 	}
 	return 0;
 }
-int timer_min_handler(oop eh){
+int timer_min_handler(oop exec, oop eh){
 	return 0;
 }
-int timer_hour_handler(oop eh){
+int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
 
