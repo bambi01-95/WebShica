@@ -7,7 +7,7 @@ int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		enqueue(exec, eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 	}
 	return 0; // return 0 to indicate no event
 }
@@ -26,7 +26,7 @@ int timer_handler(oop exec, oop eh){
 		eh->EventHandler.data[0] = newIntVal(now);
 		eh->EventHandler.data[1]++;
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
@@ -68,7 +68,7 @@ int timer_sec_handler(oop exec, oop eh){
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0;

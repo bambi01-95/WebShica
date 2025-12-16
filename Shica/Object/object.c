@@ -230,13 +230,15 @@ oop newQueue(int nArgs)
 	return q;
 }
 
+#include "../Executor/executor.h"
 //FIXME
 oop dupStack(oop stack)
 {
 	return stack;
 }
+oop evalThread = NULL;
 
-void enqueue(const oop eh,const oop newStack)//value should be stack
+void enqueue(const oop exec, const oop eh,const oop newStack)//value should be stack
 {
 	assert(getKind(eh) == EventHandler);
 	assert(getKind(newStack) == Stack);
@@ -244,10 +246,12 @@ void enqueue(const oop eh,const oop newStack)//value should be stack
 
 	for (int i = 0; i < getObj(eh, EventHandler, size); ++i) {
 		//eval data by event condition
-		// int cPos = getObj(threads[i], Thread, cpos);
-		// if(cPos != 0){// eh have condition
-		// 	if(evaluate(cPos, newStack)) continue; // condition not met, skip this thread;
-		// }
+		int cPos = getObj(threads[i], Thread, cpos);
+		if(cPos != 0){// eh have condition
+			evalThread->Thread.pc = cPos;
+			evalThread->Thread.stack = newStack;
+			if(execute(exec, evalThread)==retFlags[EOC_F]) continue; // condition not met, skip this thread;
+		}
 		//push new data into the queue
 		oop q = getObj(threads[i], Thread, queue);
 		if (getObj(q, Queue, size) >= getObj(q, Queue, capacity)) {

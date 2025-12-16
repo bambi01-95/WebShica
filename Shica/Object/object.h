@@ -171,7 +171,7 @@ int intArray_last(oop a);
 #define QueueSize 4
 
 oop newQueue(int nArgs);
-void enqueue(oop eh, oop value);
+void enqueue(oop exec, oop eh, oop value);
 oop dequeue(oop thread);
 
 struct EventTable{
