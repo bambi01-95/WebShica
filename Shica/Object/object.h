@@ -2,7 +2,6 @@
 #define OBJECT_H
 #include "../Opcode/opcode.h"
 #include "../Error/error.h"
-#include "../Executor/executor.h"
 #include "../GC/gc.h"
 #include <stdint.h>
 /*

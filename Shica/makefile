@@ -25,14 +25,16 @@ SRC = main.c \
 	  ./Opcode/opcode.c \
 	  ./Node/node.c \
 	  ./Object/object.c \
-	  ./Parser/parser.c 
+	  ./Parser/parser.c \
+	  ./Executor/executor.c 
 
 INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
 			   -I ./Opcode \
 			   -I ./Node \
 			   -I ./Object \
-			   -I ./Parser 
+			   -I ./Parser \
+			   -I ./Executor
 # shica.js
 WASMOUT = ./Platform/WebShica/shica.js
 # shica-native

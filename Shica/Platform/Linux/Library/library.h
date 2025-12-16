@@ -4,8 +4,6 @@
 #include "../../../Object/object.h"
 #include "../../../Node/node.h"
 #include "../../../GC/gc.h"
-/*===============Other =====================*/
-
 
 /*================Event Handler==============*/
 #define EVENT_EH 0x00 // Loop Handler
