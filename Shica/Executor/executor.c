@@ -181,7 +181,7 @@ int locked = 0; // for print functions
 			}
 			continue;
 		}
-#ifdef WEBSHICA
+#ifdef WEBSHICA //DEVICE that cannot suport tagged pointers
 	    case iGT:printOP(iGT);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l > r));  continue;
 		case iGE:printOP(iGE);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l >= r)); continue;
 		case iEQ:printOP(iEQ);    r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l == r)); continue;

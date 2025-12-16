@@ -26,7 +26,7 @@ static oop _newEntity(size_t size, kind_t kind)
 
 kind_t getKind(oop o)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	return o->kind;
 #else
     if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT){
@@ -50,7 +50,7 @@ oop _checkObject(oop obj, kind_t kind, char *file, int line){
 
 oop newIntVal(int value)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	oop obj = newEntity(IntVal);
 	obj->IntVal.value = value;
 	return obj;
@@ -62,7 +62,7 @@ oop newIntVal(int value)
 int IntVal_value(oop obj)
 {
 	assert(getKind(obj) == IntVal);
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	return obj->IntVal.value;
 #else
     return (intptr_t)obj >> TAGBITS;
@@ -71,7 +71,7 @@ int IntVal_value(oop obj)
 
 oop newFloVal(double value)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	oop obj = newEntity(FloVal);
 	obj->FloVal.value = value;
 	return obj;
@@ -80,10 +80,10 @@ oop newFloVal(double value)
 #endif
 }
 
-double FloVal_value(oop obj)
+double FloVal_value(oop obj) 
 {
 	assert(getKind(obj) == FloVal);
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
     return obj->FloVal.value;
 #else
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
