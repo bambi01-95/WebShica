@@ -29,6 +29,10 @@ extern oop retFlags[7];
 void buildRetFlags();
 #endif
 
-oop impleBody(oop code,oop agent, oop eh);
-oop execute(oop prog,oop agent, oop entity);
+oop impleBody(oop exec, oop eh);
+oop execute(oop exec, oop entity);
+
+#ifdef WEBSHICA
+extern oop WebExecs[12];
+#endif		
 #endif // EXECUTOR_H

@@ -517,7 +517,7 @@ int compile_init(int index);
 int compile_finalize();
 oop webcode  = NULL;
 oop webagent = NULL;
-static gc_context *comctx = NULL; // context for the garbage collector
+static gc_context *compiler_gc_ctx = NULL; // context for the garbage collector
 
 //once called, initialize the memory for the garbage collector
 int memory_init(void)
@@ -526,7 +526,7 @@ int memory_init(void)
 	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #elif defined(MSGCS)
 	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
-	comctx = current_gc_ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
+	compiler_gc_ctx = current_gc_ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
@@ -546,7 +546,7 @@ oop *webAgents = NULL; // web agents
 
 void collectWeb(void)
 {
-	assert(current_gc_ctx == comctx); // check if the context is equal to the compilation context
+	assert(current_gc_ctx == compiler_gc_ctx); // check if the context is equal to the compilation context
 	gc_markOnly(webCodes); // mark the web codes
 	dprintf("collectWeb: nWebCodes=%d, size %lu\n", nWebCodes, sizeof(oop) * maxNumWebCodes);
 	if(nWebCodes > 0) {
@@ -570,10 +570,10 @@ void collectWeb(void)
 }
 
 //CCALL
-//WARNING: which current_gc_ctx you use is important -> comctx
+//WARNING: which current_gc_ctx you use is important -> compiler_gc_ctx
 int initWebCodes(int num)
 {
-	current_gc_ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx = compiler_gc_ctx; // use the context for the garbage collector
 	webCodes = (oop *)gc_beAtomic(malloc(sizeof(oop) * num)); // initialize web codes
 	maxNumWebCodes = num; // set the maximum number of web codes
 	return 0; 
@@ -581,7 +581,7 @@ int initWebCodes(int num)
 
 int addWebCode(void)
 {
-	assert(current_gc_ctx == comctx); // check if the context is equal to the compilation context
+	assert(current_gc_ctx == compiler_gc_ctx); // check if the context is equal to the compilation context
 	if(nWebCodes >= maxNumWebCodes){
 		dprintf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -595,7 +595,7 @@ int compile_init(int index)
 {
 	dprintf("compile_init\n");
 	webCodes[index] = NULL; // initialize the web code
-	current_gc_ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx = compiler_gc_ctx; // use the context for the garbage collector
 	current_gc_ctx->nroots = 0; // reset the number of roots
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
@@ -679,10 +679,10 @@ int deleteWebCode(const int index)
 }
 
 
-//WARNING: which current_gc_ctx you use is important -> comctx
+//WARNING: which current_gc_ctx you use is important -> compiler_gc_ctx
 int initWebAgents(int num)
 {
-	current_gc_ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx = compiler_gc_ctx; // use the context for the garbage collector
 	executor_event_init(); // initialize the event system for the executor
 	executor_func_init(); // initialize the standard functions for the executor
 	buildRetFlags(); // build the return flags for the executor
@@ -691,7 +691,10 @@ int initWebAgents(int num)
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
-	webAgents = (oop *)gc_beAtomic(malloc(sizeof(oop) * num)); // initialize web agents
+	for(int i = 0; i<num; ++i)
+	{
+		WebExecs[i] = newRunCtx(NULL, webCodes[i]); // create a new run context for each web agent
+	}
 	
 	printf("Initializing web %d agents...\n", num);
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
@@ -715,6 +718,7 @@ int initWebAgents(int num)
 		oop agent = (oop)*current_gc_ctx->roots[0];
 		assert(getKind(agent) == Agent); // check if the agent is of type Agent
 		assert(current_gc_ctx->nroots == 1); // check if the number of roots is equal to 1
+		WebExecs[i]->RunCtx.agent = agent; // set the agent in the run context
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
@@ -722,7 +726,6 @@ int initWebAgents(int num)
 	current_gc_ctx = origin_gc_ctx_ptr(); // reset the context to the execution context
 	return 0; 
 }
-
 //WARNING: which current_gc_ctx you use is important -> origin_gc_ctx_ptr() (initWebAgents)
 int executeWebCodes(void)
 {
@@ -739,13 +742,13 @@ int executeWebCodes(void)
 		// Wen you want to ...
 		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, current_gc_ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
-			agent = execute(webCodes[i] ,agent , agent);
+			agent = execute(WebExecs[i], agent);
 		}else{
 			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
-				if(impleBody(webCodes[i], agent, eh)==retFlags[TRANSITION_F]){
+				if(impleBody(WebExecs[i], eh)==retFlags[TRANSITION_F]){
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
 						reinitializeEventObject(eh2);
@@ -804,7 +807,10 @@ int getCompiledWebCode(int index)
 #ifndef WEBSHICA
 int runNative(oop code){
 	GC_PUSH(oop, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
-	agent = execute(code, agent, agent);
+	oop exec = newRunCtx(agent, code);
+	GC_POP(agent);
+	gc_pushRoot(exec);
+	agent = execute(exec, agent);
 	if(agent == retFlags[ERROR_F]){
 		GC_POP(agent);
 		return 1; // return 1 to indicate error
@@ -812,7 +818,7 @@ int runNative(oop code){
 	dprintf("agent: %d\n", getObj(agent, Agent, isActive));
 	while(1){
 		if(getObj(agent, Agent, isActive) == 0) {
-			agent = execute(code ,agent , agent);
+			agent = execute(exec, agent);
 			if(agent == retFlags[ERROR_F]){
 				GC_POP(agent);
 				return 1; // return 1 to indicate error
@@ -822,7 +828,7 @@ int runNative(oop code){
 				// get event data
 				oop eh = getObj(agent,Agent,eventHandlers)[i];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
-				oop ret = impleBody(code, agent, eh);
+				oop ret = impleBody(exec, eh);
 				if(ret == retFlags[TRANSITION_F]){
 					//initialize event objects
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){

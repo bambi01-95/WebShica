@@ -26,6 +26,11 @@ static char *strcatlog(char *dest, const char *src){
 	dest[len] = '\0';
 	return dest;
 }
+oop WebExecs[12] = {
+	NULL,NULL,NULL,NULL,
+	NULL,NULL,NULL,NULL,
+	NULL,NULL,NULL,NULL,
+};
 #endif // WEBSHICA
 
 /* ==================== EXECUTOR ==================== */
@@ -72,20 +77,19 @@ oop retFlags[7] = {
 #endif
 
 
-oop impleBody(oop code,oop agent, oop eh){
-	assert(getKind(code) == IntArray);
+oop impleBody(oop exec, oop eh){
+	assert(getKind(exec) == RunCtx);
 	assert(getKind(eh) == EventHandler);
-	assert(getKind(agent) == Agent);
 	oop *threads = getObj(eh, EventHandler, threads);
 	oop ret = retFlags[NONE_F];
 	for(int i=0;i<getObj(eh, EventHandler, size); ++i){
 		oop thread = threads[i];
 		if(getObj(thread, Thread, inProgress) == 1){
-			ret = execute(code, agent, thread);
+			ret = execute(exec, thread);
 		}else if(getObj(thread, Thread, queue)->Queue.size > 0){
 			getObj(thread, Thread, stack) = dequeue(thread);
 			assert(getObj(thread, Thread, stack) != NULL);
-			ret = execute(code, agent, thread);
+			ret = execute(exec, thread);
 		}
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;
@@ -97,16 +101,19 @@ oop impleBody(oop code,oop agent, oop eh){
 	return ret; // return 1 to indicate success
 }
 
-oop execute(oop prog, oop agent, oop entity)
+oop execute(oop exec, oop entity)
 {
 #define push(O)	pushStack(stack, O)
 #define pop()	popStack(stack)
 #define top()	lastStack(stack)
 #define pick(I)  stack->Stack.elements[I]
+#ifdef DEBUG
+	assert(getKind(exec) == RunCtx);
+#endif // DEBUG
 	dprintf("Execute Start: entity kind %d\n", getKind(entity));
 	int opstep = 20; // number of operations to execute before returning
-    int* code = getObj(prog, IntArray, elements);
-	int size = getObj(prog, IntArray, size);
+    int* code = getObj(exec->RunCtx.code, IntArray, elements);
+	int size = getObj(exec->RunCtx.code, IntArray, size);
 	int *pc;
 	int *rbp;
 	oop stack;
@@ -224,7 +231,7 @@ int locked = 0; // for print functions
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
 			printOP(iGETGLOBALVAR);
 			int symIndex = fetch(); 
-			push(getObj(getObj(agent, Agent, stack), Stack, elements)[symIndex]);
+			push(getObj(getObj(exec, RunCtx, agent), Agent, stack)->Stack.elements[symIndex]);
 			continue;
 		}
 		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
@@ -241,11 +248,12 @@ int locked = 0; // for print functions
 		case iSETGLOBALVAR:{
 			printOP(iSETGLOBALVAR);
 			int symIndex = fetch();
-			agent->Agent.stack->Stack.elements[symIndex] = pop(); // set the global variable value
+			getObj(getObj(exec, RunCtx, agent), Agent, stack)->Stack.elements[symIndex] = pop(); // set the global variable value
 			continue;
 		}
 		case iSETSTATEVAR:{
 			printOP(iSETSTATEVAR);
+			oop agent = getObj(exec, RunCtx, agent);
 			int index = fetch();
 			int symIndex = index + agent->Agent.rbp;
 			if(symIndex > agent->Agent.stack->Stack.size -1)//FIXME: every time check the size is not efficient, it should be done at init state.
@@ -431,7 +439,7 @@ int locked = 0; // for print functions
 		case iTRANSITION:{
 			printOP(iTRANSITION);
 			int nextStatePos = fetch();
-			pushStack(getObj(agent, Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position: 
+			pushStack(getObj(getObj(exec, RunCtx, agent), Agent, stack),  newIntVal(nextStatePos+(*pc)));//relative position: 
 			return retFlags[TRANSITION_F];
 		}
 		case iSETSTATE:{
@@ -447,13 +455,15 @@ int locked = 0; // for print functions
 				switch(op){
 					case iGETGLOBALVAR:{
 						l = fetch();
-						instance = agent->Agent.stack->Stack.elements[l];
+						instance = entity->Agent.stack->Stack.elements[l];
+						//instance = getObj(getObj(exec, RunCtx, agent), Agent, stack)->Stack.elements[l];
 						op = fetch();
 						break;
 					}
 					case iGETSTATEVAR:{
 						l = fetch();
-						instance = agent->Agent.stack->Stack.elements[agent->Agent.rbp + l];
+						instance = entity->Agent.stack->Stack.elements[entity->Agent.rbp + l];		
+						//instance = getObj(getObj(exec, RunCtx, agent), Agent, stack)->Stack.elements[getObj(getObj(exec, RunCtx, agent), Agent, rbp) + l];
 						op = fetch();
 						break;
 					}
