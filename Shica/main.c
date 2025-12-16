@@ -295,7 +295,7 @@ case Event   :
 	return;
 }
 case EventH :
-{
+{  
 	return;
 }
 case Variable:
@@ -527,7 +527,7 @@ int memory_init(void)
 	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #elif defined(MSGCS)
 	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
-	exectx = &gc_ctx;
+	exectx = &origin_gc_ctx;
 	comctx = ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #else
 	#error "MSGCS or MSGC must be defined"
@@ -747,7 +747,7 @@ int executeWebCodes(void)
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
-				if(impleBody(webCodes[i], eh, agent)==retFlags[TRANSITION_F]){
+				if(impleBody(webCodes[i], agent, eh)==retFlags[TRANSITION_F]){
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
 						reinitializeEventObject(eh2);
@@ -824,7 +824,7 @@ int runNative(oop code){
 				// get event data
 				oop eh = getObj(agent,Agent,eventHandlers)[i];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(eh);
-				oop ret = impleBody(code, eh, agent);
+				oop ret = impleBody(code, agent, eh);
 				if(ret == retFlags[TRANSITION_F]){
 					//initialize event objects
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
@@ -893,7 +893,7 @@ int main(int argc, char **argv)
 #ifdef MSGC
 	nroots = 0; // reset the number of roots
 #elif defined(MSGCS)
-	gc_ctx.nroots = 0; // reset the number of roots
+	origin_gc_ctx.nroots = 0; // reset the number of roots
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
@@ -923,7 +923,7 @@ int main(int argc, char **argv)
 #ifdef MSGC
 	assert(nroots == 0); // check if the number of roots is equal to 0
 #elif defined(MSGCS)
-	assert(gc_ctx.nroots == 0); // check if the number of roots is equal to 0
+	assert(origin_gc_ctx.nroots == 0); // check if the number of roots is equal to 0
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif

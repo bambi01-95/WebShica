@@ -81,11 +81,11 @@ oop impleBody(oop code,oop agent, oop eh){
 	for(int i=0;i<getObj(eh, EventHandler, size); ++i){
 		oop thread = threads[i];
 		if(getObj(thread, Thread, inProgress) == 1){
-			ret = execute(code,thread, agent);
+			ret = execute(code, agent, thread);
 		}else if(getObj(thread, Thread, queue)->Queue.size > 0){
 			getObj(thread, Thread, stack) = dequeue(thread);
 			assert(getObj(thread, Thread, stack) != NULL);
-			ret = execute(code, thread, agent);
+			ret = execute(code, agent, thread);
 		}
 		if(ret == retFlags[TRANSITION_F]){
 			return ret;

@@ -23,29 +23,28 @@ void gcfatal(const char *fmt, ...)
     va_end(ap);
     exit(1);
 }
-void gc_check_ctx(const gc_context *ctx)
+void gc_check_ctx(const gc_context *g)
 {
-    if (!ctx) gcfatal("gc context is NULL");
-    if (!ctx->memory) gcfatal("gc context memory is NULL");
-    if (!ctx->memend) gcfatal("gc context memend is NULL");
-    if (!ctx->memnext) gcfatal("gc context memnext is NULL");
-    if (ctx->memory >= ctx->memend) gcfatal("gc context memory >= memend");
-    if (ctx->memnext < ctx->memory || ctx->memnext >= ctx->memend)
+    if (!g) gcfatal("gc context is NULL");
+    if (!g->memory) gcfatal("gc context memory is NULL");
+    if (!g->memend) gcfatal("gc context memend is NULL");
+    if (!g->memnext) gcfatal("gc context memnext is NULL");
+    if (g->memory >= g->memend) gcfatal("gc context memory >= memend");
+    if (g->memnext < g->memory || g->memnext >= g->memend)
         gcfatal("gc context memnext out of bounds");
 }
 
-void print_gc_header(const gc_header *ptr);
+
 /* MEMO
  * Initialize the garbage collector with a given size of memory.
  * The memory is allocated and initialized to zero.
- * gc_ctx is a global context that holds whole memory.
- * | ------------------- gc_ctx -------------------- |
+ * origin_gc_ctx is a global context that holds whole memory.
+ * | ------------------- origin_gc_ctx -------------------- |
  * | gc_ctx1 | gc_ctx2 |  ...  | gc_ctxN_1 | gc_ctxN |
  */
-
 unsigned int nctx = 0; // number of processes (contexts) using the GC
 unsigned long gc_total = 0; // total memory allocated by the GC
-struct gc_context gc_ctx = {
+struct gc_context origin_gc_ctx = {
     // .roots = {0},// for momorize each process context pointers
     .nroots = 0, // capacity of process context pointers
     .memory = 0,
@@ -73,21 +72,21 @@ gc_context *newGCContext(const int size)
 
 void gc_init(const int size)
 {
-    gc_ctx.memory = (void *)malloc(size);
-    memset(gc_ctx.memory, 0, size);
+    origin_gc_ctx.memory = (void *)malloc(size);
+    memset(origin_gc_ctx.memory, 0, size);
 
-    gc_ctx.memend = (void *)gc_ctx.memory + size;
-    gc_ctx.memnext = gc_ctx.memory;
+    origin_gc_ctx.memend = (void *)origin_gc_ctx.memory + size;
+    origin_gc_ctx.memnext = origin_gc_ctx.memory;
     // memory begins as a single free block the size of the entire memory
-    gc_ctx.memory->size = size;
-    gc_ctx.memory->busy = 0;
-    gc_ctx.memory->mark = 0;
-    gc_ctx.memory->atom = 0;
-    gc_ctx.nroots = 0; // no roots at the start
-    assert(gc_ctx.memory < gc_ctx.memend); // ensure the memory is within bounds
+    origin_gc_ctx.memory->size = size;
+    origin_gc_ctx.memory->busy = 0;
+    origin_gc_ctx.memory->mark = 0;
+    origin_gc_ctx.memory->atom = 0;
+    origin_gc_ctx.nroots = 0; // no roots at the start
+    assert(origin_gc_ctx.memory < origin_gc_ctx.memend); // ensure the memory is within bounds
 }
 
-gc_context *ctx = &gc_ctx; // current context
+gc_context *ctx = &origin_gc_ctx; // current context
 
 
 
@@ -381,33 +380,13 @@ void gc_free(void *ptr)
     here->atom = 0;
 }
 
-void print_gc_header(const gc_header *ptr)
-{
-    gc_header *hdr = (gc_header *)ptr - 1; // convert pointer to header
-    printf("pointer:   %p\n", ptr);
-    printf("gc_header: %p\n", hdr);
-    printf("  size: %u\n", hdr->size);
-    printf("  busy: %u\n", hdr->busy);
-    printf("  mark: %u\n", hdr->mark);
-    printf("  atom: %u\n", hdr->atom);
-}
-void print_gc_context(const gc_context *ctx)
-{
-    printf("gc_context: %p\n", ctx);
-    printf("  roots: %u\n", ctx->nroots);
-    printf("  memory: %p\n", ctx->memory);
-    printf("  memend: %p\n", ctx->memend);
-    printf("  memnext: %p\n", ctx->memnext);
-    for (unsigned i = 0; i < ctx->nroots; ++i) {
-        printf("  root[%u]: %p\n", i, ctx->roots[i]);
-    }
-}
+
 /* MEMO
  * Separate the context for each process.
  * It divides the memory into equal blocks for each process.
  * Each block has its own roots and memory management.
  * TOTAL_MEMORY_SIZE == nprocesses * block_size
- * | ------------------- gc_ctx -------------------- |
+ * | ------------------- origin_gc_ctx -------------------- |
  * | gc_ctx1 | gc_ctx2 |  ...  | gc_ctxN_1 | gc_ctxN |
  */
 
@@ -426,14 +405,14 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
         return;
     }
     // ctx should be initialized before this function is called
-    gc_ctx.nroots = 0; // reset root count for the new context
-    memset(gc_ctx.memory, 0, gc_ctx.memend - gc_ctx.memory); //clean memory 0
-    unsigned int size = (char *)gc_ctx.memend - (char *)gc_ctx.memory;
+    origin_gc_ctx.nroots = 0; // reset root count for the new context
+    memset(origin_gc_ctx.memory, 0, origin_gc_ctx.memend - origin_gc_ctx.memory); //clean memory 0
+    unsigned int size = (char *)origin_gc_ctx.memend - (char *)origin_gc_ctx.memory;
     unsigned int block_size = size / nprocesses; // divide memory into equal blocks
-    gc_header *block_start = (gc_header *)((char *)gc_ctx.memory + 1);/*hdr*/;
+    gc_header *block_start = (gc_header *)((char *)origin_gc_ctx.memory + 1);/*hdr*/;
     // |hdr(1)|gc_context|memory|
     gc_debug_log("Whole memory size %ubytes, %d process, and %d bytes\n", size , nprocesses, block_size);
-    gc_header *start = (gc_header *)((char *)gc_ctx.memory + 1); // start of the memory block
+    gc_header *start = (gc_header *)((char *)origin_gc_ctx.memory + 1); // start of the memory block
     for(int i = 0; i < nprocesses; i++) {
         // allocate a new context block
         gc_context *block = (gc_context *)block_start; // cast the start of the block to gc_context
@@ -442,12 +421,12 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
         hdr->size = block_size;
         hdr->busy = hdr->mark = hdr->atom = 0;
         // store the pointer to the new context in the roots array
-        gc_ctx.nroots++;
-        gc_ctx.roots[i] = (void **)block; // store the pointer to the new context in the roots array
+        origin_gc_ctx.nroots++;
+        origin_gc_ctx.roots[i] = (void **)block; // store the pointer to the new context in the roots array
         // memory for the new context
         block->memory = (gc_header *)((char *)block_start + sizeof(gc_context)); // set start of memory for this context
         if(i == nprocesses - 1) {
-            block->memend = gc_ctx.memend; // last block goes to the end of memory
+            block->memend = origin_gc_ctx.memend; // last block goes to the end of memory
         } else {
             block->memend = (gc_header *)((char *)block_start + block_size - 1); // set end of memory for this context
         }
@@ -471,17 +450,40 @@ void gc_separateContext(const int nprocesses, const int nactiveprocesses)
 
 gc_context *gc_getContextSlot(void)
 {
-    if(nctx == gc_ctx.nroots) {
+    if(nctx == origin_gc_ctx.nroots) {
         printf("gc_getContextSlot: maximum number of contexts reached %d\n", nctx);
         return NULL; // no more contexts can be added
     }
     nctx++; // increment the number of contexts
-    return (gc_context *)gc_ctx.roots[nctx++];
+    return (gc_context *)origin_gc_ctx.roots[nctx++];
 }
 
 #ifdef TESTGC 
 #include <stdio.h>
 #include <assert.h>
+
+static void print_gc_header(const gc_header *ptr)
+{
+    gc_header *hdr = (gc_header *)ptr - 1; // convert pointer to header
+    printf("pointer:   %p\n", ptr);
+    printf("gc_header: %p\n", hdr);
+    printf("  size: %u\n", hdr->size);
+    printf("  busy: %u\n", hdr->busy);
+    printf("  mark: %u\n", hdr->mark);
+    printf("  atom: %u\n", hdr->atom);
+}
+
+static void print_gc_context(const gc_context *g)
+{
+    printf("gc_context: %p\n", g);
+    printf("  roots: %u\n", g->nroots);
+    printf("  memory: %p\n", g->memory);
+    printf("  memend: %p\n", g->memend);
+    printf("  memnext: %p\n", g->memnext);
+    for (unsigned i = 0; i < g->nroots; ++i) {
+        printf("  root[%u]: %p\n", i, g->roots[i]);
+    }
+}
 
 typedef struct Link Link;
 
@@ -575,7 +577,7 @@ int main(){
     }
     gc_popRoot((void *)&arr, "arr"); // pop the array from the root stack
     gc_collect(); // collect garbage again
-    ctx = &gc_ctx; // reset the current context to the global context
+    ctx = &origin_gc_ctx; // reset the current context to the global context
     GC_POP(ctx1); // pop the context from the root stack
     return 0;
 }

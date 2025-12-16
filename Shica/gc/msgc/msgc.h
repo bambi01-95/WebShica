@@ -59,7 +59,7 @@ extern gc_collectFunction_t gc_collectFunction;
 void *gc_alloc(int lbs);
 void gc_free(void *ptr);
 int gc_collect(void);
-char *gc_strdup(char *s);
+char *gc_strdup(const char *s);
 void *gc_realloc(void *oldptr, int newsize);
 
 int gc_collectWithCleanup();

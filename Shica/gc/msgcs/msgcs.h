@@ -6,18 +6,6 @@
 #include <string.h>
 #include <assert.h>
 
-// #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
-// # define gc_debug_log(fmt, ...) ;
-// # define set_ctx(I) ctx = (gc_context*)gc_ctx.roots[I]
-// #else // NDEBUGが「定義されている」場合（リリースビルド）
-// # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
-// # define set_ctx(I) ({ \
-//     assert(I < gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
-//     assert(gc_ctx.roots[I] != NULL); \
-//     ctx = (gc_context*)gc_ctx.roots[I]; \
-// })
-// #endif
-
 #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 # define set_ctx(I) ({ \
@@ -58,10 +46,10 @@ typedef struct gc_context gc_context;
 
 gc_context *newGCContext(const int size); // create a new GC context with given size
 
-void gc_check_ctx(const gc_context *ctx); // check the validity of the GC context
+void gc_check_ctx(const gc_context *g); // check the validity of the GC context
 
 extern unsigned int nctx; // number of processes (contexts) using the GC
-extern gc_context gc_ctx; // whole memory context
+extern gc_context origin_gc_ctx; // whole memory context
 extern gc_context *ctx; // current context
 
 // msgcs.h に追加
