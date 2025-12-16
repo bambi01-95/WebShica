@@ -325,7 +325,6 @@ oop getIrCode(int index){
 oop newAgent(int id, int nEvents)
 {
 	oop agent = newEntity(Agent);
-	printf("object type of newAgent: %d, getKind: %d\n", agent->kind, getKind(agent));
 	assert(getKind(agent) == Agent);
 	agent->Agent.id = id;
 	agent->Agent.isActive = 0; // active by default

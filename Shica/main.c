@@ -557,7 +557,7 @@ int locked = 0; // for print functions
 		case iPRINT:{
 			printOP(iPRINT);
 			int val = IntVal_value(pop());
-			printf("%d\n", val);
+			printf("%d", val);
 			continue;
 		}
 		case sPRINT:{
@@ -628,11 +628,12 @@ int locked = 0; // for print functions
 					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}
 				for(int j=0; j<nThreads; ++j){
+					int opPos = *pc;
 					op = fetch();
 					assert(op == iSETPROCESS);
 					printOP(iSETPROCESS);
-					l = fetch(); // get the aPos
-					r = fetch(); // get the cPos
+					l = opPos + fetch(); // get the aPos
+					r = opPos + fetch(); // get the cPos
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}

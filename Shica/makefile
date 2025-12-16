@@ -67,8 +67,10 @@ cc:
 # ./legstruct_type_inserter
 	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
+inputc:
+	./$(NATIVEOUT) < ./input.txt
 input:
-	./$(NATIVEOUT) < ./input.txt -c
+	./$(NATIVEOUT) < ./input.txt
 
 # build vm.js
 wasm: $(WASMOUT)

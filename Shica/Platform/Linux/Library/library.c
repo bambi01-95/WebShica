@@ -15,8 +15,6 @@ int event_handler_init(oop eh){
 	return 1;
 }
 int event_object_handler_init(oop eh){
-	printf("event_object_handler_init\n");
-	printf("ARE YOU SEEING THIS???\n");
 	return 1;
 }
 
@@ -67,8 +65,6 @@ int timer_sec_handler(oop eh){
 	int now = (int)(t % 10000);
 
 	if(now - pre >= interval){
-		printf("timer_sec_handler: interval %d reached\n", interval);
-		printf("pre: %d, now: %d\n", pre, now);
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
 		oop stack = newStack(0);
