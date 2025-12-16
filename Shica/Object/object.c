@@ -377,13 +377,24 @@ oop newAny(int markbit, int nData)
 	return any;
 }
 
+oop newRunCtx(oop agent, oop code)
+{
+	GC_PUSH(oop, runcx, newEntity(RunCtx));
+	runcx->RunCtx.agent = agent;
+	runcx->RunCtx.code = code;
+	GC_POP(runcx);
+	return runcx;
+}
+
 oop newRETFLAG(void)
 {
 	return newEntity(RETFLAG);
 }
 
 
-
+// ----------------------------------------
+// Global Tables
+// ----------------------------------------
 struct EventTable *EventTable = NULL;
 void setEventTable(struct EventTable *table)
 {

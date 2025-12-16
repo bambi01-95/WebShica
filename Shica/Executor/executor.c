@@ -28,23 +28,6 @@ static char *strcatlog(char *dest, const char *src){
 }
 #endif // WEBSHICA
 
-// struct ExecutorContext{
-//     oop prog;
-//     oop agent;
-// };
-// struct ExecutorContext executorContext;
-// void setProgToExecutorCTX(oop prog){
-//     executorContext.prog = prog;
-// }
-// void setAgentToExecutorCTX(oop agent){
-//     executorContext.agent = agent;
-// }
-// oop getProgFromExecutorCTX(){   
-//     return executorContext.prog;
-// }
-// oop getAgentFromExecutorCTX(){
-//     return executorContext.agent;
-// }
 /* ==================== EXECUTOR ==================== */
 /* EVENT HANDLER */
 int executor_event_init()
@@ -63,10 +46,7 @@ int executor_func_init()
 	return 1;
 }
 
-#define push(O)	pushStack(stack, O)
-#define pop()	popStack(stack)
-#define top()	lastStack(stack)
-#define pick(I)  stack->Stack.elements[I]
+
 
 
 
@@ -91,7 +71,8 @@ oop retFlags[7] = {
 };
 #endif
 
-oop impleBody(oop code, oop eh, oop agent){
+
+oop impleBody(oop code,oop agent, oop eh){
 	assert(getKind(code) == IntArray);
 	assert(getKind(eh) == EventHandler);
 	assert(getKind(agent) == Agent);
@@ -116,12 +97,12 @@ oop impleBody(oop code, oop eh, oop agent){
 	return ret; // return 1 to indicate success
 }
 
-
-
-
-oop execute(oop prog,oop entity, oop agent)
+oop execute(oop prog, oop agent, oop entity)
 {
-
+#define push(O)	pushStack(stack, O)
+#define pop()	popStack(stack)
+#define top()	lastStack(stack)
+#define pick(I)  stack->Stack.elements[I]
 	dprintf("Execute Start: entity kind %d\n", getKind(entity));
 	int opstep = 20; // number of operations to execute before returning
     int* code = getObj(prog, IntArray, elements);
@@ -583,10 +564,9 @@ int locked = 0; // for print functions
 	reportError(DEVELOPER, 0, "execute: reached unreachable code");
 	return retFlags[ERROR_F]; // should never reach here
 # undef fetch
-}
-
 #undef push
 #undef pop
 #undef top
 #undef pick
+}
 #endif // EXECUTOR_C
