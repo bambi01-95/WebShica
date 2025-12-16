@@ -24,6 +24,7 @@ SRC = main.c \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
 	  ./Node/node.c \
+	  ./Compiler/compiler.c \
 	  ./Object/object.c \
 	  ./Parser/parser.c \
 	  ./Executor/executor.c 
@@ -32,6 +33,7 @@ INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
 			   -I ./Opcode \
 			   -I ./Node \
+			   -I ./Compiler \
 			   -I ./Object \
 			   -I ./Parser \
 			   -I ./Executor
@@ -70,7 +72,7 @@ cc:
 	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 inputc:
-	./$(NATIVEOUT) < ./input.txt
+	./$(NATIVEOUT) < ./input.txt -c
 input:
 	./$(NATIVEOUT) < ./input.txt
 

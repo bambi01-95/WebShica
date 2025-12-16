@@ -2,6 +2,32 @@
 #define EXECUTOR_C
 #include "./executor.h"
 
+#ifdef WEBSHICA
+//EXECUTOR 
+// ONLY CALL xPRINT
+//LOG STYLE:125) 0 type| 4 line | other 
+#define LOG_MAX_SIZE 120
+static char *strcatlog(char *dest, const char *src){
+
+	if(dest==NULL){
+		gc_pushRoot((void*)&src);
+		dest = (char*)gc_beAtomic(gc_alloc(sizeof(char)*(LOG_MAX_SIZE)));
+		dest[0] = '\0';
+		gc_popRoots(1);
+		gc_pushRoot((void*)&dest);//should be poped flashPRINT
+	}
+	if(src==NULL)return dest;
+	unsigned int len = 0;
+	while(dest[len] != '\0') len++;
+	while(*src != '\0'){
+		dest[len++] = *src++;
+		if(len >= LOG_MAX_SIZE -1) break;
+	}
+	dest[len] = '\0';
+	return dest;
+}
+#endif // WEBSHICA
+
 // struct ExecutorContext{
 //     oop prog;
 //     oop agent;

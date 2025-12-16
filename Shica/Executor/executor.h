@@ -25,6 +25,9 @@ enum {
 typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
 #define MAKE_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
 extern oop retFlags[7];
+#ifdef WEBSHICA
+void buildRetFlags();
+#endif
 
 oop impleBody(oop code, oop eh, oop agent);
 oop execute(oop prog,oop entity, oop agent);
