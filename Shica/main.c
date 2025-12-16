@@ -517,8 +517,7 @@ int compile_init(int index);
 int compile_finalize();
 oop webcode  = NULL;
 oop webagent = NULL;
-gc_context *comctx = NULL; // context for the garbage collector
-gc_context *exectx = NULL; // context for the garbage collector
+static gc_context *comctx = NULL; // context for the garbage collector
 
 //once called, initialize the memory for the garbage collector
 int memory_init(void)
@@ -527,7 +526,6 @@ int memory_init(void)
 	gc_init(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #elif defined(MSGCS)
 	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
-	exectx = &origin_gc_ctx;
 	comctx = current_gc_ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #else
 	#error "MSGCS or MSGC must be defined"
@@ -698,7 +696,7 @@ int initWebAgents(int num)
 	printf("Initializing web %d agents...\n", num);
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
     gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
-	current_gc_ctx = exectx; // use the context for execution
+	current_gc_ctx = origin_gc_ctx_ptr(); // use the context for execution
 	memset(current_gc_ctx->memory, 0, (char*)current_gc_ctx->memend - (char*)current_gc_ctx->memory); // clear the memory
 	gc_separateContext(num,0); // separate context for the garbage collector
 	assert(num == current_gc_ctx->nroots); // check if the number of roots is equal to the number of web agents
@@ -721,11 +719,11 @@ int initWebAgents(int num)
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
 	nWebAgents = num; // set the number of web agents
-	current_gc_ctx = exectx; // reset the context to the execution context
+	current_gc_ctx = origin_gc_ctx_ptr(); // reset the context to the execution context
 	return 0; 
 }
 
-//WARNING: which current_gc_ctx you use is important -> exectx (initWebAgents)
+//WARNING: which current_gc_ctx you use is important -> origin_gc_ctx_ptr() (initWebAgents)
 int executeWebCodes(void)
 {
 	gc_context **ctxs = (gc_context **)current_gc_ctx->roots; // initialize web agents
@@ -761,7 +759,7 @@ int executeWebCodes(void)
 		}
 		// printCode(webCodes[i]); // print the bytecode of the web code
 	}
-	current_gc_ctx = exectx; // reset the context to the execution context
+	current_gc_ctx = origin_gc_ctx_ptr(); // reset the context to the execution context
 	return 0; 
 }
 int stopWebCodes(void)
@@ -893,7 +891,7 @@ int main(int argc, char **argv)
 #ifdef MSGC
 	nroots = 0; // reset the number of roots
 #elif defined(MSGCS)
-	origin_gc_ctx.nroots = 0; // reset the number of roots
+	setOriginalGCtxNRoots(0); // reset the number of roots
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
@@ -923,7 +921,7 @@ int main(int argc, char **argv)
 #ifdef MSGC
 	assert(nroots == 0); // check if the number of roots is equal to 0
 #elif defined(MSGCS)
-	assert(origin_gc_ctx.nroots == 0); // check if the number of roots is equal to 0
+	assert(getOriginalGCtxNRoots() == 0); // check if the number of roots is equal to 0
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif

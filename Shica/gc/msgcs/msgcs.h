@@ -8,14 +8,8 @@
 
 #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
-# define set_ctx(I) ({ \
-    assert(I < origin_gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
-    assert(origin_gc_ctx.roots[I] != NULL); \
-    current_gc_ctx = (gc_context*)origin_gc_ctx.roots[I]; \
-})
 #else // NDEBUGが「定義されている」場合（リリースビルド）
 # define gc_debug_log(fmt, ...) ;
-# define set_ctx(I) current_gc_ctx = (gc_context*)origin_gc_ctx.roots[I]
 #endif
 
 extern unsigned long gc_total;
@@ -44,13 +38,24 @@ struct gc_context
 };
 typedef struct gc_context gc_context;
 
+//-----------------------------
+// USE ORIGINAL GC CONTEXT
+unsigned int getOriginalGCtxNRoots(void); // get the number of original GC contexts
+void setOriginalGCtxNRoots(unsigned int n); // set the number of original GC contexts
+gc_context *origin_gc_ctx_ptr(void); // get pointer to the original GC context
+//-----------------------------
+// USE CURRENT GC CONTEXT   
+extern gc_context *current_gc_ctx; // current GC context
+//-----------------------------
+
+
+
+
 gc_context *newGCContext(const int size); // create a new GC context with given size
 
 void gc_check_ctx(const gc_context *g); // check the validity of the GC context
 
-extern unsigned int nctx; // number of processes (contexts) using the GC
-extern gc_context origin_gc_ctx; // whole memory context
-extern gc_context *current_gc_ctx; // current context
+
 
 // msgcs.h に追加
 #define GC_PTR(p) (p && ((void *)current_gc_ctx->memory <= p) && (p < (void *)current_gc_ctx->memend))

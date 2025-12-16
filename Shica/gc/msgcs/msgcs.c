@@ -34,7 +34,6 @@ void gc_check_ctx(const gc_context *g)
         gcfatal("gc context memnext out of bounds");
 }
 
-
 /* MEMO
  * Initialize the garbage collector with a given size of memory.
  * The memory is allocated and initialized to zero.
@@ -42,15 +41,48 @@ void gc_check_ctx(const gc_context *g)
  * | ------------------- origin_gc_ctx -------------------- |
  * | gc_ctx1 | gc_ctx2 |  ...  | gc_ctxN_1 | gc_ctxN |
  */
-unsigned int nctx = 0; // number of processes (contexts) using the GC
+static unsigned int nctx = 0; // number of processes (contexts) using the GC
 unsigned long gc_total = 0; // total memory allocated by the GC
-struct gc_context origin_gc_ctx = {
+static gc_context origin_gc_ctx = {
     // .roots = {0},// for momorize each process context pointers
     .nroots = 0, // capacity of process context pointers
     .memory = 0,
     .memend = 0,
     .memnext = 0
 };
+gc_context *current_gc_ctx = &origin_gc_ctx; // current context
+
+unsigned int getOriginalGCtxNRoots(void)
+{
+    return origin_gc_ctx.nroots;
+}
+void setOriginalGCtxNRoots(unsigned int n)
+{
+    origin_gc_ctx.nroots = n;
+}
+gc_context *origin_gc_ctx_ptr(void)
+{
+    return &origin_gc_ctx;
+}
+
+// ORIGINAL GC INITIALIZE FUNCTION
+void gc_init(const int size)
+{
+    origin_gc_ctx.memory = (void *)malloc(size);
+    memset(origin_gc_ctx.memory, 0, size);
+
+    origin_gc_ctx.memend = (void *)origin_gc_ctx.memory + size;
+    origin_gc_ctx.memnext = origin_gc_ctx.memory;
+    // memory begins as a single free block the size of the entire memory
+    origin_gc_ctx.memory->size = size;
+    origin_gc_ctx.memory->busy = 0;
+    origin_gc_ctx.memory->mark = 0;
+    origin_gc_ctx.memory->atom = 0;
+    origin_gc_ctx.nroots = 0; // no roots at the start
+    assert(origin_gc_ctx.memory < origin_gc_ctx.memend); // ensure the memory is within bounds
+}
+
+// NEW GC CONTEXT: WARNING > IT DOES NOT REGISTER THE CONTEXT INTO ORIGIN GC CTX or ITS ROOTS
 gc_context *newGCContext(const int size)
 {
     gc_context *new_gc_ctx = (gc_context *)malloc(sizeof(gc_context));
@@ -69,24 +101,6 @@ gc_context *newGCContext(const int size)
     assert(new_gc_ctx->memory < new_gc_ctx->memend); // ensure the memory is within bounds
     return new_gc_ctx;
 }
-
-void gc_init(const int size)
-{
-    origin_gc_ctx.memory = (void *)malloc(size);
-    memset(origin_gc_ctx.memory, 0, size);
-
-    origin_gc_ctx.memend = (void *)origin_gc_ctx.memory + size;
-    origin_gc_ctx.memnext = origin_gc_ctx.memory;
-    // memory begins as a single free block the size of the entire memory
-    origin_gc_ctx.memory->size = size;
-    origin_gc_ctx.memory->busy = 0;
-    origin_gc_ctx.memory->mark = 0;
-    origin_gc_ctx.memory->atom = 0;
-    origin_gc_ctx.nroots = 0; // no roots at the start
-    assert(origin_gc_ctx.memory < origin_gc_ctx.memend); // ensure the memory is within bounds
-}
-
-gc_context *current_gc_ctx = &origin_gc_ctx; // current context
 
 
 
