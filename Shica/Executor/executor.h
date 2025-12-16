@@ -29,6 +29,6 @@ extern oop retFlags[7];
 void buildRetFlags();
 #endif
 
-oop impleBody(oop code, oop eh, oop agent);
-oop execute(oop prog,oop entity, oop agent);
+oop impleBody(oop code,oop agent, oop eh);
+oop execute(oop prog,oop agent, oop entity);
 #endif // EXECUTOR_H

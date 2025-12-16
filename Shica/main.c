@@ -469,6 +469,17 @@ void markExecutors(oop ptr)
 			printf("Any type is not supported in markExecutors\n");
 			return ;
 		}
+		case RunCtx:{
+			dprintf("markExecutors RunCtx\n");
+			if(ptr->RunCtx.agent){
+				gc_mark(ptr->RunCtx.agent); // mark the runctx agent
+			}
+			if(ptr->RunCtx.code){
+				gc_mark(ptr->RunCtx.code); // mark the runctx code
+			}
+			dprintf("markExecutors RunCtx done\n");
+			return;
+		}
 		default:{
 			dprintf("markExecutors ERROR: unknown type %d\n", ptr->kind);
 			fprintf(stderr, "markExecutors ERROR: unknown type %d\n", ptr->kind);

@@ -188,11 +188,11 @@ static int isAtomicType(node type)
 	return 0;
 }
 
-static node getElementType(cnode ctx,cnode id)
+static node getElementType(cnode emitCTX,cnode id)
 {
-	assert(getType(getNode(ctx, EmitContext, user_types)) == Array);
-	cnode *user_types = getNode(ctx, EmitContext, user_types)->Array.elements;
-	int nUserTypes = getNode(ctx, EmitContext, user_types)->Array.size;
+	assert(getType(getNode(emitCTX, EmitContext, user_types)) == Array);
+	cnode *user_types = getNode(emitCTX, EmitContext, user_types)->Array.elements;
+	int nUserTypes = getNode(emitCTX, EmitContext, user_types)->Array.size;
 	for(int i=0;i<nUserTypes;i++){
 		cnode user_type = user_types[i]->Pair.a;
 		if(user_type == id){

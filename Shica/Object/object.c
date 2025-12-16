@@ -533,6 +533,12 @@ void printObj(oop obj, int indent)
 		printf("Any (not supported now)\n");
 		break;
 	}
+	case RunCtx:{
+		printf("RunCtx\n");
+		printObj(getObj(obj, RunCtx, agent), indent + 1);
+		printObj(getObj(obj, RunCtx, code), indent + 1);
+		break;
+	}
 	case RETFLAG:{
 		printf("RETFLAG\n");
 		break;
