@@ -42,8 +42,8 @@ event = i:id p:eparams b:block { $$ = newEvent(i, p, b, nlines); }
 	  | i:id DOT f:id  p:eparams b:block { $$ = newEvent(newGetField(i, f, nlines), p, b, nlines); }
 
 eparams	= LPAR p:mkNil
-	  ( t:TYPE i:id c:mkFalse (c:eqop)?			{ p = newEparams(t, i, c, p) }
-	    ( COMMA t:TYPE i:id	c:mkFalse (c:eqop)?	{ p = newEparams(t, i, c, p) }
+	  ( t:TYPE i:id c:mkFalse (COLON c:eqop)?			{ p = newEparams(t, i, c, p) }
+	    ( COMMA t:TYPE i:id	c:mkFalse (COLON c:eqop)?	{ p = newEparams(t, i, c, p) }
 	    )*
 	  )?
  	  RPAR				{ $$ = p }
@@ -196,6 +196,7 @@ eol	= [\r\n]
 newline = [\n\r] { nlines++;}
 
 COMMA	= ","       -
+COLON = ":"       -
 SEMI	= ";"       -
 ASSIGN	= "=" !"="  -
 EQUAL   = "=="	    -
@@ -222,6 +223,7 @@ PLING	= "!" !"="  -
 QUOTE   = "\'"      
 DQUOTE  = "\"" 
 DOT   = "."
+
 
 STATE = "stt" -
 IF    = "if" -

@@ -1735,7 +1735,11 @@ int emitOn(oop prog,node vars, node ast, node type)
 					dprintf("Event List index: %d\n", ei);//remove
 					node event = eventList[ei++];//<< this makes error
 					node posPair = getNode(event, Event,block);
-					emitIII(prog, iSETPROCESS ,Integer_value(getNode(posPair,Pair,a))/*action*/,Integer_value(getNode(posPair,Pair,b))/*condition*/); // set the position of the event handler)
+					int opPos = prog->IntArray.size;
+					emitIII(prog, iSETPROCESS ,
+						Integer_value(getNode(posPair,Pair,a)) - opPos/*rel action pos from op pos*/, 
+						Integer_value(getNode(posPair,Pair,b)) - opPos/*rel condition pos from op pos*/
+					); 
 				}
 			}// end for
 			emitI(prog, iIMPL);
@@ -1785,7 +1789,7 @@ int emitOn(oop prog,node vars, node ast, node type)
 					popUserTypeIndex(vars);
 					return 1;
 				}
-				emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
+				// emitII(prog, iGETGLOBALVAR + var.scope, var.index); // get the event object variable value
 			}
 			node params = getNode(ast, Event, parameters);
 			node block = getNode(ast, Event, block);
@@ -2053,9 +2057,10 @@ simple:
 			}
 			case iSETPROCESS: {
 				inst = "SETPROCESS";
+				int pc = i;
 				int apos = code->IntArray.elements[++i];
 				int cpos = code->IntArray.elements[++i];
-				printf("%03d: %-10s %03d %3d\n", i-2, inst, apos, cpos);
+				printf("%03d: %-10s %03d %3d (%3d %3d)\n", i-2, inst, apos, cpos, pc + apos, pc + cpos);
 				break;
 			}
 			case iIMPL:
