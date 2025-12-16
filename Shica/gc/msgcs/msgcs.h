@@ -9,13 +9,13 @@
 #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 # define set_ctx(I) ({ \
-    assert(I < gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
-    assert(gc_ctx.roots[I] != NULL); \
-    ctx = (gc_context*)gc_ctx.roots[I]; \
+    assert(I < origin_gc_ctx.nroots); /* Iはインデックスなので<=ではなく<が適切 */ \
+    assert(origin_gc_ctx.roots[I] != NULL); \
+    current_gc_ctx = (gc_context*)origin_gc_ctx.roots[I]; \
 })
 #else // NDEBUGが「定義されている」場合（リリースビルド）
 # define gc_debug_log(fmt, ...) ;
-# define set_ctx(I) ctx = (gc_context*)gc_ctx.roots[I]
+# define set_ctx(I) current_gc_ctx = (gc_context*)origin_gc_ctx.roots[I]
 #endif
 
 extern unsigned long gc_total;
@@ -50,10 +50,10 @@ void gc_check_ctx(const gc_context *g); // check the validity of the GC context
 
 extern unsigned int nctx; // number of processes (contexts) using the GC
 extern gc_context origin_gc_ctx; // whole memory context
-extern gc_context *ctx; // current context
+extern gc_context *current_gc_ctx; // current context
 
 // msgcs.h に追加
-#define GC_PTR(p) (p && ((void *)ctx->memory <= p) && (p < (void *)ctx->memend))
+#define GC_PTR(p) (p && ((void *)current_gc_ctx->memory <= p) && (p < (void *)current_gc_ctx->memend))
 
 void gc_init(int size);
 

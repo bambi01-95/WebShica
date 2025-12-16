@@ -528,7 +528,7 @@ int memory_init(void)
 #elif defined(MSGCS)
 	gc_init(1024 * 1024 * 4); // initialize the garbage collector with 4MB of memory
 	exectx = &origin_gc_ctx;
-	comctx = ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
+	comctx = current_gc_ctx  = newGCContext(1024 * 1024); // initialize the garbage collector with 1MB of memory
 #else
 	#error "MSGCS or MSGC must be defined"
 #endif
@@ -548,7 +548,7 @@ oop *webAgents = NULL; // web agents
 
 void collectWeb(void)
 {
-	assert(ctx == comctx); // check if the context is equal to the compilation context
+	assert(current_gc_ctx == comctx); // check if the context is equal to the compilation context
 	gc_markOnly(webCodes); // mark the web codes
 	dprintf("collectWeb: nWebCodes=%d, size %lu\n", nWebCodes, sizeof(oop) * maxNumWebCodes);
 	if(nWebCodes > 0) {
@@ -572,10 +572,10 @@ void collectWeb(void)
 }
 
 //CCALL
-//WARNING: which ctx you use is important -> comctx
+//WARNING: which current_gc_ctx you use is important -> comctx
 int initWebCodes(int num)
 {
-	ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx = comctx; // use the context for the garbage collector
 	webCodes = (oop *)gc_beAtomic(malloc(sizeof(oop) * num)); // initialize web codes
 	maxNumWebCodes = num; // set the maximum number of web codes
 	return 0; 
@@ -583,7 +583,7 @@ int initWebCodes(int num)
 
 int addWebCode(void)
 {
-	assert(ctx == comctx); // check if the context is equal to the compilation context
+	assert(current_gc_ctx == comctx); // check if the context is equal to the compilation context
 	if(nWebCodes >= maxNumWebCodes){
 		dprintf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -597,8 +597,8 @@ int compile_init(int index)
 {
 	dprintf("compile_init\n");
 	webCodes[index] = NULL; // initialize the web code
-	ctx = comctx; // use the context for the garbage collector
-	ctx->nroots = 0; // reset the number of roots
+	current_gc_ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx->nroots = 0; // reset the number of roots
 	gc_markFunction = (gc_markFunction_t)markEmpty; // set the mark function to empty for now
 	gc_collectFunction = (gc_collectFunction_t)collectEmpty; // set the collect function to empty for now
 
@@ -640,7 +640,7 @@ int compile_finalize()
 //CCALL
 int compileWebCode(const int index, const char *code)
 {
-	dprintf("nroot: %d\n", ctx->nroots);
+	dprintf("nroot: %d\n", current_gc_ctx->nroots);
 	if(index < 0 || index >= maxNumWebCodes){
 		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
@@ -681,10 +681,10 @@ int deleteWebCode(const int index)
 }
 
 
-//WARNING: which ctx you use is important -> comctx
+//WARNING: which current_gc_ctx you use is important -> comctx
 int initWebAgents(int num)
 {
-	ctx = comctx; // use the context for the garbage collector
+	current_gc_ctx = comctx; // use the context for the garbage collector
 	executor_event_init(); // initialize the event system for the executor
 	executor_func_init(); // initialize the standard functions for the executor
 	buildRetFlags(); // build the return flags for the executor
@@ -698,48 +698,48 @@ int initWebAgents(int num)
 	printf("Initializing web %d agents...\n", num);
 	gc_markFunction = (gc_markFunction_t)markExecutors; // set the mark function for the garbage collector
     gc_collectFunction = (gc_collectFunction_t)collectExecutors; // set the collect function for the garbage collector
-	ctx = exectx; // use the context for execution
-	memset(ctx->memory, 0, (char*)ctx->memend - (char*)ctx->memory); // clear the memory
+	current_gc_ctx = exectx; // use the context for execution
+	memset(current_gc_ctx->memory, 0, (char*)current_gc_ctx->memend - (char*)current_gc_ctx->memory); // clear the memory
 	gc_separateContext(num,0); // separate context for the garbage collector
-	assert(num == ctx->nroots); // check if the number of roots is equal to the number of web agents
-	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
-	printf("\x1b[34m[C] nRoots: %d\x1b[0m\n\n", ctx->nroots);
+	assert(num == current_gc_ctx->nroots); // check if the number of roots is equal to the number of web agents
+	gc_context **ctxs = (gc_context **)current_gc_ctx->roots; // initialize web agents
+	printf("\x1b[34m[C] nRoots: %d\x1b[0m\n\n", current_gc_ctx->nroots);
 	for(int i = 0; i<num; ++i)
 	{
-		ctx = ctxs[i];
-		ctx->nroots = 0; // reset the number of roots
+		current_gc_ctx = ctxs[i];
+		current_gc_ctx->nroots = 0; // reset the number of roots
 		#ifdef DEBUG
-		printf("\x1b[34m[C] Agent[%d]: Context size %ld: %p -> %p\n\x1b[0m", i, (char*)ctx->memend - (char*)ctx->memory, ctx->memory, ctx->memend);
+		printf("\x1b[34m[C] Agent[%d]: Context size %ld: %p -> %p\n\x1b[0m", i, (char*)current_gc_ctx->memend - (char*)current_gc_ctx->memory, current_gc_ctx->memory, current_gc_ctx->memend);
 		#endif
 		oop *slot = (oop *)gc_alloc(sizeof(oop)); // allocate memory for the agent
 		*slot = newAgent(0,0); // create a new agent
-		ctx->roots[ctx->nroots++] = (void *)slot; // add the agent to the roots
-		oop agent = (oop)*ctx->roots[0];
+		current_gc_ctx->roots[current_gc_ctx->nroots++] = (void *)slot; // add the agent to the roots
+		oop agent = (oop)*current_gc_ctx->roots[0];
 		assert(getKind(agent) == Agent); // check if the agent is of type Agent
-		assert(ctx->nroots == 1); // check if the number of roots is equal to 1
+		assert(current_gc_ctx->nroots == 1); // check if the number of roots is equal to 1
 	}
 	maxNumWebAgents = num; // set the maximum number of web agents
 	printf("Initialized %d web agents.\n", num);
 	nWebAgents = num; // set the number of web agents
-	ctx = exectx; // reset the context to the execution context
+	current_gc_ctx = exectx; // reset the context to the execution context
 	return 0; 
 }
 
-//WARNING: which ctx you use is important -> exectx (initWebAgents)
+//WARNING: which current_gc_ctx you use is important -> exectx (initWebAgents)
 int executeWebCodes(void)
 {
-	gc_context **ctxs = (gc_context **)ctx->roots; // initialize web agents
+	gc_context **ctxs = (gc_context **)current_gc_ctx->roots; // initialize web agents
 	int ret = collision_calculation(nWebAgents);
 	for(int i = 0; i<nWebAgents ; i++){
 #ifdef DEBUG
 		printf("\n\x1b[34m[C] Agendd[%d] ----------------- \x1b[0m\n", i);
 #endif
 		setActiveAgent(i); // set the agent as active
-		ctx = ctxs[i]; // set the context to the current web agent
-		oop agent = (oop)*ctx->roots[0]; // get the agent from the context memory
+		current_gc_ctx = ctxs[i]; // set the context to the current web agent
+		oop agent = (oop)*current_gc_ctx->roots[0]; // get the agent from the context memory
 		if(agent==retFlags[ERROR_F])continue;
 		// Wen you want to ...
-		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, ctx->roots[0]);
+		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, current_gc_ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
 			agent = execute(webCodes[i] ,agent , agent);
 		}else{
@@ -761,7 +761,7 @@ int executeWebCodes(void)
 		}
 		// printCode(webCodes[i]); // print the bytecode of the web code
 	}
-	ctx = exectx; // reset the context to the execution context
+	current_gc_ctx = exectx; // reset the context to the execution context
 	return 0; 
 }
 int stopWebCodes(void)

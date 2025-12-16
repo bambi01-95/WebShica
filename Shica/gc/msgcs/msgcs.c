@@ -53,21 +53,21 @@ struct gc_context origin_gc_ctx = {
 };
 gc_context *newGCContext(const int size)
 {
-    gc_context *ctx = (gc_context *)malloc(sizeof(gc_context));
-    if (!ctx) gcfatal("out of memory");
-    ctx->memory = (void *)malloc(size);
-    if (!ctx->memory) gcfatal("out of memory");
-    ctx->memend = (void *)ctx->memory + size;
-    ctx->memnext = ctx->memory;
-    ctx->nroots = 0;
+    gc_context *new_gc_ctx = (gc_context *)malloc(sizeof(gc_context));
+    if (!new_gc_ctx) gcfatal("out of memory");
+    new_gc_ctx->memory = (void *)malloc(size);
+    if (!new_gc_ctx->memory) gcfatal("out of memory");
+    new_gc_ctx->memend = (void *)new_gc_ctx->memory + size;
+    new_gc_ctx->memnext = new_gc_ctx->memory;
+    new_gc_ctx->nroots = 0;
 
     // initialize the memory block as a single free block
-    ctx->memory->size = size;
-    ctx->memory->busy = 0; // not busy
-    ctx->memory->mark = 0; // not marked
-    ctx->memory->atom = 0; // not atomic
-    assert(ctx->memory < ctx->memend); // ensure the memory is within bounds
-    return ctx;
+    new_gc_ctx->memory->size = size;
+    new_gc_ctx->memory->busy = 0; // not busy
+    new_gc_ctx->memory->mark = 0; // not marked
+    new_gc_ctx->memory->atom = 0; // not atomic
+    assert(new_gc_ctx->memory < new_gc_ctx->memend); // ensure the memory is within bounds
+    return new_gc_ctx;
 }
 
 void gc_init(const int size)
@@ -86,34 +86,34 @@ void gc_init(const int size)
     assert(origin_gc_ctx.memory < origin_gc_ctx.memend); // ensure the memory is within bounds
 }
 
-gc_context *ctx = &origin_gc_ctx; // current context
+gc_context *current_gc_ctx = &origin_gc_ctx; // current context
 
 
 
 void gc_pushRoot(const void *varp)	// push a new variable address onto the root stack
 {
-    if (ctx->nroots == MAXROOTS)gcfatal("gc root table full\n");
-    ctx->roots[ctx->nroots++] = (void **)varp;
+    if (current_gc_ctx->nroots == MAXROOTS)gcfatal("gc root table full\n");
+    current_gc_ctx->roots[current_gc_ctx->nroots++] = (void **)varp;
 }
 
 #ifdef NDEBUG
 void gc_popRoot(void)    // remove the topmost variable address from the root stack
 {
-    --ctx->nroots;
+    --current_gc_ctx->nroots;
 }
 #else // !NDEBUG -- enforce LIFO popping of roots
 void gc_popRoot(void *varp,const char *name)    // pop a variable, checking it was the topmost on the stack
 {
-    assert(ctx->nroots > 0);
-    --ctx->nroots;
-    if (varp != ctx->roots[ctx->nroots])gcfatal("GC root '%s' popped out of order\n");
+    assert(current_gc_ctx->nroots > 0);
+    --current_gc_ctx->nroots;
+    if (varp != current_gc_ctx->roots[current_gc_ctx->nroots])gcfatal("GC root '%s' popped out of order\n");
 }
 #endif //NDBUG
 
 void gc_popRoots(const int n)
 {
-    assert(ctx->nroots >= n);
-    ctx->nroots -= n;
+    assert(current_gc_ctx->nroots >= n);
+    current_gc_ctx->nroots -= n;
 }
 
 
@@ -143,8 +143,8 @@ void gc_markOnly(void *ptr)
 {
     if (!GC_PTR(ptr)) return;			// NULL or outside memory
     gc_header *here = (gc_header *)ptr - 1;	// object to header
-    assert(ctx->memory <= here);
-    assert(here < ctx->memend);
+    assert(current_gc_ctx->memory <= here);
+    assert(here < current_gc_ctx->memend);
     assert(here->busy);
     if (here->mark) return;			// stop if already marked
     here->mark = 1;
@@ -156,8 +156,8 @@ void gc_mark(void *ptr)
     gc_debug_log("gc_mark: marking %p\n", ptr);
     if (!GC_PTR(ptr)) return;			// NULL or outside memory
     gc_header *here = (gc_header *)ptr - 1;	// object to header
-    assert(ctx->memory <= here);
-    assert(here < ctx->memend);
+    assert(current_gc_ctx->memory <= here);
+    assert(here < current_gc_ctx->memend);
     assert(here->busy);
     if (here->mark) return;			// stop if already marked
     here->mark = 1;
@@ -170,14 +170,14 @@ void gc_mark(void *ptr)
 int gc_collectWithCleanup(){
     int nfree = 0, nbusy = 0;			// count memory in use and free
     gc_collectFunction();			// run pre-collection function to mark static roots
-    for (int i = 0;  i < ctx->nroots;  ++i){		// mark the pointers stored in each root variable
+    for (int i = 0;  i < current_gc_ctx->nroots;  ++i){		// mark the pointers stored in each root variable
         gc_debug_log("Root %d\n", i);
-	    gc_mark(*ctx->roots[i]);
-        gc_debug_log("Root pointer %p\n", ctx->roots[i]);
+	    gc_mark(*current_gc_ctx->roots[i]);
+        gc_debug_log("Root pointer %p\n", current_gc_ctx->roots[i]);
     }
     
-    for ( gc_header *here = ctx->memory;		// iterate over all objects in memory
-	  here < ctx->memend;
+    for ( gc_header *here = current_gc_ctx->memory;		// iterate over all objects in memory
+	  here < current_gc_ctx->memend;
 	  here = (void *)here + here->size ) {
         gc_debug_log("%p %c%c%c %d\n", (void *)here + sizeof(*here),
                 here->busy ? 'B' : '-', here->atom ? 'A' : '-', here->mark ? 'M' : '-',
@@ -195,10 +195,10 @@ int gc_collectWithCleanup(){
         here->atom = 0;
         for (;;) {				// coalesce all following free blocks into this one
             gc_header *next = (void *)here + here->size;
-            if (next == ctx->memend) break;	// current block is the last
+            if (next == current_gc_ctx->memend) break;	// current block is the last
             if (next->mark) break;		// next block is reachable
-            assert(ctx->memory < next);
-            assert(next < ctx->memend);
+            assert(current_gc_ctx->memory < next);
+            assert(next < current_gc_ctx->memend);
             gc_debug_log("%p EXTEND %p %d\n",
                     (void *)here + sizeof(*here),
                     (void *)next + sizeof(*next),
@@ -211,7 +211,7 @@ int gc_collectWithCleanup(){
         memset((void *)here + sizeof(*here), 0, here->size - sizeof(*here)); // clear memory
         nfree += here->size;
     }
-    ctx->memnext = ctx->memory;		// start allocating at the start of memory
+    current_gc_ctx->memnext = current_gc_ctx->memory;		// start allocating at the start of memory
 # ifndef NDEBUG
     printf("\r[GC %d used %d free]\r\n", nbusy, nfree);
     fflush(stdout);
@@ -227,10 +227,10 @@ int gc_collect(void)
 
     int nfree = 0, nbusy = 0;			// count memory in use and free
     gc_collectFunction();			// run pre-collection function to mark static roots
-    for (int i = 0;  i < ctx->nroots;  ++i){		// mark the pointers stored in each root variable
+    for (int i = 0;  i < current_gc_ctx->nroots;  ++i){		// mark the pointers stored in each root variable
         gc_debug_log("Root %d\n", i);
-	    gc_mark(*ctx->roots[i]);
-        gc_debug_log("Root pointer %p\n", ctx->roots[i]);
+	    gc_mark(*current_gc_ctx->roots[i]);
+        gc_debug_log("Root pointer %p\n", current_gc_ctx->roots[i]);
     }
 
     // phase two: sweep the memory looking for objects that are busy but do not have their
@@ -239,8 +239,8 @@ int gc_collect(void)
     // computation, and so can be collected as garbage.
 
     
-    for ( gc_header *here = ctx->memory;		// iterate over all objects in memory
-	  here < ctx->memend;
+    for ( gc_header *here = current_gc_ctx->memory;		// iterate over all objects in memory
+	  here < current_gc_ctx->memend;
 	  here = (void *)here + here->size ) {
         gc_debug_log("%p %c%c%c %d\n", (void *)here + sizeof(*here),
                 here->busy ? 'B' : '-', here->atom ? 'A' : '-', here->mark ? 'M' : '-',
@@ -258,10 +258,10 @@ int gc_collect(void)
         here->atom = 0;
         for (;;) {				// coalesce all following free blocks into this one
             gc_header *next = (void *)here + here->size;
-            if (next == ctx->memend) break;	// current block is the last
+            if (next == current_gc_ctx->memend) break;	// current block is the last
             if (next->mark) break;		// next block is reachable
-            assert(ctx->memory < next);
-            assert(next < ctx->memend);
+            assert(current_gc_ctx->memory < next);
+            assert(next < current_gc_ctx->memend);
             gc_debug_log("%p EXTEND %p %d\n",
                     (void *)here + sizeof(*here),
                     (void *)next + sizeof(*next),
@@ -270,7 +270,7 @@ int gc_collect(void)
         }
         nfree += here->size;
     }
-    ctx->memnext = ctx->memory;		// start allocating at the start of memory
+    current_gc_ctx->memnext = current_gc_ctx->memory;		// start allocating at the start of memory
 # ifndef NDEBUG
     printf("\r[GC %d used %d free]\r\n", nbusy, nfree);
     fflush(stdout);
@@ -291,7 +291,7 @@ void *gc_alloc(const int lbs){
     //      if lbs is 5, then size will be 16 (8 + sizeof(gc_header))
     int size = (lbs + sizeof(gc_header) + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
     assert(size >= sizeof(gc_header) + lbs); // ensure size is large enough
-    gc_header *start = ctx->memnext, *here = start;	// start looking for a free block at memnext
+    gc_header *start = current_gc_ctx->memnext, *here = start;	// start looking for a free block at memnext
     for (int retries = 0;  retries < 2;  ++retries) {	// try twice, before and after collecting
         do{
             gc_debug_log("%p ? %i %d\n", (void*)((char*)here + sizeof(*here)), here->size, here->busy);
@@ -306,18 +306,18 @@ void *gc_alloc(const int lbs){
                     next->mark = 0;			// reset mark flag
                     next->atom = 0;			// reset atom flag
                 }
-                ctx->memnext = (gc_header *)((char *)here + here->size);
-                if (ctx->memnext == ctx->memend) ctx->memnext = ctx->memory;	// wraps back to start at the end
-                assert(ctx->memory  <= ctx->memnext);
-                assert(ctx->memnext <  ctx->memend);
+                current_gc_ctx->memnext = (gc_header *)((char *)here + here->size);
+                if (current_gc_ctx->memnext == current_gc_ctx->memend) current_gc_ctx->memnext = current_gc_ctx->memory;	// wraps back to start at the end
+                assert(current_gc_ctx->memory  <= current_gc_ctx->memnext);
+                assert(current_gc_ctx->memnext <  current_gc_ctx->memend);
                 here->busy = 1;				// this block is now allocated
                 gc_debug_log("%p ALLOC %d %d\n", (void*)((char*)here + sizeof(*here)), lbs, here->size);
                 return (void*)(here + 1); // return pointer to the allocated
             }
             here = (gc_header *)((char *)here + here->size); // move to the next block
-            if(here == ctx->memend) here = ctx->memory; // wrap around to the start
-            assert(ctx->memory <= here);
-            assert(here < ctx->memend);
+            if(here == current_gc_ctx->memend) here = current_gc_ctx->memory; // wrap around to the start
+            assert(current_gc_ctx->memory <= here);
+            assert(here < current_gc_ctx->memend);
         }while(here != start); // loop until we find a suitable block
         if(retries)break; // if we have already retried, break
         gc_collect(); // collect garbage and try again
@@ -361,7 +361,7 @@ void *gc_realloc(void *oldptr,const int newsize)
     gc_pushRoot(&oldptr);		// push the old pointer to the root stack
     void *newptr = oldhdr->atom ? 
         gc_alloc_atomic(newsize) : gc_alloc(newsize); // allocate new memory
-    --ctx->nroots; // pop the old pointer from the root stack
+    --current_gc_ctx->nroots; // pop the old pointer from the root stack
     int len = newsize < oldsize ? newsize : oldsize; // determine the length to copy
     memcpy(newptr, oldptr, len); // copy the old data to the new memory
     gc_debug_log("gc_realloc: resized from %d to %d bytes\n", oldsize, newsize);
@@ -371,8 +371,8 @@ void gc_free(void *ptr)
 {
     if (!GC_PTR(ptr)) return;			// NULL or outside memory
     gc_header *here = (gc_header *)ptr - 1;	// object to header
-    assert(ctx->memory <= here);
-    assert(here < ctx->memend);
+    assert(current_gc_ctx->memory <= here);
+    assert(here < current_gc_ctx->memend);
     assert(here->busy);
     if (here->mark) return;			// stop if already marked
     here->busy = 0;				// reclaim the block
@@ -508,7 +508,7 @@ void markLink(Link *ptr)
 int main(){
     int context_size = sizeof(gc_context);
     int header_size = sizeof(gc_header);
-    printf("block: |hdr(%d)| ctx(%d)|memory(S - (hdr+ctx))|\n", header_size, context_size);
+    printf("block: |hdr(%d)| current_gc_ctx(%d)|memory(S - (hdr+current_gc_ctx))|\n", header_size, context_size);
 
     // gc_init(1024 * 1024); // initialize the garbage collector with 1 MB of memory
     // // gc_separateContext(4, 0); // separate memory for 4 processes
@@ -524,7 +524,7 @@ int main(){
     // // printf("context next address:  %p\n", ctx1->memnext);
     // // printf("context size : %ld bytes\n\n", (char *)ctx1->memend - (char *)ctx1->memory);
 
-    // // ctx = ctx1; // set the current context to the new context
+    // // current_gc_ctx = ctx1; // set the current context to the new context
     // // gc_debug_log("Requesting 10 bytes of atomic memory %lu\n", 10 * sizeof(int));
 
     // gc_markFunction = (gc_markFunction_t)markLink;
@@ -561,7 +561,7 @@ int main(){
     printf("context next address:  %p\n", ctx1->memnext);
     printf("context size : %ld bytes\n\n", (char *)ctx1->memend - (char *)ctx1->memory);
 
-    ctx = ctx1; // set the current context to the new context
+    current_gc_ctx = ctx1; // set the current context to the new context
     gc_debug_log("Requesting 10 bytes of atomic memory %lu\n", 10 * sizeof(int));
     int *arr = (int *)gc_alloc_atomic(10 * sizeof(int)); // allocate an atomic array of 10 integers
     
@@ -577,7 +577,7 @@ int main(){
     }
     gc_popRoot((void *)&arr, "arr"); // pop the array from the root stack
     gc_collect(); // collect garbage again
-    ctx = &origin_gc_ctx; // reset the current context to the global context
+    current_gc_ctx = &origin_gc_ctx; // reset the current context to the global context
     GC_POP(ctx1); // pop the context from the root stack
     return 0;
 }

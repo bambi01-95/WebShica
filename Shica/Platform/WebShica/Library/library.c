@@ -355,17 +355,17 @@ int click_handler(oop eh)
 //CCALL id: agnet index, ptr: event handler pointer, message: received message
 int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//CCCALL
 {
-	gc_context *copy_ctx = ctx;
-	gc_context **ctxs = (gc_context **)ctx->roots;
-	ctx = ctxs[id]; // use the first web agent context
-	gc_check_ctx(ctx); // check the validity of the context
+	gc_context *copy_ctx = current_gc_ctx;
+	gc_context **ctxs = (gc_context **)current_gc_ctx->roots;
+	current_gc_ctx = ctxs[id]; // use the first web agent context
+	gc_check_ctx(current_gc_ctx); // check the validity of the context
 	oop *ehp = (oop *)ptr;
 	oop eh = *ehp;
 	if(getKind(eh) != EventHandler){
 		#ifdef DEBUG
 		_reportError(LOG, 1111, "%d do not have eh", id);	
 		#endif
-		ctx = copy_ctx; // restore context
+		current_gc_ctx = copy_ctx; // restore context
 		return 1;
 	}// this agent does not have event handler
 	#ifdef DEBUG
@@ -377,7 +377,7 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	pushStack(stack, newStrVal(message)); // message
 	pushStack(stack, newStrVal(buf)); // sender
 	enqueue(eh, stack); // enqueue the stack
-	ctx = copy_ctx; // restore context
+	current_gc_ctx = copy_ctx; // restore context
 	return 1;
 }
 
