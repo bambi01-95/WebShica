@@ -6,9 +6,9 @@ import Header from '../../../features/docs/components/Header'
 import Sidebar from '../../../features/docs/components/Sidebar'
 import LessonContent from '../../../features/docs/components/LessonContent'
 import NavigationButtons from '../../../features/docs/components/NavigationButtons'
-import { lessons } from '../../../features/docs/data/lessons'
+import { userstudy } from '../../../features/docs/data/userstudy'
 
-export function KazeTutorial() {
+export function UserStudyPage() {
   const [currentLesson, setCurrentLesson] = useState(0)
 
   const handleLessonChange = (index: number) => {
@@ -18,32 +18,33 @@ export function KazeTutorial() {
 
   const navigate = (direction: number) => {
     const newLesson = currentLesson + direction
-    if (newLesson >= 0 && newLesson < lessons.length) {
+    if (newLesson >= 0 && newLesson < userstudy.length) {
       handleLessonChange(newLesson)
     }
   }
 
   return (
 <div className="min-h-screen bg-white">
-  <Header />
+  <Header title="W-Shica User Study" subtitle="Guided tasks to explore W-Shica features."
+  />
 
   <div className="max-w-7xl mx-auto">
     <div className="px-5 mb-20 lg:px-0">
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr]">
 
         <Sidebar
-          lessons={lessons}
+          lessons={userstudy}
           currentLesson={currentLesson}
           onLessonSelect={handleLessonChange}
         />
 
         <main className="bg-white p-6 lg:p-10">
           <article>
-            <LessonContent lesson={lessons[currentLesson]} />
+            <LessonContent lesson={userstudy[currentLesson]} />
 
             <NavigationButtons
               currentLesson={currentLesson}
-              totalLessons={lessons.length}
+              totalLessons={userstudy.length}
               onNavigate={navigate}
             />
           </article>
@@ -57,4 +58,4 @@ export function KazeTutorial() {
   )
 
 }
-export default KazeTutorial
+export default UserStudyPage
