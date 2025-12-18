@@ -22,9 +22,9 @@ enum {
 	TAG_FLT=0b10,
 	TAG_FLAG=0b11,
 };
-typedef enum { ERROR_F,NONE_F, HALT_F, EOE_F, EOC_F, CONTINUE_F,TRANSITION_F } retFlag_t;
+typedef enum { ERROR_F, FALSE_F,TRUE_F, NONE_F, HALT_F, EOE_F, CONTINUE_F,TRANSITION_F } retFlag_t;
 #define MAKE_FLAG(f) ((oop)(((intptr_t)(f) << TAGBITS) | TAG_FLAG))
-extern oop retFlags[7];
+extern oop retFlags[8];
 #ifdef WEBSHICA
 void buildRetFlags();
 #endif

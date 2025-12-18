@@ -236,7 +236,18 @@ oop dupStack(oop stack)
 {
 	return stack;
 }
-oop evalThread = NULL;
+union Object evalThread = {
+	.Thread = {
+		.kind = Thread,
+		.inProgress = 0,
+		.apos = 0,
+		.cpos = 0,
+		.rbp = 0,
+		.pc = 0,
+		.queue = NULL,
+		.stack = NULL,
+	}
+};
 
 void enqueue(const oop exec, const oop eh,const oop newStack)//value should be stack
 {
@@ -248,9 +259,23 @@ void enqueue(const oop exec, const oop eh,const oop newStack)//value should be s
 		//eval data by event condition
 		int cPos = getObj(threads[i], Thread, cpos);
 		if(cPos != 0){// eh have condition
-			evalThread->Thread.pc = cPos;
-			evalThread->Thread.stack = newStack;
-			if(execute(exec, evalThread)==retFlags[EOC_F]) continue; // condition not met, skip this thread;
+			evalThread.Thread.pc = cPos;
+			evalThread.Thread.stack = newStack;
+			gc_pushRoot((void*)&newStack);
+			int done = 0, skip = 0;
+			while(!done && !skip){
+				oop ret = execute(exec, &evalThread);
+				if(ret == retFlags[FALSE_F]){
+					skip = 1;
+				}
+				else if(ret == retFlags[TRUE_F]){
+					done = 1;
+				}else if(ret == retFlags[ERROR_F]){
+					reportError(DEVELOPER,0,"enqueue: event handler condition evaluation error");
+				}
+			}
+			gc_popRoots(1);
+			if(skip)continue; // not meet the condition
 		}
 		//push new data into the queue
 		oop q = getObj(threads[i], Thread, queue);

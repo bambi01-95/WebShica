@@ -65,12 +65,13 @@ void buildRetFlags(){
 	return;
 }
 #else
-oop retFlags[7] = {
+oop retFlags[8] = {
 	MAKE_FLAG(ERROR_F),
+	MAKE_FLAG(FALSE_F),
+	MAKE_FLAG(TRUE_F),
 	MAKE_FLAG(NONE_F),
 	MAKE_FLAG(HALT_F),
 	MAKE_FLAG(EOE_F),
-	MAKE_FLAG(EOC_F),
 	MAKE_FLAG(CONTINUE_F),
 	MAKE_FLAG(TRANSITION_F),
 };
@@ -277,11 +278,17 @@ int locked = 0; // for print functions
 			if (l < 0 || l >= size) {
 				fatal("jump to invalid position %d", l);
 			}
-			if (pop()) { // if top of stack is TRUE
+			if (IntVal_value(pop()))	 { // if top of stack is TRUE
 				continue;
 			} else {
 				*pc+=l; // skip the jump
 			}
+			continue;
+		}
+		case iJUDGE:{
+			printOP(iJUDGE);
+			l = IntVal_value(pop()); // condition 
+			if(!l)return retFlags[FALSE_F];
 			continue;
 		}
 		case iRETURN:{
@@ -519,7 +526,7 @@ int locked = 0; // for print functions
 		}
 		case iEOC:{
 			printOP(iEOC);
-			return retFlags[EOC_F]; // return EOC_F to indicate end of code
+			return retFlags[TRUE_F]; // return EOC_F to indicate end of code
 		}
 		case iEOE:{
 			printOP(iEOE);
