@@ -8,7 +8,7 @@
 #define DEVELOPER_EMAIL "hiroto.shikada@gmail.com"
 
 #if DEBUG
-#define dprintf(...) do{printf("%s line %d: ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n");}while(0)
+#define dprintf(...) do{printf("%s line %4d: ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n");}while(0)
 #else
 #define dprintf(...) (void)0
 #endif//

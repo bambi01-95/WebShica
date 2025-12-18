@@ -790,7 +790,6 @@ static int emitOn(oop prog,node vars, node ast, node type)
 		case Print:{
 			printTYPE(_Print_);
 			node args = getNode(ast, Print,arguments);
-			node local_vars = getNode(vars, EmitContext, local_vars);
 			int nArgs = 0;
 			//reverse the args order
 			node revArgs = nil;
@@ -914,73 +913,82 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			node id = getNode(ast, State,id);
 			node params = getNode(ast, State,parameters);
 			node events = getNode(ast, State,events);
+			node *eventList = events->Block.statements;
+			int eventsSize = getNode(events, Block, size);
 			dprintf("State: %s\n", getNode(id, Symbol,name));
 
-			// compile events  
-			node *eventList = events->Block.statements;
-			int isEntryExit = 0;
-			int process_sizes[events->Block.size]; // collect elements: 0: empty, other: number of event handlers block
-			int nEventHandlers = 0;// number of unique event handlers	
+			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
+			int index = 0;
+			int isBreak = 0;
+			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
+			for(;index < eventsSize; index++){
+				node ele = eventList[index];
+				switch(getType(ele)){
+					case Event:{
+						if(getNode(ele, Event,id) == entryEH){
+							if(emitOn(prog, vars, ele, type)) {
+								popUserTypeIndex(vars);
+								return 1; // compile event
+							}
+							index++;
+						}
+						isBreak = 1;
+						break;
+					}
+					case SetVar:{
+						if(emitOn(prog, vars, ele, type)) {
+							popUserTypeIndex(vars);
+							return 1; // compile variable declarations inside state body
+						}
+						continue; 
+					}
+					default:{
+						reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+						popUserTypeIndex(vars);
+						return 1; // eventList[index] is not an Event
+					}
+				}
+				if(isBreak)break;
+			}
+
+			int nEventHandlers = 0;// number of unique event handlers
+			int process_sizes[eventsSize - index]; // number of process blocks for each event handler
 			node preid =  FALSE;
 			emitII(prog, iJUMP, 0);
 			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
-			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
-			dprintf("Block size: %d\n", getNode(events, Block, size));
-			for (int i = 0;  i < getNode(events, Block, size);  ++i) {
-				dprintf("Compiling event %d/%d\n", i+1, getNode(events, Block, size));
-				if(eventList[i] == NULL){
-					fatal("%s %d ERROR: eventList[%d] is NULL\n", __FILE__, __LINE__, i);
-					reportError(DEVELOPER, 0,"please contact %s", DEVELOPER_EMAIL);
-					popUserTypeIndex(vars);
-					return 1; // eventList[i] is NULL
-				}
-				if(getType(eventList[i])!=Event){
-					fatal("file %s line %d emitOn: eventList[%d] is not an Event", __FILE__, __LINE__, i);
-					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
-					popUserTypeIndex(vars);
-					return 1; // eventList[i] is not an Event
-				}
-				if((getNode(eventList[i], Event,id) == entryEH) || (getNode(eventList[i], Event,id) == exitEH)){
-					dprintf("entryEH or exitEH\n");
-					isEntryExit++;
-					process_sizes[nEventHandlers++] = 0; // collect empty events
-					continue;
-				}
-				else if(getNode(eventList[i], Event,id) != preid) {
+			dprintf("Block size: %d\n", eventsSize);
+			for (int i = index;  i < eventsSize;  ++i) {
+				node ele = eventList[i];
+				node id = getNode(ele, Event,id);
+				if(id != preid) {
 					dprintf("new event\n");
-					preid = getNode(eventList[i], Event,id);
+					preid = id;
 					process_sizes[nEventHandlers++]=1; // collect unique events
-				}else if(getNode(eventList[i], Event,id) == preid){
+				}else if(id == preid){
 					dprintf("same event\n");
 					process_sizes[nEventHandlers]+=1; // increment number of event handlers block
+				}else if(id == exitEH){
+					process_sizes[nEventHandlers]=0; // exitEH has no process block
+					continue; // exitEH will be processed later
 				}else{
 					fatal("file %s line %d emitOn: unreachable code", __FILE__, __LINE__);
 					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 					popUserTypeIndex(vars);
 					return 1; // unreachable code
 				}
-				dprintf("eventList[%d]: %s\n", i, getNode(eventList[i], Event,id)->Symbol.name);
-				if(emitOn(prog, vars, eventList[i], type)) {
+				dprintf("eventList[%d]: %s\n", i, getNode(ele, Event,id)->Symbol.name);
+				if(emitOn(prog, vars, ele, type)) {
 					popUserTypeIndex(vars);
 					return 1; // error compiling event
 				}
 			}// end for
-			dprintf("Finished collecting events\n");
-
 			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
-			// state initialization
-			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
-			//entryEH
-			if(getNode(eventList[0], Event,id) == entryEH){
-				if(emitOn(prog, vars, eventList[0], type)) {
-					popUserTypeIndex(vars);
-					return 1; // compile entryEH
-				}
-			}
-			emitII(prog, iSETSTATE, nEventHandlers - isEntryExit); // set the number of events and position
+
+			// emit state event handlers
+			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			dprintf("Number of event handlers: %d\n", nEventHandlers);//remove
 			// OPECODE FOR EVENTS
-			for(int ei =0 ,  ehi =0; ehi < nEventHandlers;  ehi++) {
+			for(int ei = index ,  ehi =0; ehi < nEventHandlers;  ehi++) {
 				if(process_sizes[ehi] == 0){ ei++;continue;} // skip empty events
 				dprintf("Make Opcode for Event %d\n", ehi);//remove
 				node id = getNode(eventList[ei], Event,id);
@@ -1031,14 +1039,11 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			}// end for
 			emitI(prog, iIMPL);
 			// exitEH
-			for(int i = 0; i < getNode(events, Block, size); i++){
-				if(getNode(eventList[i], Event,id) == exitEH){ 
-					if(emitOn(prog, vars, eventList[i],type)) {
-						popUserTypeIndex(vars);
-						return 1; // compile exitEH
-					}
+			if(getNode(eventList[eventsSize-1], Event,id) == exitEH){ 
+				if(emitOn(prog, vars, eventList[eventsSize-1],type)) {
+					popUserTypeIndex(vars);
+					return 1; // compile exitEH
 				}
-				if(i == 1)break;//0: entryEH, 1: exitEH ...
 			}
 			//NEXT-TODO
 			// discardVariables(vars->EmitContext.state_vars, 0); // discard variables
@@ -1368,7 +1373,7 @@ oop compile()
     GC_PUSH(oop, prog, intArray_init()); // create a new program code
 	emitII(prog, iMKSPACE, 0); // reserve space for local variables
 #if DEBUG
-int roots = gc_ctx.nroots;
+int roots = getOriginalGCtxNRoots();
 #endif 
 	GC_PUSH(node, vars, newEmitContext()); // If something goes wrong in the web parser, move to before changing GC roots
 	// compile the AST into the program code
@@ -1396,8 +1401,8 @@ int roots = gc_ctx.nroots;
 	}
 	GC_POP(vars); // pop context variables from GC roots
 #if DEBUG
-	if(roots != gc_ctx.nroots){
-		fatal("file %s line %d: memory leak: roots before compile %d, after compile %d", __FILE__, __LINE__, roots, gc_ctx.nroots);
+	if(roots != getOriginalGCtxNRoots()){
+		fatal("file %s line %d: memory leak: roots before compile %d, after compile %d", __FILE__, __LINE__, roots, getOriginalGCtxNRoots());
 		reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
 		return NULL;
 	}
