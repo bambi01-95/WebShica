@@ -4,8 +4,6 @@
 #include "../../../Object/object.h"
 #include "../../../Node/node.h"
 #include "../../../GC/gc.h"
-/*===============Other =====================*/
-
 
 /*================Event Handler==============*/
 #define EVENT_EH 0x00 // Loop Handler
@@ -16,10 +14,8 @@
 #define T_TIMER_HOUR_EH 0x05 // Timer hour event handler
 
 int event_handler_init(oop eh);
-int event_handler(oop eh);
 
 int timer_handler_init(oop eh);
-int timer_handler(oop eh);
 
 
 extern  struct EventTable __EventTable__[];

@@ -25,7 +25,7 @@ typedef enum kind{
 	Agent,
 	Instance,
 	Any,
-
+	RunCtx,
 	RETFLAG,
 } kind_t;
 
@@ -117,6 +117,12 @@ struct Any{
 	void **data;
 };
 
+struct RunCtx{
+	kind_t kind;
+	oop agent;
+	oop code;
+};
+
 struct RETFLAG{
 	kind_t kind;
 };
@@ -135,6 +141,7 @@ union Object{
 	struct ArrVal ArrVal;
 	struct Instance Instance;
 	struct Any Any;
+	struct RunCtx RunCtx;
 	struct RETFLAG RETFLAG;
 };
 
@@ -164,11 +171,11 @@ int intArray_last(oop a);
 #define QueueSize 4
 
 oop newQueue(int nArgs);
-void enqueue(oop eh, oop value);
+void enqueue(oop exec, oop eh, oop value);
 oop dequeue(oop thread);
 
 struct EventTable{
-	int (*eh)(oop eh); // event handler function
+	int (*eh)(oop exec, oop eh); // event handler function
 	int (*init)(oop eh); // initialize function
 	int nArgs; // number of arguments for the event handler
 	char *argTypes; // types of arguments for the event handler
@@ -193,6 +200,8 @@ oop newInstance(int nFeilds);
 
 oop newAny(int markbit, int nData);
 #define getAnyData(T, obj, index) ((T)((obj)->Any.data[index]))
+
+oop newRunCtx(oop agent, oop code);
 
 oop newRETFLAG(void);
 

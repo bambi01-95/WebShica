@@ -24,21 +24,25 @@ SRC = main.c \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
 	  ./Node/node.c \
+	  ./Compiler/compiler.c \
 	  ./Object/object.c \
-	  ./Parser/parser.c 
+	  ./Parser/parser.c \
+	  ./Executor/executor.c 
 
 INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
 			   -I ./Opcode \
 			   -I ./Node \
+			   -I ./Compiler \
 			   -I ./Object \
-			   -I ./Parser 
+			   -I ./Parser \
+			   -I ./Executor
 # shica.js
 WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS 
+FLAGS = -DMSGCS
 #-DDEBUG
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode"
@@ -67,8 +71,10 @@ cc:
 # ./legstruct_type_inserter
 	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
-input:
+inputc:
 	./$(NATIVEOUT) < ./input.txt -c
+input:
+	./$(NATIVEOUT) < ./input.txt
 
 # build vm.js
 wasm: $(WASMOUT)

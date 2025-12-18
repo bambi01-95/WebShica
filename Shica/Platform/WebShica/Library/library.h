@@ -83,17 +83,6 @@ extern int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sen
 extern int _lib_web_rtc_broadcast_send_(int index, char* msg, int num);// JSCALL
 extern int _web_rtc_broadcast_eo_(int index, char* channel, char* password, void* ptr);// JSCALL
 
-int event_handler_init(oop eh);
-int event_handler(oop eh);
-
-int timer_handler_init(oop eh);
-int timer_handler(oop eh);
-
-int touch_handler(oop eh);
-int collision_handler(oop eh);
-int self_state_handler(oop eh);
-int click_handler(oop eh);
-
 /*=============== Event Table ===============*/
 
 extern  struct EventTable __EventTable__[];

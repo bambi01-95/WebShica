@@ -3,11 +3,11 @@
 #define LIBRARY_C
 #include "library.h"
 
-int event_handler(oop eh){
+int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		enqueue(exec, eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 	}
 	return 0; // return 0 to indicate no event
 }
@@ -15,20 +15,18 @@ int event_handler_init(oop eh){
 	return 1;
 }
 int event_object_handler_init(oop eh){
-	printf("event_object_handler_init\n");
-	printf("ARE YOU SEEING THIS???\n");
 	return 1;
 }
 
 #include <time.h>
-int timer_handler(oop eh){
+int timer_handler(oop exec, oop eh){
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
 		eh->EventHandler.data[0] = newIntVal(now);
 		eh->EventHandler.data[1]++;
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
@@ -51,7 +49,7 @@ int compile_eh_init(){
 	return 0; // return 0 to indicate success
 }
 
-int timer_sec_handler(oop eh){
+int timer_sec_handler(oop exec, oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -67,20 +65,18 @@ int timer_sec_handler(oop eh){
 	int now = (int)(t % 10000);
 
 	if(now - pre >= interval){
-		printf("timer_sec_handler: interval %d reached\n", interval);
-		printf("pre: %d, now: %d\n", pre, now);
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0;
 }
-int timer_min_handler(oop eh){
+int timer_min_handler(oop exec, oop eh){
 	return 0;
 }
-int timer_hour_handler(oop eh){
+int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
 

@@ -26,7 +26,7 @@ static oop _newEntity(size_t size, kind_t kind)
 
 kind_t getKind(oop o)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	return o->kind;
 #else
     if ((((intptr_t)o) & TAGMASK) == TAG_INT_ENT){
@@ -50,7 +50,7 @@ oop _checkObject(oop obj, kind_t kind, char *file, int line){
 
 oop newIntVal(int value)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	oop obj = newEntity(IntVal);
 	obj->IntVal.value = value;
 	return obj;
@@ -62,7 +62,7 @@ oop newIntVal(int value)
 int IntVal_value(oop obj)
 {
 	assert(getKind(obj) == IntVal);
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	return obj->IntVal.value;
 #else
     return (intptr_t)obj >> TAGBITS;
@@ -71,7 +71,7 @@ int IntVal_value(oop obj)
 
 oop newFloVal(double value)
 {
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
 	oop obj = newEntity(FloVal);
 	obj->FloVal.value = value;
 	return obj;
@@ -80,10 +80,10 @@ oop newFloVal(double value)
 #endif
 }
 
-double FloVal_value(oop obj)
+double FloVal_value(oop obj) 
 {
 	assert(getKind(obj) == FloVal);
-#if WEBSHICA
+#if WEBSHICA // DEVICE that cannot suport tagged pointers
     return obj->FloVal.value;
 #else
     union { intptr_t i;  double d; } u = { .i = (intptr_t)obj };
@@ -230,19 +230,54 @@ oop newQueue(int nArgs)
 	return q;
 }
 
+#include "../Executor/executor.h"
 //FIXME
 oop dupStack(oop stack)
 {
 	return stack;
 }
+union Object evalThread = {
+	.Thread = {
+		.kind = Thread,
+		.inProgress = 0,
+		.apos = 0,
+		.cpos = 0,
+		.rbp = 0,
+		.pc = 0,
+		.queue = NULL,
+		.stack = NULL,
+	}
+};
 
-void enqueue(const oop eh,const oop newStack)//value should be stack
+void enqueue(const oop exec, const oop eh,const oop newStack)//value should be stack
 {
 	assert(getKind(eh) == EventHandler);
 	assert(getKind(newStack) == Stack);
 	oop *threads = getObj(eh, EventHandler, threads);
 
 	for (int i = 0; i < getObj(eh, EventHandler, size); ++i) {
+		//eval data by event condition
+		int cPos = getObj(threads[i], Thread, cpos);
+		if(cPos != 0){// eh have condition
+			evalThread.Thread.pc = cPos;
+			evalThread.Thread.stack = newStack;
+			gc_pushRoot((void*)&newStack);
+			int done = 0, skip = 0;
+			while(!done && !skip){
+				oop ret = execute(exec, &evalThread);
+				if(ret == retFlags[FALSE_F]){
+					skip = 1;
+				}
+				else if(ret == retFlags[TRUE_F]){
+					done = 1;
+				}else if(ret == retFlags[ERROR_F]){
+					reportError(DEVELOPER,0,"enqueue: event handler condition evaluation error");
+				}
+			}
+			gc_popRoots(1);
+			if(skip)continue; // not meet the condition
+		}
+		//push new data into the queue
 		oop q = getObj(threads[i], Thread, queue);
 		if (getObj(q, Queue, size) >= getObj(q, Queue, capacity)) {
 			getObj(q, Queue, capacity) *= 2;
@@ -325,7 +360,6 @@ oop getIrCode(int index){
 oop newAgent(int id, int nEvents)
 {
 	oop agent = newEntity(Agent);
-	printf("object type of newAgent: %d, getKind: %d\n", agent->kind, getKind(agent));
 	assert(getKind(agent) == Agent);
 	agent->Agent.id = id;
 	agent->Agent.isActive = 0; // active by default
@@ -372,13 +406,24 @@ oop newAny(int markbit, int nData)
 	return any;
 }
 
+oop newRunCtx(oop agent, oop code)
+{
+	GC_PUSH(oop, runcx, newEntity(RunCtx));
+	runcx->RunCtx.agent = agent;
+	runcx->RunCtx.code = code;
+	GC_POP(runcx);
+	return runcx;
+}
+
 oop newRETFLAG(void)
 {
 	return newEntity(RETFLAG);
 }
 
 
-
+// ----------------------------------------
+// Global Tables
+// ----------------------------------------
 struct EventTable *EventTable = NULL;
 void setEventTable(struct EventTable *table)
 {
@@ -515,6 +560,12 @@ void printObj(oop obj, int indent)
 	}
 	case Any:{
 		printf("Any (not supported now)\n");
+		break;
+	}
+	case RunCtx:{
+		printf("RunCtx\n");
+		printObj(getObj(obj, RunCtx, agent), indent + 1);
+		printObj(getObj(obj, RunCtx, code), indent + 1);
 		break;
 	}
 	case RETFLAG:{

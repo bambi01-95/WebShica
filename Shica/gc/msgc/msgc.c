@@ -38,7 +38,7 @@ void gc_init(int size)
 // roots contains the addresses of all variables that hold a reference to an object
 
 
-
+int nroots = 0;	// number of variables addresses in the roots stack
 void *TARGET_ADDR = 0;
 
 void gc_pushRoot(const void *varp)	// push a new variable address onto the root stack
@@ -52,7 +52,6 @@ void gc_pushRoot(const void *varp)	// push a new variable address onto the root 
 // macro to declare, initialise, and push the address of an object pointer variable on the root stack
 
 void **roots[MAXROOTS];
-int nroots = 0;
 #ifdef NDEBUG
 void gc_popRoot(void)	// remove the topmost variable address from the root stack
 {
@@ -186,6 +185,7 @@ void gc_unmarkOnly(void *ptr){
 
 int gc_collectWithCleanup(){
     gc_collect();
+    return 0;
 }
 
 int gc_collect(void)	// collect garbage
@@ -304,7 +304,7 @@ void *gc_alloc_atomic(int size)	// allocate a block and make it atomic (no point
     return gc_beAtomic(gc_alloc(size));
 }
 
-char *gc_strdup(char *s)	// allocate memory for and copy a string
+char *gc_strdup(const char *s)	// allocate memory for and copy a string
 {
     int len = strlen(s);
     char *mem = (char*)(gc_alloc_atomic(len + 1));

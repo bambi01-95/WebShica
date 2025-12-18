@@ -6,9 +6,9 @@ import Header from '../../../features/docs/components/Header'
 import Sidebar from '../../../features/docs/components/Sidebar'
 import LessonContent from '../../../features/docs/components/LessonContent'
 import NavigationButtons from '../../../features/docs/components/NavigationButtons'
-import { lessons } from '../../../features/docs/data/lessons'
+import { home } from '../../../features/docs/data/home'
 
-export function KazeTutorial() {
+export function ShicaHomePage() {
   const [currentLesson, setCurrentLesson] = useState(0)
 
   const handleLessonChange = (index: number) => {
@@ -18,34 +18,23 @@ export function KazeTutorial() {
 
   const navigate = (direction: number) => {
     const newLesson = currentLesson + direction
-    if (newLesson >= 0 && newLesson < lessons.length) {
+    if (newLesson >= 0 && newLesson < home.length) {
       handleLessonChange(newLesson)
     }
   }
 
   return (
 <div className="min-h-screen bg-white">
-  <Header />
+  <Header title="Shica Programming Language" subtitle="Introduction to W-Shica programming language."
+  />
 
   <div className="max-w-7xl mx-auto">
     <div className="px-5 mb-20 lg:px-0">
-      <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr]">
-
-        <Sidebar
-          lessons={lessons}
-          currentLesson={currentLesson}
-          onLessonSelect={handleLessonChange}
-        />
+      <div className="grid grid-cols-1">
 
         <main className="bg-white p-6 lg:p-10">
           <article>
-            <LessonContent lesson={lessons[currentLesson]} />
-
-            <NavigationButtons
-              currentLesson={currentLesson}
-              totalLessons={lessons.length}
-              onNavigate={navigate}
-            />
+            <LessonContent lesson={home[0]} />
           </article>
         </main>
 
@@ -57,4 +46,4 @@ export function KazeTutorial() {
   )
 
 }
-export default KazeTutorial
+export default ShicaHomePage
