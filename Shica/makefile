@@ -42,7 +42,7 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DDEBUG
+FLAGS = -DMSGCS
 #-DDEBUG
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode"

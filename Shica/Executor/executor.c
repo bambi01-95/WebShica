@@ -238,6 +238,9 @@ int locked = 0; // for print functions
 		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
 			printOP(iGETSTATEVAR);
 			int symIndex = fetch(); 
+			oop agent = getObj(exec, RunCtx, agent);
+			int index = symIndex + agent->Agent.rbp;
+			push(agent->Agent.stack->Stack.elements[index]);
 			continue;
 		}
 	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
