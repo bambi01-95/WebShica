@@ -2,7 +2,6 @@ var t = timer();//event object
 
 stt s(){
     t.sec(int sec:sec>3){
-        print(tt);
+        print(sec);
     }
-    int tt = 10;
 }

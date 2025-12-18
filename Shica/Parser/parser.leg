@@ -34,7 +34,7 @@ state = STATE i:id p:params e:events { $$ = newState(i, p, e,nlines); }
 events = LBRACE b:mkBlock
 	  (
 	    !RBRACE
-	    (e:event|e:stt_local_assignment)              { Event_Block_append(b, e) }
+	    (e:event|e:stt_local_assignment SEMI)              { Event_Block_append(b, e) }
 	  )+
 	  RBRACE			{ $$ = b }
 
@@ -101,7 +101,7 @@ stt_local_assignment = t:TYPE i:id ASSIGN x:assignment { $$ = newSetVar(t, i, x,
 	  			     | t:TYPE v:value i:indexes ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL, nlines); }
 					 | t:id i:id ASSIGN x:assignment { $$ = newSetVar(t, i, x, SCOPE_STATE_LOCAL, nlines) }
 					 | t:id v:value i:indexes ASSIGN x:assignment { $$ = newSetArray(t, v, i, x, SCOPE_STATE_LOCAL, nlines); }
-					 | STRUCT i:id ASSIGN x:typer SEMI    { $$ = newSetType(i, x, nlines); }
+					 | STRUCT i:id ASSIGN x:typer    { $$ = newSetType(i, x, nlines); }
 
 assignment  = (t:TYPE | t:mkNil) i:id ASSIGN x:assignment			{ $$ = newSetVar(t, i, x, SCOPE_LOCAL, nlines) }
 			| (t:TYPE | t:mkNil) v:value i:indexes ASSIGN x:assignment	{ $$ = newSetArray(t, v, i, x, SCOPE_LOCAL, nlines); }
