@@ -129,10 +129,48 @@ stt on(){
   }
 }`;
 
+const task1Sample: string = `// Greeting Sample
+// 3 states: morning, afternoon, evening
+// state changes every 3 seconds
+// when clicked, it greets according to the time of day
+
+stt morning(){
+  entryEH(){setColor(255, 223, 186); }// light orange
+  timerEH(int sec: sec==3){stt afternoon;}
+  clickEH(int x, int y){print("Good morning!");}
+}
+
+stt afternoon(){
+  entryEH(){
+    setColor(255, 255, 186); // light yellow
+  }
+  timerEH(int sec: sec==3){stt evening;}
+  clickEH(int x, int y){
+    print("Good afternoon!");
+  }
+}
+
+stt evening(){
+  entryEH(){
+    setColor(186, 225, 255); // light blue
+  }
+  timerEH(int sec: sec==3){stt morning;}
+  clickEH(int x, int y){
+    print("Good evening!");
+  }
+}`;
+
+const test: string = `// Test Sample
+stt morning(){
+  entryEH(){setColor(255, 223, 186);}// light orange
+  timerEH(int sec: sec==3){print("Timer event!");}
+  clickEH(int x, int y){print("Good morning!");}
+}`;
+
 
 
 const sampleCodes: string[] = [
-// stateChangeSample,
+task1Sample,
 radioButtonGroupSample,
 radioButtonGroupSample,
 WebRtcReceiverSample_v2,
