@@ -4,6 +4,8 @@
 #include "../../../Object/object.h"
 #include "../../../Node/node.h"
 #include "../../../GC/gc.h"
+#include "../../../Executor/executor.h"
+
 /*===============Other =====================*/
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>

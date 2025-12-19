@@ -27,7 +27,7 @@ enum opcode_t {
     iSETGLOBALVAR,// don't change the order of these three
 	iSETSTATEVAR,
     iSETVAR,
-
+    iINITSPACE,
 	iMKSPACE,
     aPRINT,// abstract print
 	iPRINT,
@@ -78,6 +78,7 @@ static const char *_opcode_names[] = {
     "iSETGLOBALVAR",
     "iSETSTATEVAR",
     "iSETVAR",
+    "iINITSPACE",       
     "iMKSPACE",
     "aPRINT",
     "iPRINT",

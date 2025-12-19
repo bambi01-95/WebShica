@@ -367,6 +367,7 @@ oop newAgent(int id, int nEvents)
 	agent->Agent.pc = 0;
 	agent->Agent.rbp = 0;
 	agent->Agent.stack = newStack(0);
+	agent->Agent.base = 0;
 	if(nEvents <= 0) {
 		agent->Agent.eventHandlers = NULL; // no event handlers
 		agent->Agent.nEvents = 0; // no events

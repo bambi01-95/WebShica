@@ -100,6 +100,7 @@ struct Agent{
 	int nEvents;//FIXME: rename nEH
 	int pc;
 	int rbp;
+	int base;// base index of state variables in the stack
 	oop stack;
 	oop *eventHandlers;
 };

@@ -57,9 +57,9 @@ int executor_func_init()
 
 
 #if WEBSHICA
-oop retFlags[7];
+oop retFlags[8];
 void buildRetFlags(){
-	for(int i=0;i<7;++i){
+	for(int i=0;i<8;++i){
 		retFlags[i] = newRETFLAG();
 	}
 	return;
@@ -159,14 +159,26 @@ int locked = 0; // for print functions
 	int op = fetch();
 	int l = 0, r = 0;
 	switch (op) {
-		case iMKSPACE:{
-			printOP(iMKSPACE);
+		case iINITSPACE:{
+			printOP(iINITSPACE);
 			int nvars = fetch();
 			for (int i = 0;  i < nvars;  ++i) {
 				push(0); // reserve space for local variables
 			}
+			assert(getKind(entity) == Agent);
+			getObj(entity, Agent, base) = nvars;
+			continue;
+		}
+		case iMKSPACE:{
+			printOP(iMKSPACE);
+			int nvars = fetch();
 			if(getKind(entity) == Agent){
-				getObj(entity, Agent, rbp) = nvars;
+				getObj(entity, Agent, rbp) = stack->Stack.size;
+			}else if(getKind(entity) == Thread){
+				getObj(entity, Thread, rbp) = stack->Stack.size;
+			}
+			for (int i = 0;  i < nvars;  ++i) {
+				push(0); // reserve space for local variables
 			}
 			continue;
 		}
@@ -237,10 +249,10 @@ int locked = 0; // for print functions
 		}
 		case iGETSTATEVAR:{ /* I: index from state-stack[0 + rbp] to value */
 			printOP(iGETSTATEVAR);
-			int symIndex = fetch(); 
+			int index = fetch(); 
 			oop agent = getObj(exec, RunCtx, agent);
-			int index = symIndex + agent->Agent.rbp;
-			push(agent->Agent.stack->Stack.elements[index]);
+			int symIndex = index + agent->Agent.base;
+			push(agent->Agent.stack->Stack.elements[symIndex]); // get the state variable value
 			continue;
 		}
 	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
@@ -259,7 +271,7 @@ int locked = 0; // for print functions
 			printOP(iSETSTATEVAR);
 			oop agent = getObj(exec, RunCtx, agent);
 			int index = fetch();
-			int symIndex = index + agent->Agent.rbp;
+			int symIndex = index + agent->Agent.base;
 			if(symIndex > agent->Agent.stack->Stack.size -1)//FIXME: every time check the size is not efficient, it should be done at init state.
 				for(int i = agent->Agent.stack->Stack.size; i <= symIndex; ++i)
 					intArray_push(agent->Agent.stack, 0); // extend the state variable array

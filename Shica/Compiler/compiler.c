@@ -123,7 +123,8 @@ static void setTransPos(oop prog){
 }
 
 #if DEBUG
-#define printTYPE(OP) dprintf("emit %s\n", #OP)
+//red color for debug print
+#define printTYPE(OP) dprintf("\x1b[31memit %s\x1b[0m\n", #OP)
 #else
 #define printTYPE(OP) ;
 #endif
@@ -1254,6 +1255,11 @@ simple:
 				int gVarIndexSet = code->IntArray.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, gVarIndexSet);
 				break;
+			case iINITSPACE:
+				inst = "INITSPACE";
+				int nLocals = code->IntArray.elements[++i];
+				printf("%03d: %-10s %03d\n", i-1, inst, nLocals);
+				break;
 			case iMKSPACE:
 				inst = "MKSPACE";
 				int space = code->IntArray.elements[++i];
@@ -1371,7 +1377,7 @@ oop compile()
 {
 	dprintf("compiling...\n");
     GC_PUSH(oop, prog, intArray_init()); // create a new program code
-	emitII(prog, iMKSPACE, 0); // reserve space for local variables
+	emitII(prog, iINITSPACE, 0); // reserve space for local variables
 #if DEBUG
 int roots = getOriginalGCtxNRoots();
 #endif 

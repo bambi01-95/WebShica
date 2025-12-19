@@ -246,7 +246,7 @@ int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+		enqueue(exec, eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
 		return 1;
 	}
 	return 0; // return 0 to indicate no event
@@ -268,7 +268,7 @@ int timer_handler(oop exec, oop eh)
 		int count = IntVal_value(eh->EventHandler.data[1]) + 1;
 		eh->EventHandler.data[1] = newIntVal(count);
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0; // return 0 to indicate no event
@@ -278,7 +278,7 @@ int timer_handler(oop exec, oop eh)
 	// 	eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1);
 	// 	eh->EventHandler.data[0] = newIntVal(WEB_TIMER);
 	// 	oop stack = newStack(0);
-	// 	enqueue(eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+	// 	enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 	// 	return 1; // return 1 to indicate success
 	// }
 	// return 0; // return 0 to indicate no event
@@ -307,7 +307,7 @@ int touch_handler(oop exec, oop eh)
 			assert(getKind(eh->EventHandler.data[0]) == IntVal);
 			int count = IntVal_value(eh->EventHandler.data[0]) + 1;
 			eh->EventHandler.data[0] = newIntVal(count);
-			enqueue(eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value 1
+			enqueue(exec, eh, pushStack(stack, newIntVal(count))); // enqueue a stack with value 1
 			return 1; // return 1 to indicate success
 		}
 	}
@@ -324,7 +324,7 @@ int collision_handler(oop exec, oop eh)
 	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
 	if(ag->isCollision == 1){
 		oop stack = newStack(0);
-		enqueue(eh, stack); // enqueue a stack
+		enqueue(exec, eh, stack); // enqueue a stack
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -335,7 +335,7 @@ int self_state_handler(oop exec, oop eh)
 	int state = 0;
 	if (eh->Queue.head < eh->Queue.tail) {
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, newIntVal(state))); // enqueue a stack with value
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -347,7 +347,7 @@ int click_handler(oop exec, oop eh)
 		oop stack = newStack(0);
 		pushStack(stack, newIntVal(WEB_CLICK_STT[0])); // x
 		pushStack(stack, newIntVal(WEB_CLICK_STT[1])); // y
-		enqueue(eh, stack); // enqueue the stack
+		enqueue(exec, eh, stack); // enqueue the stack
 		return 1; // return 1 to indicate success
 	}
 	return 0; // return 0 to indicate no event
@@ -376,7 +376,7 @@ int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender)//C
 	sprintf(buf, "%d", sender);// DON'T REMOVE THIS IS NOT PRINT FUNCTION
 	pushStack(stack, newStrVal(message)); // message
 	pushStack(stack, newStrVal(buf)); // sender
-	enqueue(eh, stack); // enqueue the stack
+	enqueue(WebExecs[id], eh, stack); // enqueue the stack
 	current_gc_ctx = copy_ctx; // restore context
 	return 1;
 }
@@ -412,7 +412,7 @@ int timer_sec_handler(oop exec, oop eh){
 		fields[2] = newIntVal(now);
 		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
 		oop stack = newStack(0);
-		enqueue(eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		enqueue(exec, eh, pushStack(stack, fields[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
 	}
 	return 0;

@@ -551,26 +551,35 @@ Exit event handler
 		}
 		case Event:{
 			int isInserted = 0;
-			int pos = 0;
+			int pos = sz; // default to end
 			node id = getNode(e, Event, id);
 			if(id == entryEH){
 				for(int i=0; i<sz; i++){
 					node ele = ss[i];
 					switch(getType(ele)){
-						case SetVar:continue;
-						case Event:pos = i; break;
+						case SetVar:break;
+						case Event:{
+							if(getNode(ele, Event, id) != entryEH){
+								reportError(DEVELOPER, 0, "Multiple entry event handlers found");
+								return;
+							}
+							pos = i;
+							break;
+						}
 						default:{
 							reportError(DEVELOPER, 0, "Unexpected node type %d in Event_Block_append", getType(ele));
 							break;
 						}
 					}
-					if(pos != 0)break;
+					if(pos != sz)break;
 				}
 			}else if(id == exitEH){
 				pos = sz;; // insert at the end
 			}else{
+				pos = sz; // default to end
 				for(int i=0; i<sz; i++){
 					node ele = ss[i];
+					printf("Checking Event at index %d\n", i);
 					switch(getType(ele)){
 						case Event:{
 							if(getNode(ele, Event, id)==id){
@@ -582,7 +591,7 @@ Exit event handler
 							break;
 						}
 					}
-					if(pos != 0) break; // exit the loop if inserted
+					if(pos != sz) break; // exit the loop if inserted
 				}
 			}
 			for(int i=sz-1; i>=pos; i--){
