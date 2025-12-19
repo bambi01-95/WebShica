@@ -1032,6 +1032,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					node posPair = getNode(event, Event,block);
 					int opPos = prog->IntArray.size;
 					int cPos = Integer_value(getNode(posPair,Pair,b));
+					dprintf("Action pos: %d, Condition pos: %d\n", Integer_value(getNode(posPair,Pair,a)), cPos);	
 					emitIII(prog, iSETPROCESS ,
 						Integer_value(getNode(posPair,Pair,a)) - opPos/*rel action pos from op pos*/, 
 						cPos == 0 ? 0 : cPos - opPos/*rel condition pos from op pos*/

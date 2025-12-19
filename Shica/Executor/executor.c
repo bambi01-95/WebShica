@@ -515,7 +515,8 @@ int locked = 0; // for print functions
 					assert(op == iSETPROCESS);
 					printOP(iSETPROCESS);
 					l = opPos + fetch(); // get the aPos
-					r = opPos + fetch(); // get the cPos
+					r = fetch(); // get the cPos
+					r = r == 0 ? 0 : opPos + r;
 					ehs[i]->EventHandler.threads[j] = newThread(l,r,eventID); // initialize the thread
 				}
 			}
