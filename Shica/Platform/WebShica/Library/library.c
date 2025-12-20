@@ -137,7 +137,10 @@ int *initAnAgentDataPtr(){
 	AN_AGENT_DATA->vx = 0; // x velocity
 	AN_AGENT_DATA->vy = 0; // y velocity
 	AN_AGENT_DATA->isClick = 0; // is click
-	AN_AGENT_DATA->isCollision = 0; // collision
+	AN_AGENT_DATA->collisionT = 0; // collision top	
+	AN_AGENT_DATA->collisionB = 0; // collision bottom
+	AN_AGENT_DATA->collisionL = 0; // collision left
+	AN_AGENT_DATA->collisionR = 0; // collision right
 	AN_AGENT_DATA->status = 0; // status
 	AN_AGENT_DATA->red = 0; // red
 	AN_AGENT_DATA->green = 0; // green
@@ -193,49 +196,112 @@ int getAllAgentDataSizePtr(){
 
 /*
 	COLLISION DETECTION FUNCTION
+	
 */
 
 
-int collision_calculation(int n) {
-
-    // Reset collision status for all agents
+int collision_calculation(int n)
+{
+    /* 1) 衝突フラグ初期化 */
     for (int i = 0; i < n; i++) {
-        allAgentData[i].isCollision = 0;
+        allAgentData[i].collisionL = 0;
+        allAgentData[i].collisionR = 0;
+        allAgentData[i].collisionT = 0;
+        allAgentData[i].collisionB = 0;
     }
 
+
+
+    /* 3) エージェント同士 */
     for (int i = 0; i < n; i++) {
         struct AgentData *a = &allAgentData[i];
 
-        // --- Collision with walls ---
-        if (a->x < -20 || a->x > STAGE_WIDTH ||
-            a->y < -20 || a->y > STAGE_HEIGHT) {
-			console("Agent %d collided with wall at position (%d, %d)\n", a->index, a->x, a->y);
-            a->isCollision = 1;
-        }
+        const int ax1 = a->x - AGENT_SIZE;
+        const int ay1 = a->y - AGENT_SIZE;
+        const int ax2 = a->x + AGENT_SIZE;
+        const int ay2 = a->y + AGENT_SIZE;
 
-        // --- Collision with other agents ---
         for (int j = i + 1; j < n; j++) {
             struct AgentData *b = &allAgentData[j];
 
-            int ax1 = a->x;
-            int ay1 = a->y;
-            int ax2 = a->x + AGENT_SIZE;
-            int ay2 = a->y + AGENT_SIZE;
+            const int bx1 = b->x - AGENT_SIZE;
+            const int by1 = b->y - AGENT_SIZE;
+            const int bx2 = b->x + AGENT_SIZE;
+            const int by2 = b->y + AGENT_SIZE;
 
-            int bx1 = b->x;
-            int by1 = b->y;
-            int bx2 = b->x + AGENT_SIZE;
-            int by2 = b->y + AGENT_SIZE;
+            /* --- AABB overlap check --- */
+            if (!(ax1 < bx2 && ax2 > bx1 &&
+                  ay1 < by2 && ay2 > by1)) {
+                continue;
+            }
 
-            // AABB (Axis-Aligned Bounding Box) collision detection
-            if (!(ax2 < bx1 || ax1 > bx2 || ay2 < by1 || ay1 > by2)) {
-                a->isCollision = 1;
-                b->isCollision = 1;
+            /* --- penetration depth --- */
+            const int dxL = bx2 - ax1;
+            const int dxR = ax2 - bx1;
+            const int dyT = by2 - ay1;
+            const int dyB = ay2 - by1;
+
+            const int minDx = (dxL < dxR) ? dxL : dxR;
+            const int minDy = (dyT < dyB) ? dyT : dyB;
+
+            /* --- relative velocity --- */
+            const int rvx = a->vx - b->vx;
+            const int rvy = a->vy - b->vy;
+
+            /* --- axis decision (45°対応) --- */
+            int useX;
+            if (abs(rvx) > abs(rvy)) {
+                useX = 1;
+            } else if (abs(rvy) > abs(rvx)) {
+                useX = 0;
+            } else {
+                useX = (minDx < minDy);
+            }
+
+            /* --- direction --- */
+            if (useX) {
+                if (dxL < dxR) {
+                    a->collisionL = 1;
+                    b->collisionR = 1;
+                } else {
+                    a->collisionR = 1;
+                    b->collisionL = 1;
+                }
+            } else {
+                if (dyT < dyB) {
+                    a->collisionT = 1;
+                    b->collisionB = 1;
+                } else {
+                    a->collisionB = 1;
+                    b->collisionT = 1;
+                }
             }
         }
+		// 4) ステージ端
+		/* X axis (stage has priority) */
+		if (a->x - AGENT_SIZE < 0) {
+			a->collisionL = 1;
+			a->collisionR = 0;
+		}
+		else if (a->x + AGENT_SIZE > STAGE_WIDTH) {
+			a->collisionR = 1;
+			a->collisionL = 0;
+		}
+
+		/* Y axis (stage has priority) */
+		if (a->y - AGENT_SIZE < 0) {
+			a->collisionT = 1;
+			a->collisionB = 0;
+		}
+		else if (a->y + AGENT_SIZE > STAGE_HEIGHT) {
+			a->collisionB = 1;
+			a->collisionT = 0;
+		}
     }
     return 0;
 }
+
+
 
 /* ---------------------------------------------------
  * Event handler for the web environment
@@ -318,12 +384,22 @@ int touch_handler_init(oop eh){
 	return 1;
 }
 
+// x < y -> 1, x > y -> -1 , x == y -> 0 
+static inline int compare(int x, int y){
+	if(x < y) return 1;
+	else if(x > y) return -1;
+	else return 0;
+} 
+
 //When collision detected
 int collision_handler(oop exec, oop eh)
 {
 	struct AgentData *ag = &allAgentData[CurrentAgentIndex];
-	if(ag->isCollision == 1){
+	if(ag->collisionT == 1 || ag->collisionB == 1 || ag->collisionL == 1 || ag->collisionR == 1){
+		
 		oop stack = newStack(0);
+		pushStack(stack, newIntVal(compare(ag->collisionR, ag->collisionL))); // x direction
+		pushStack(stack, newIntVal(compare(ag->collisionB, ag->collisionT))); // y direction
 		enqueue(exec, eh, stack); // enqueue a stack
 		return 1; // return 1 to indicate success
 	}
@@ -450,12 +526,12 @@ int compile_eh_init(){
     EH->Symbol.value = newEventH(CLICK_EH); // 2 arguments
     return 1; // return 1 to indicate success
 }
-
+// fnptr, init_fnptr, n_args, arg_types, n_data it has
  struct EventTable __EventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init, 0,NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char[]) {Integer}, 2},      // TIMER_EH
 	[TOUCH_EH] = {touch_handler,      touch_handler_init, 1,(char[]){Integer}, 1},      // TOUCH_EH
-	[COLLISION_EH] = {collision_handler,  event_handler_init, 0,NULL, 0},  // COLLISION_EH
+	[COLLISION_EH] = {collision_handler,  event_handler_init, 2,(char[]){Integer,Integer}, 0},  // COLLISION_EH
 	[SELF_STATE_EH] = {self_state_handler, event_handler_init, 0,NULL, 0}, // SELF_STATE_EH
 	[CLICK_EH] = {click_handler,      event_handler_init, 2,(char[]) {Integer,Integer}, 0},      // CLICK_EH
 	[WEB_RTC_BROADCAST_RECEIVED_EH] = {web_rtc_broadcast_receive_handler, web_rtc_broadcast_receive_handler_init, 2,(char[]){String,String}, 0}, // WEB_RTC_BROADCAST_RECEIVE_EH

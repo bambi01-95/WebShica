@@ -173,12 +173,9 @@ int locked = 0; // for print functions
 			printOP(iMKSPACE);
 			int nvars = fetch();
 			if(getKind(entity) == Agent){
-				getObj(entity, Agent, rbp) = stack->Stack.size;
+				getObj(entity, Agent, rbp) = stack->Stack.size - nvars;
 			}else if(getKind(entity) == Thread){
-				getObj(entity, Thread, rbp) = stack->Stack.size;
-			}
-			for (int i = 0;  i < nvars;  ++i) {
-				push(0); // reserve space for local variables
+				getObj(entity, Thread, rbp) = stack->Stack.size - nvars;
 			}
 			continue;
 		}
@@ -238,7 +235,8 @@ int locked = 0; // for print functions
 	    case iGETVAR:{
 			printOP(iGETVAR);
 			int symIndex = fetch(); // need to change
-			push(stack->Stack.elements[symIndex + *rbp +1]); // get the variable value
+			printf("kind of ele: %d, rbp %d\n", getKind(stack->Stack.elements[symIndex + *rbp ]), *rbp);
+			push(stack->Stack.elements[symIndex + *rbp ]); // get the variable value
 			continue;
 		}
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
@@ -258,7 +256,7 @@ int locked = 0; // for print functions
 	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
 			printOP(iSETVAR);
 			int symIndex = fetch();
-			stack->Stack.elements[symIndex+*rbp+1] = pop();
+			stack->Stack.elements[symIndex+*rbp] = pop();
 			continue;
 		}
 		case iSETGLOBALVAR:{

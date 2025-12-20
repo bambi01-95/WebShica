@@ -46,8 +46,8 @@ stt state(){
   entryEH(){
     setVX(5);
   }
-  collisionEH(){
-    print("collision detected!");
+  collisionEH(int x,int y){
+    print("collision at direction x:", x, " y:", y);
     setVX(-getVX());
   }
 }`;
@@ -160,16 +160,99 @@ stt evening(){
   }
 }`;
 
-const test: string = `// Test Sample
-stt morning(){
-  entryEH(){setColor(255, 223, 186);}// light orange
-  timerEH(int sec: sec==3){print("Timer event!");}
-  clickEH(int x, int y){print("Good morning!");}
+const task2Sample: string = `// Particle Sample
+stt moving(){
+  int vx = 5;
+  int vy = 5;
+  entryEH(){
+    setVX(vx);
+    setVY(vy);
+  }
+  collisionEH(int dir: dir==1){ // top collision
+    setVY(-vy);
+  }
+  collisionEH(int dir: dir==3){ // bottom collision
+    setVY(vy);
+  }
+  collisionEH(int dir: dir==2){ // right collision
+    setVX(-vx);
+  }
+  collisionEH(int dir: dir==4){ // left collision
+    setVX(vx);
+  }
+  clickEH(int x, int y){
+    stt stopped;
+  }
+}
+
+stt stopped(){
+  entryEH(){
+    setVX(0);
+    setVY(0);
+  }
+  timerEH(int sec: sec==10){
+    stt moving;
+  }
+}
+`;
+
+const task31Sample: string = `// copporate sample
+var chat = broadcast("shica","pwd");
+
+stt idle(){
+  entryEH(){
+    setColor(200, 200, 200);
+  }
+  clickEH(int x,int y){
+    str msg = str(x) + "," + str(y);
+    chat.send(msg,0);
+    stt working;
+  }
+}
+
+stt counting(){
+  int time = 0;
+  entryEH(){
+    time = now();
+   }
+    chat.received(str from, str msg:msg=="finished"){
+      int elapsed = now() - time;
+      print("Task finished in ", elapsed, " ms");
+      stt idle;
+   }
 }`;
 
+const task32Sample: string = `// copporate sample
+var chat = broadcast("shica","pwd");
+int xTarget = 0;
+int yTarget = 0;
+stt waiting(){
+  chat.received(str from, str msg){
+    // parse msg "x,y"
+    int x = atoi(substring(msg, 0, indexOf(msg, ",")));
+    int y = atoi(substring(msg, indexOf(msg, ",")+1, length(msg)));
+    xTarget = x;
+    yTarget = y;
+    stt moving;
+  }
+}
+stt moving(){
+  int vx = 0;
+  int vy = 0;
+  entryEH(){
+    int x = getX();
+    int y = getY();
+  }
+  loopEH(getX() != xTarget || getY() != yTarget){
+    chat.send("finished",0);
+    stt waiting;
+  }
+}
 
+`;
 
 const sampleCodes: string[] = [
+  collisionSample,
 task1Sample,
 radioButtonGroupSample,
 radioButtonGroupSample,

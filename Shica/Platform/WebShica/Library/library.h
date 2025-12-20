@@ -33,7 +33,7 @@ struct AgentData {
 	int index; // offset 0
 	int x,y,vx,vy;// offset 4,8,12,16
 	int isClick; // offset 20
-	int isCollision; // offset 24
+	char collisionT, collisionB, collisionL, collisionR; // offset 24,25,26,27
 	int status;	 // offset 28
 	char red, green, blue; // offset 32,33,34
 	char isLEDOn; // offset 35
