@@ -34,9 +34,9 @@ stt state(){
 
 
 const timerEOSample: string = `// Timer Event Sample
-var t = time();
+var t = timer();
 stt state(){
-  t.secondEH(int sec){
+  t.sec(int sec){
     print("1 second passed", sec);
   }
 }`;
@@ -168,19 +168,19 @@ stt moving(){
     setVX(vx);
     setVY(vy);
   }
-  collisionEH(int dir: dir==1){ // top collision
-    setVY(-vy);
-  }
-  collisionEH(int dir: dir==3){ // bottom collision
-    setVY(vy);
-  }
-  collisionEH(int dir: dir==2){ // right collision
-    setVX(-vx);
-  }
-  collisionEH(int dir: dir==4){ // left collision
+  collisionEH(int x: x == 1, int y){ // left collision
     setVX(vx);
   }
-  clickEH(int x, int y){
+  collisionEH(int x: x == -1, int y){ // right collision
+    setVX(-vx);
+  }
+  collisionEH(int x, int y: y == 1){ // top collision
+    setVY(vy);
+  }
+  collisionEH(int x, int y: y == -1){ // bottom collision
+    setVY(-vy);
+  }
+  clickEH(int x,int y){
     stt stopped;
   }
 }
@@ -252,7 +252,8 @@ stt moving(){
 `;
 
 const sampleCodes: string[] = [
-  collisionSample,
+task2Sample,
+timerEOSample,
 task1Sample,
 radioButtonGroupSample,
 radioButtonGroupSample,
@@ -263,7 +264,6 @@ touchSample,
 collisionSample,
 radioButtonGroupSample,
 webRtcReceiverSample,
-
 clickSample,
 ];
 
