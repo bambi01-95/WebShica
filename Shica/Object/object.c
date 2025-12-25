@@ -242,7 +242,7 @@ union Object evalThread = {
 		.inProgress = 0,
 		.apos = 0,
 		.cpos = 0,
-		.rbp = 0,
+		.rbp = 1,/* event argument store from 1*/
 		.pc = 0,
 		.queue = NULL,
 		.stack = NULL,
@@ -259,6 +259,7 @@ void enqueue(const oop exec, const oop eh,const oop newStack)//value should be s
 		//eval data by event condition
 		int cPos = getObj(threads[i], Thread, cpos);
 		if(cPos != 0){// eh have condition
+			evalThread.Thread.rbp = 1; // reset rbp for eval
 			evalThread.Thread.pc = cPos;
 			evalThread.Thread.stack = newStack;
 			gc_pushRoot((void*)&newStack);

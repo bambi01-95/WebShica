@@ -235,7 +235,6 @@ int locked = 0; // for print functions
 	    case iGETVAR:{
 			printOP(iGETVAR);
 			int symIndex = fetch(); // need to change
-			printf("kind of ele: %d, rbp %d\n", getKind(stack->Stack.elements[symIndex + *rbp ]), *rbp);
 			push(stack->Stack.elements[symIndex + *rbp ]); // get the variable value
 			continue;
 		}

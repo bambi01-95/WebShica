@@ -1,11 +1,8 @@
 var t = timer();//event object
 
 stt s(){
-    int tt = 10;
-    entryEH(){
-        print(tt);
-    }
-    t.sec(int sec:sec>3){
-        print(tt);
+    int tt = 1;
+    t.sec(int sec:sec==1){//debug me
+        print(sec);
     }
 }
