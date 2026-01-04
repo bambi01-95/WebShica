@@ -89,7 +89,7 @@ oop impleBody(oop exec, oop eh){
 			ret = execute(exec, thread);
 		}else if(getObj(thread, Thread, queue)->Queue.size > 0){
 			getObj(thread, Thread, stack) = dequeue(thread);
-			assert(getObj(thread, Thread, stack) != NULL);
+			// assert(getObj(thread, Thread, stack) != NULL);
 			ret = execute(exec, thread);
 		}
 		if(ret == retFlags[TRANSITION_F]){
@@ -310,9 +310,13 @@ int locked = 0; // for print functions
 			}
 			oop retValue = pop(); // get the return value
 			stack->Stack.size = *rbp+1; // restore the stack size to the base pointer
+#ifdef WEBSHICA
+			*rbp = IntVal_value(pop()); // restore the base pointer
+			*pc = IntVal_value(pop()); // restore the program counter
+#else 
 			*rbp = (intptr_t)pop(); // restore the base pointer
 			*pc = (intptr_t)pop(); // restore the program counter
-
+#endif
 			push(retValue); // push the return value to the stack
 			continue;
 		}

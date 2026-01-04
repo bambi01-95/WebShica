@@ -168,30 +168,43 @@ stt moving(){
     setVX(vx);
     setVY(vy);
   }
-  collisionEH(int x: x == 1, int y){ // left collision
-    setVX(vx);
+  collisionEH(int x, int y){ // left collision
+    print(x, y);
+    if(x!=0)setVX(-vx);
   }
-  collisionEH(int x: x == -1, int y){ // right collision
-    setVX(-vx);
+  collisionEH(int x, int y){ // right collision
+    print(1);
+    if(x==-1)setVX(-vx);
   }
-  collisionEH(int x, int y: y == 1){ // top collision
-    setVY(vy);
+  collisionEH(int x, int y){ // top collision
+    print(2);
+    if(y==1)setVY(vy);
   }
-  collisionEH(int x, int y: y == -1){ // bottom collision
-    setVY(-vy);
+  collisionEH(int x, int y){ // bottom collision
+    print(3);
+    if(y!=0)setVY(-vy);
   }
   clickEH(int x,int y){
-    stt stopped;
+    print("moving stop state");
   }
 }
-
-stt stopped(){
+`;
+const task22Sample: string = `// Particle Sample with improved collision handling
+stt moving(){
+  int vx = 5;
+  int vy = 5;
   entryEH(){
-    setVX(0);
-    setVY(0);
+    setVX(vx);
+    setVY(vy);
   }
-  timerEH(int sec: sec==10){
-    stt moving;
+  collisionEH(int xDir, int yDir){
+   if(xDir == 1) setVX(-vx); // left collision
+   if(xDir == -1) setVX(vx); // right collision
+   if(yDir == 1) setVY(vy); // top collision
+   if(yDir == -1) setVY(-vy); // bottom collision
+  }
+  clickEH(int x,int y){
+    print("moving stop state");
   }
 }
 `;
@@ -252,6 +265,7 @@ stt moving(){
 `;
 
 const sampleCodes: string[] = [
+  task22Sample,
 task2Sample,
 timerEOSample,
 task1Sample,

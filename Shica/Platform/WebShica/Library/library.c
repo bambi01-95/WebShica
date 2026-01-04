@@ -398,8 +398,8 @@ int collision_handler(oop exec, oop eh)
 	if(ag->collisionT == 1 || ag->collisionB == 1 || ag->collisionL == 1 || ag->collisionR == 1){
 		
 		oop stack = newStack(0);
-		pushStack(stack, newIntVal(compare(ag->collisionR, ag->collisionL))); // x direction
 		pushStack(stack, newIntVal(compare(ag->collisionB, ag->collisionT))); // y direction
+		pushStack(stack, newIntVal(compare(ag->collisionR, ag->collisionL))); // x direction
 		enqueue(exec, eh, stack); // enqueue a stack
 		return 1; // return 1 to indicate success
 	}

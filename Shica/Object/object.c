@@ -249,6 +249,14 @@ union Object evalThread = {
 	}
 };
 
+static inline void init_evalThread(const int cpos, const oop stack)
+{
+	evalThread.Thread.inProgress = 0;
+	evalThread.Thread.rbp = 1; // reset rbp for eval
+	evalThread.Thread.pc = cpos;
+	evalThread.Thread.stack = stack;
+}
+
 void enqueue(const oop exec, const oop eh,const oop newStack)//value should be stack
 {
 	assert(getKind(eh) == EventHandler);
@@ -259,9 +267,7 @@ void enqueue(const oop exec, const oop eh,const oop newStack)//value should be s
 		//eval data by event condition
 		int cPos = getObj(threads[i], Thread, cpos);
 		if(cPos != 0){// eh have condition
-			evalThread.Thread.rbp = 1; // reset rbp for eval
-			evalThread.Thread.pc = cPos;
-			evalThread.Thread.stack = newStack;
+			init_evalThread(cPos, newStack);
 			gc_pushRoot((void*)&newStack);
 			int done = 0, skip = 0;
 			while(!done && !skip){
@@ -281,9 +287,19 @@ void enqueue(const oop exec, const oop eh,const oop newStack)//value should be s
 		//push new data into the queue
 		oop q = getObj(threads[i], Thread, queue);
 		if (getObj(q, Queue, size) >= getObj(q, Queue, capacity)) {
-			getObj(q, Queue, capacity) *= 2;
+			int oldCap = getObj(q, Queue, capacity);
+			getObj(q, Queue, capacity) = oldCap * 2;
 			gc_pushRoot((void*)q);
 			q->Queue.que = realloc(q->Queue.que, sizeof(oop) * getObj(q, Queue, capacity));
+			oop *que = getObj(q, Queue, que);
+			int head = getObj(q, Queue, head);
+			int tail = getObj(q, Queue, tail);
+			// A(head..capacity-1) B(0..tail-1)
+			if (head > tail) {
+				memmove(&que[oldCap], &que[0], tail * sizeof(oop));
+				tail = oldCap + tail;
+				head = 0;
+			}
 			gc_popRoots(1);
 		}
 		getObj(q, Queue, que)[getObj(q, Queue, tail)] = i==0 ? newStack : dupStack(newStack);
