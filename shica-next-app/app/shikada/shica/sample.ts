@@ -160,6 +160,7 @@ stt evening(){
   }
 }`;
 
+// task 2 using multiple collisionEH
 const task2Sample: string = `// Particle Sample
 stt moving(){
   int vx = 5;
@@ -189,7 +190,9 @@ stt moving(){
   }
 }
 `;
+// Task 2 using if statement
 const task22Sample: string = `// Particle Sample with improved collision handling
+// Particle Sample with improved collision handling
 stt moving(){
   int vx = 5;
   int vy = 5;
@@ -198,77 +201,23 @@ stt moving(){
     setVY(vy);
   }
   collisionEH(int xDir, int yDir){
-   if(xDir == 1) setVX(-vx); // left collision
-   if(xDir == -1) setVX(vx); // right collision
-   if(yDir == 1) setVY(vy); // top collision
-   if(yDir == -1) setVY(-vy); // bottom collision
-  }
-  clickEH(int x,int y){
-    print("moving stop state");
+   if(xDir == 1) setVX(5); // left collision
+   if(xDir == -1) setVX(-5); // right collision
+   if(yDir == 1) setVY(5); // top collision
+   if(yDir == -1) setVY(-5); // bottom collision
+   print(xDir,yDir);
   }
 }
 `;
 
-const task31Sample: string = `// copporate sample
-var chat = broadcast("shica","pwd");
 
-stt idle(){
-  entryEH(){
-    setColor(200, 200, 200);
-  }
-  clickEH(int x,int y){
-    str msg = str(x) + "," + str(y);
-    chat.send(msg,0);
-    stt working;
-  }
-}
 
-stt counting(){
-  int time = 0;
-  entryEH(){
-    time = now();
-   }
-    chat.received(str from, str msg:msg=="finished"){
-      int elapsed = now() - time;
-      print("Task finished in ", elapsed, " ms");
-      stt idle;
-   }
-}`;
-
-const task32Sample: string = `// copporate sample
-var chat = broadcast("shica","pwd");
-int xTarget = 0;
-int yTarget = 0;
-stt waiting(){
-  chat.received(str from, str msg){
-    // parse msg "x,y"
-    int x = atoi(substring(msg, 0, indexOf(msg, ",")));
-    int y = atoi(substring(msg, indexOf(msg, ",")+1, length(msg)));
-    xTarget = x;
-    yTarget = y;
-    stt moving;
-  }
-}
-stt moving(){
-  int vx = 0;
-  int vy = 0;
-  entryEH(){
-    int x = getX();
-    int y = getY();
-  }
-  loopEH(getX() != xTarget || getY() != yTarget){
-    chat.send("finished",0);
-    stt waiting;
-  }
-}
-
-`;
 
 const sampleCodes: string[] = [
-  task22Sample,
 task2Sample,
-timerEOSample,
 task1Sample,
+task22Sample,
+timerEOSample,
 radioButtonGroupSample,
 radioButtonGroupSample,
 WebRtcReceiverSample_v2,

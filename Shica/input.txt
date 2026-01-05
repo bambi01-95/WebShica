@@ -1,8 +1,8 @@
-var t = timer();//event object
-
 stt s(){
-    int tt = 1;
-    t.sec(int sec:sec==1){//debug me
-        print(sec);
+    timerEH(int s){
+        print(s);
+    }
+    timerEH(int s){
+        print(s);
     }
 }

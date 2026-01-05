@@ -167,7 +167,7 @@ const ShicaPage = () => {
     x: 0,
     y: 0,
   });
-  const [fps, setFps] = useState(500);
+  const [fps, setFps] = useState(200);
 
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
 
@@ -486,7 +486,7 @@ const ShicaPage = () => {
         }
       }
     }
-  }, [isRunning, Module, isReady, codes]);
+  }, [isRunning, Module, isReady]);
 
   const run = () => {
     if (!isCompiled) {

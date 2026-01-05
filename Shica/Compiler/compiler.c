@@ -967,7 +967,8 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					process_sizes[nEventHandlers++]=1; // collect unique events
 				}else if(id == preid){
 					dprintf("same event\n");
-					process_sizes[nEventHandlers]+=1; // increment number of event handlers block
+					process_sizes[nEventHandlers-1]+=1; // increment number of event handlers block
+					dprintf("process_sizes[%d]: %d\n", nEventHandlers-1, process_sizes[nEventHandlers-1]);
 				}else if(id == exitEH){
 					process_sizes[nEventHandlers]=0; // exitEH has no process block
 					continue; // exitEH will be processed later

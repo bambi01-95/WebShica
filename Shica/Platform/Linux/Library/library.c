@@ -24,7 +24,7 @@ int timer_handler(oop exec, oop eh){
 	int now = (int)(t % 10000);
 	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
 		eh->EventHandler.data[0] = newIntVal(now);
-		eh->EventHandler.data[1]++;
+		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1); // increment count
 		oop stack = newStack(0);
 		enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
 		return 1; // return 1 to indicate event was handled
@@ -35,7 +35,7 @@ int timer_handler_init(oop eh){//normal timer handler (not EO)
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
 	eh->EventHandler.data[0] = newIntVal(now); //start time
-	eh->EventHandler.data[1] = 0;   //count
+	eh->EventHandler.data[1] = newIntVal(0);   //count
 	return 1;
 }
 

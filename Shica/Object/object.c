@@ -502,6 +502,10 @@ int printAgent(oop agent)
 void printObj(oop obj, int indent)
 {
 	printf("%*s", indent*2, "");
+	if(obj == NULL){
+		printf("NULL\n");
+		return;
+	}
 	switch(getKind(obj))
 	{
 	case Undeclar:{
