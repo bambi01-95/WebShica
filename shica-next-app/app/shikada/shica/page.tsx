@@ -2,7 +2,7 @@
 import { useShicaWebRTC } from '@/hooks/shikada/optbroadcast';
 import FileLists from "@/component/code/FileLists";
 import { ShicaCodeEditor } from "@/component/code/ShicaCodeEditor";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Output, { Log, LogLevel } from "@/component/code/Output";
 import SizeWarningPage from "@/component/code/SizeWaring";
 import { useVM } from "@/hooks/shikada/useShica";
@@ -71,17 +71,37 @@ interface Agent{
   code: string;
   compiled: boolean;
 }
+type CodeItem = {
+  filename: string;
+  code: string;
+  compiled: boolean;
+};
+
 const ShicaPage = () => {
-  // <CodeEditor>のコード管理
-  const [codes, setCodes] = useState<{ filename: string; code: string; compiled: boolean }[]>([
-    {
-      filename: "Agent0",
-      code:
-        sampleCodes[0] ||
-        "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
-      compiled: false, 
-    },
-  ]);
+  const initialCodes = useMemo<CodeItem[]>(
+    () => [
+      {
+        filename: "Agent0",
+        code:
+          sampleCodes[0] ||
+          "stt s1(){\n    clickEH(x,y){\n        setXY(x,y);\n    }\n}",
+        compiled: false,
+      },
+    ],
+    []
+  );
+
+  // --- Hook は必ずここで全部宣言（順序固定） ---
+  const [codes, setCodes] = useState<CodeItem[]>(initialCodes);
+  const [hydrated, setHydrated] = useState(false);
+
+  // ※ あなたのエラーに出ている useRef は「必ずここに置く」
+  const editorRef = useRef<HTMLDivElement | null>(null);
+
+
+
+
+
   const updateItem = (index: number, newValue: string) => {
     setCodes((prev) =>
       prev.map((item, i) => (i === index ? { ...item, code: newValue } : item))
@@ -581,6 +601,41 @@ const ShicaPage = () => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+//STORE CODE IN LOCALSTORAGE
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("codes");
+      if (saved) setCodes(JSON.parse(saved) as CodeItem[]);
+      const robotsSaved = localStorage.getItem("robots");
+      if (robotsSaved) robotsRef.current = JSON.parse(robotsSaved);
+
+    } catch {
+      // ignore
+    } finally {
+      setHydrated(true);
+    }
+  }, [initialCodes]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem("codes", JSON.stringify(codes));
+    localStorage.setItem("robots", JSON.stringify(robotsRef.current));
+  }, [codes, hydrated]);
+
+  // 2) 早期 return は Hook の「後」
+  if (!hydrated) {
+    return null; // or Skeleton
+  }
+
+  const clearCodes = () => {
+    localStorage.removeItem("codes");
+    setCodes(initialCodes);
+    setSelectedIndex(0);
+    // Reset robots
+    robotsRef.current = [{ x: 0, y: 0, r: 0, g: 0, b: 0 }];
+  };
+  // END of Hook declarations
+
   return (
     <div>
       <div className="xl:hidden">
@@ -697,10 +752,10 @@ const ShicaPage = () => {
 
               <div className="w-3/4">
                 <ShicaCodeEditor
-                  key={codes[selectedIndex].filename}
-                  filename={codes[selectedIndex].filename}
+                  key={codes[selectedIndex]?.filename || "Agent0"}
+                  filename={codes[selectedIndex]?.filename || "Agent0"}
                   language=".shica"
-                  initialCode={codes[selectedIndex].code}
+                  initialCode={codes[selectedIndex]?.code || ""}
                   onCodeChange={(newCode) => updateItem(selectedIndex, newCode)}
                   isRounded={false}
                   width="w-full"
@@ -775,7 +830,7 @@ const ShicaPage = () => {
                 }}
               >
                 <span className="text-sm text-gray-500">
-                  {codes[selectedIndex].filename}.shica
+                  {codes[selectedIndex]?.filename || "Agent0"}.shica
                 </span>
               </button>
 
@@ -788,7 +843,7 @@ const ShicaPage = () => {
                 }}
               >
                 <span className="text-sm text-gray-500">
-                  {codes[selectedIndex].filename}.stt
+                  {codes[selectedIndex]?.filename || "Agent0"}.stt
                 </span>
               </button>
               <select
@@ -802,11 +857,16 @@ const ShicaPage = () => {
                 <option value={50}>50</option>
                 <option value={25}>25</option>
               </select>
-              <select>
-                <option value="stt">State</option>
-                <option value="send">Send</option>
-                <option value="receive">Receive</option>
-              </select>
+              <button
+                onClick={clearCodes}
+                className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-all duration-200 hover:scale-105`}
+                style={{
+                  backgroundColor: "var(--color-background-secondary)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                <span className="text-sm text-gray-500">Clear All Files</span>
+              </button>
             </div>
             {/* BOTTOM */}
             <div className="h-full overflow-hidden">
