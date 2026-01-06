@@ -472,13 +472,13 @@ void reinitializeEventObject(oop eh)
 	if(eh->EventHandler.data[0] == NULL || getKind(eh->EventHandler.data[0]) != Instance){
 			return;//not event object
 	}
-	if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
-	){
-		#ifdef DEBUG
-		_reportError(WARNING,0000, "%s", "init event object");
-		#endif
-		eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
-	}
+	// if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
+	// ){
+	// 	#ifdef DEBUG
+	// 	_reportError(WARNING,0000, "%s", "init event object");
+	// 	#endif
+	// 	eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
+	// }
 	return;
 }
 
