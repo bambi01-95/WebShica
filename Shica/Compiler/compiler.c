@@ -1097,7 +1097,13 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			node eh = getNode(id,Symbol,value);
 			if(getType(eh) != EventH) {
 				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, getNode(id, Symbol,name));
-				reportError(DEVELOPER, getNode(ast,Event,line), "please contact %s", DEVELOPER_EMAIL);
+// CHECK end of id is EH
+				char name = getNode(id, Symbol,name)[strlen(getNode(id, Symbol,name))-1];
+				if(name != 'H'){
+					reportError(ERROR, getNode(ast,Event,line), "%s is not an event handler: do you mean %sEH?", getNode(id, Symbol,name), getNode(id, Symbol,name));
+				}else{
+					reportError(ERROR, getNode(ast,Event,line), "%s is not an event handler", getNode(id, Symbol,name));
+				}
 				popUserTypeIndex(vars);
 				return 1;
 			}
