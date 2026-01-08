@@ -78,6 +78,7 @@ struct EmitContext{
 	node state_vars; // state variables to emit code for
 	node local_vars; // local variables to emit code for
     node user_types; // user defined types
+    char isVoid; // 1: in void context, 0: not in void context
 };
 struct Variable{
     type_t _type;
@@ -239,6 +240,9 @@ struct RetVarFunc searchVariable(node ctx, node sym, node type);
 #define discardVariables(V,X) V->Array.size = X
 
 node newEmitContext();
+#define getVoidContext() (vars->EmitContext.isVoid)
+#define setVoidContext() (vars->EmitContext.isVoid = 1)
+#define clearVoidContext() (vars->EmitContext.isVoid = 0)
 int addUserType(node ctx, node ut); // ret: index of user type
 // nested user type index stack
 int pushUserTypeIndex(node ctx); // ret: 0: success, 1: error

@@ -1,6 +1,7 @@
-var t = timerEO();
-stt s1(){
-    t.sec(){
-        print("hello");
-    }
+// 5 times repeat
+state Loop(){
+	entryEH(){
+        int i = 0;
+        i = i + 1;
+	}
 }

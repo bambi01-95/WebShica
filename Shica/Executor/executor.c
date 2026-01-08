@@ -192,17 +192,17 @@ int locked = 0; // for print functions
 	    case iDIV:printOP(iDIV);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l % r));  continue;
 #else
-	    case iGT:printOP(iGT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l > r));  continue;
-		case iGE:printOP(iGE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l >= r)); continue;
-		case iEQ:printOP(iEQ);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l == r)); continue;
-		case iNE:printOP(iNE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l != r)); continue;
-		case iLE:printOP(iLE);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l <= r)); continue;
-		case iLT:printOP(iLT);    r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l < r));  continue;
-	    case iADD:printOP(iADD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l + r));  continue;
-	    case iSUB:printOP(iSUB);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l - r));  continue;
-	    case iMUL:printOP(iMUL);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l * r));  continue;
-	    case iDIV:printOP(iDIV);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l / r));  continue;
-	    case iMOD:printOP(iMOD);  r = (intptr_t)pop();  l = (intptr_t)pop();  push(newIntVal(l % r));  continue;
+	    case iGT:printOP(iGT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l > r));  continue;
+		case iGE:printOP(iGE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l >= r)); continue;
+		case iEQ:printOP(iEQ);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l == r)); continue;
+		case iNE:printOP(iNE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l != r)); continue;
+		case iLE:printOP(iLE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l <= r)); continue;
+		case iLT:printOP(iLT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l < r));  continue;
+	    case iADD:printOP(iADD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l + r));  continue;
+	    case iSUB:printOP(iSUB);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l - r));  continue;
+	    case iMUL:printOP(iMUL);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l * r));  continue;
+	    case iDIV:printOP(iDIV);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l / r));  continue;
+	    case iMOD:printOP(iMOD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l % r));  continue;
 #endif
 		case iARRAY:{
 			int n = fetch();
@@ -217,7 +217,7 @@ int locked = 0; // for print functions
 		case iSETARRAY:{
 			printOP(iSETARRAY);
 			oop val   = pop();
-			int index = (intptr_t)pop();
+			int index = (intptr_t)pop()>>2;
 			oop arr   = pop();
 			assert(getKind(arr) == ArrVal);
 			getObj(arr, ArrVal, elements)[index] = val;
@@ -225,7 +225,7 @@ int locked = 0; // for print functions
 		}
 		case iGETARRAY:{
 			printOP(iGETARRAY);
-			int index = (intptr_t)pop();
+			int index = (intptr_t)pop()>>2;
 			oop arr = pop();
 			assert(getKind(arr) == ArrVal);
 			oop *ele = getObj(arr, ArrVal, elements);
@@ -287,9 +287,11 @@ int locked = 0; // for print functions
 		case iJUMPIF:{
 			printOP(iJUMPIF);
 			l = fetch();
+#if DEBUG
 			if (l < 0 || l >= size) {
 				fatal("jump to invalid position %d", l);
 			}
+#endif
 			if (IntVal_value(pop()))	 { // if top of stack is TRUE
 				continue;
 			} else {
@@ -314,8 +316,8 @@ int locked = 0; // for print functions
 			*rbp = IntVal_value(pop()); // restore the base pointer
 			*pc = IntVal_value(pop()); // restore the program counter
 #else 
-			*rbp = (intptr_t)pop(); // restore the base pointer
-			*pc = (intptr_t)pop(); // restore the program counter
+			*rbp = (intptr_t)pop()>>2; // restore the base pointer
+			*pc = (intptr_t)pop()>>2; // restore the program counter
 #endif
 			push(retValue); // push the return value to the stack
 			continue;

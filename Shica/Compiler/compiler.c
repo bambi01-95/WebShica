@@ -310,10 +310,18 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			struct RetVarFunc var = searchVariable(vars, getNode(rhs, GetVar,id), type);
 			if(var.index == -1)return 1; // variable not found
 			switch(getNode(ast, Unyop,op)) {
-					case BINC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index);if(emitOn(prog, vars, rhs, type))return 1; return 0;
-					case BDEC: if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); if(emitOn(prog, vars, rhs, type))return 1;return 0;
-					case AINC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index); return 0;
-					case ADEC: if(emitOn(prog, vars, rhs, type))return 1;if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); return 0;
+					case BINC: {if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index);
+						if(!getVoidContext()) if(emitOn(prog, vars, rhs, type))return 1; return 0;}
+					case BDEC: {if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index);
+						if(!getVoidContext()) if(emitOn(prog, vars, rhs, type))return 1;return 0;}
+					case AINC: {
+						if(!getVoidContext()){printf("ainc\n");if(emitOn(prog, vars, rhs, type))return 1;}
+						if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iADD);emitII(prog, iSETVAR, var.index); return 0;
+					}
+					case ADEC: {
+						if(!getVoidContext()){if(emitOn(prog, vars, rhs, type))return 1;}
+						if(emitOn(prog, vars, rhs, type))return 1;emitII(prog, iPUSH, 1); emitI(prog, iSUB);emitII(prog, iSETVAR, var.index); return 0;
+					}
 				default: break;
 			}
 			fatal("file %s line %d unknown Unyop operator %d", __FILE__, __LINE__, getNode(ast, Unyop,op));
@@ -369,7 +377,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 						GC_POP(closure);
 						return 1; // compile function body
 					}
-					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, size); // set the size of local variables
+					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
 					getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
@@ -856,7 +864,9 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			int variablesSize = getNode(vars, EmitContext, local_vars) ? getNode(getNode(vars, EmitContext, local_vars), Array, size) : 0; // remember the size of variables
 
 			if (initialization !=  FALSE) {
+				setVoidContext();
 				if(emitOn(prog, vars, initialization, type)) return 1; // compile initialization
+				clearVoidContext();
 			}
 			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
 			int jumpPos = 0; // position for the jump if condition is TRUE
@@ -869,7 +879,11 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			if(emitOn(prog, vars, statement, type)) return 1; // compile statement
 
 			if (iteration !=  FALSE) {
+				setVoidContext();
+				printf("emit iteration\n");
 				if(emitOn(prog, vars, iteration, type)) return 1; // compile iteration
+				printf("done emit iteration\n");
+				clearVoidContext();
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
 			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
@@ -1157,7 +1171,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			if(emitOn(prog, vars, block, type))return 1; // compile block
 			emitII(prog, iEOE, getNode(getNode(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = getNode(getNode(vars, EmitContext, local_vars), Array, size); // store number of local variables
+			prog->IntArray.elements[mkspacepos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // store number of local variables
 			getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(node,apos, newInteger(aPos));
 			GC_PUSH(node,cpos,newInteger(cPos));

@@ -700,8 +700,19 @@ struct RetVarFunc insertVariable(node ctx, node sym, node type)
 		}
 	}
 	node arr = ctx->EmitContext.local_vars; // local variables
+	if(arr == NULL){
+		gc_pushRoot((void*)&ctx);
+		arr = newArray(1);
+		ctx->EmitContext.local_vars = arr;
+		gc_popRoots(1);
+	}else if(arr->Array.size + 1 > arr->Array.capacity){
+		gc_pushRoot((void*)&arr);
+		// reallocate 1 more element
+		arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
+		arr->Array.capacity = arr->Array.size + 1;
+		gc_popRoots(1);
+	}
 	gc_pushRoot((void*)&sym);
-	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
 	arr->Array.elements[arr->Array.size] = newVariable(type, sym);
 	gc_popRoots(1);
 	return (struct RetVarFunc){SCOPE_LOCAL, arr->Array.size++, arr->Array.elements[arr->Array.size-1]};
@@ -724,10 +735,14 @@ struct RetVarFunc appendVariable(node arr, node var, node type, node value)
 			return (struct RetVarFunc){0, -1, NULL}; // error
 		}
 	}
-	gc_pushRoot((void*)&arr);
-	gc_pushRoot((void*)&var);
-	gc_pushRoot((void*)&value);
-	arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
+	if(arr->Array.size + 1 > arr->Array.capacity){
+		gc_pushRoot((void*)&arr);
+		gc_pushRoot((void*)&var);
+		gc_pushRoot((void*)&value);
+		// reallocate 1 more element
+		arr->Array.elements = realloc(arr->Array.elements, sizeof(*arr->Array.elements) * (arr->Array.size + 1));
+		arr->Array.capacity = arr->Array.size + 1;
+	}
 	arr->Array.elements[arr->Array.size] = value ? newVariableWithValue(type, var, value) : newVariable(type, var);
 	gc_popRoots(3);
 	return (struct RetVarFunc){0, arr->Array.size++, arr->Array.elements[arr->Array.size-1]};
@@ -767,6 +782,7 @@ node newEmitContext()
 	context->EmitContext.state_vars  = NULL;
 	context->EmitContext.local_vars  = NULL;
 	context->EmitContext.user_types  = newArray(0);
+	context->EmitContext.isVoid = 1;
 	GC_POP(context);
 	return context;
 }
