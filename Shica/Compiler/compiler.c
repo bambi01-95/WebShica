@@ -1065,7 +1065,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			printTYPE(_Event_);
 			node id = getNode(ast, Event,id);
 			pushUserTypeIndex(vars); // push user type index stack
-			if(getType(id) == GetField)
+			if(getType(id) == GetField)//event object event handler
 			{
 				node parent = getNode(id, GetField, id); // get the variable from the GetField
 				struct RetVarFunc var = searchVariable(vars, parent, type);
@@ -1086,7 +1086,12 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					}
 				}
 				if(id == NULL){
-					reportError(ERROR, getNode(ast,Event,line), "event object %s has no event %s", getNode(parent, Symbol,name), fieldName);
+					char name = getNode(parent, Symbol,name)[strlen(getNode(parent, Symbol,name))-1];
+					if(name != 'H'){
+						reportError(ERROR, getNode(ast,Event,line), "event object %s has no event %s: do you mean %sEH?", getNode(parent, Symbol,name), fieldName, fieldName);
+					}else{
+						reportError(ERROR, getNode(ast,Event,line), "event object %s has no event %s", getNode(parent, Symbol,name), fieldName);
+					}
 					popUserTypeIndex(vars);
 					return 1;
 				}
@@ -1096,7 +1101,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			node block = getNode(ast, Event, block);
 			node eh = getNode(id,Symbol,value);
 			if(getType(eh) != EventH) {
-				fatal("file %s line %d emitOn: event %s() is not an EventH", __FILE__, __LINE__, getNode(id, Symbol,name));
+				fatal("file %s line %d emitOn: event %s() is not an EventHandler", __FILE__, __LINE__, getNode(id, Symbol,name));
 // CHECK end of id is EH
 				char name = getNode(id, Symbol,name)[strlen(getNode(id, Symbol,name))-1];
 				if(name != 'H'){
@@ -1113,7 +1118,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			int cPos      = 0;
 
 			while(params != nil) {//a:id-b:cond
-				dprintf("\t appendVarialbe\n");
+				dprintf("\t appendVariable\n");
 				struct RetVarFunc var =  appendVariable(
 					getNode(vars, EmitContext, local_vars), 
 					getNode(params, Eparams, id), 
@@ -1136,7 +1141,11 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				emitI(prog, iEOC); // emit EOC instruction if condition exists
 			}
 			if(paramSize != nArgs) {
-				reportError(ERROR, getNode(ast,Event,line), "event %s has %d parameters, but expected %d", getNode(id, Symbol,name), paramSize, nArgs);
+				if(getType(getNode(ast,Event,id))==GetField){
+					reportError(ERROR, getNode(ast,Event,line), "event %s.%s() has %d parameters, but expected %d", getNode(getNode(getNode(ast,Event,id),GetField,id), Symbol,name), getNode(id, Symbol,name), paramSize, nArgs);
+				}else{
+					reportError(ERROR, getNode(ast,Event,line), "event %s() has %d parameters, but expected %d", getNode(id, Symbol,name), paramSize, nArgs);
+				}
 				getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 				popUserTypeIndex(vars);
 				return 1;

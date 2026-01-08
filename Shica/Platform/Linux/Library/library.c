@@ -188,20 +188,20 @@ int compile_eo_init(){
 	node func = NULL;
 	node eo = NULL;
 // Broadcast Event Object
-	sym = intern("broadcast");
+	sym = intern("broadcastEO");
 	eo = newEventObject(sym, WEB_RTC_BROADCAST_EO);// var chat = broadcast(channel, password);
-	func = newEventH(CHAT_RECEIVED_EH);sym = newSymbol("received");
+	func = newEventH(CHAT_RECEIVED_EH);sym = newSymbol("receivedEH");
 	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
 	func = newStdFunc(CHAT_SEND_FUNC);sym = newSymbol("send");
 	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
 // Timer Event Object
-	sym = intern("timer");
+	sym = intern("timerEO");
 	eo = newEventObject(sym, TIME_EO);// var t = timer(interval, label);
-	func = newEventH(T_TIMER_SEC_EH);sym = newSymbol("sec");
+	func = newEventH(T_TIMER_SEC_EH);sym = newSymbol("secEH");
 	putFuncToEo(eo, func, sym, 0);// t.sec(second);
-	func = newEventH(T_TIMER_MIN_EH);sym = newSymbol("min");
+	func = newEventH(T_TIMER_MIN_EH);sym = newSymbol("minEH");
 	putFuncToEo(eo, func, sym, 1);// t.min(minute);
-	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hour");
+	func = newEventH(T_TIMER_HOUR_EH);sym = newSymbol("hourEH");
 	putFuncToEo(eo, func, sym, 2);// t.hour(hour);
 	func = newStdFunc(T_TIMER_RESET_FUNC);sym = newSymbol("reset");
 	putFuncToEo(eo, func, sym, 3);// t.x();

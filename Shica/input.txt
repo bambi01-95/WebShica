@@ -1,5 +1,6 @@
+var t = timerEO();
 stt s1(){
-    entry(){
-        stt s2;
+    t.sec(){
+        print("hello");
     }
 }
