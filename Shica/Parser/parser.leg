@@ -184,7 +184,7 @@ id	= < alpha alnum* > -		{ $$ = intern(yytext);  }
 alpha	= [a-zA-Z_]
 alnum	= [a-zA-Z_0-9]
 symbol =  [+\-*/%<>=!] 
-alnumsym =  [a-zA-Z_0-9+\-*/%<>=!: ]
+alnumsym =  [a-zA-Z_0-9+\-*/%<>=!,.: ]
 -	= blank*
 
 blank	= [ \t]
@@ -225,7 +225,7 @@ DQUOTE  = "\""
 DOT   = "."
 
 
-STATE = "stt" -
+STATE = "stt" | "state" -
 IF    = "if" -
 ELSE  = "else" -
 PRINT = "print" -

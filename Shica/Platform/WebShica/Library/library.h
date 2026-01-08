@@ -82,7 +82,7 @@ enum {
 };
 
 extern int _web_rtc_broadcast_receive_(int id, void *ptr, char* message, int sender);//CCALL
-extern int _lib_web_rtc_broadcast_send_(int index, char* msg, int num);// JSCALL
+extern int _lib_web_rtc_broadcast_send_(int index, char* msg);// JSCALL
 extern int _web_rtc_broadcast_eo_(int index, char* channel, char* password, void* ptr);// JSCALL
 
 /*=============== Event Table ===============*/

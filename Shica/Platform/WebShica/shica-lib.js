@@ -13,9 +13,9 @@ mergeInto(LibraryManager.library, {
     _addWebRtcBroadcast(index, channel, password, ptr);
     return 0;
   },
-  _lib_web_rtc_broadcast_send_: function( index, msgPtr, num ) {
+  _lib_web_rtc_broadcast_send_: function( index, msgPtr) {
     const msg = UTF8ToString(msgPtr);
-    _sendWebRtcBroadcast(index, msg, num);
+    _sendWebRtcBroadcast(index, msg);
     return 0; 
   }
 

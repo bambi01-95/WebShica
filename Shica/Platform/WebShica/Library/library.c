@@ -657,15 +657,14 @@ int lib_setcolor(oop stack)
 	return 0; // return 0 to indicate success
 }
 
-// extern int __lib_web_rtc_broadcast_send__(int index, char* msg, int num);// JSCALL
+// extern int __lib_web_rtc_broadcast_send__(int index, char* msg);// JSCALL
 int lib_web_rtc_broadcast_send(oop stack)
 {
 	char* msg = getObj(popStack(stack), StrVal, value); // get message from stack
-	int num = IntVal_value(popStack(stack)); // get channel from stack
 	oop instance = popStack(stack); // get instance from stack
 	assert(getKind(instance) == Instance);
 	int index = CurrentAgentIndex;
-	_lib_web_rtc_broadcast_send_(index, msg, num); // call the WebRTC broadcast send function
+	_lib_web_rtc_broadcast_send_(index/*WhoSendMSG*/, msg); // call the WebRTC broadcast send function
 	if(index < 0){
 		reportError(DEVELOPER, 0, "lib_web_rtc_broadcast_send: Invalid agent index %d\n", index);
 		return -1; // return -1 to indicate error
@@ -721,7 +720,7 @@ struct StdFuncTable __StdFuncTable__[] =
 	[GETVX_FUNC] = {lib_getvx, 0, NULL, Integer}, // getVX function returns an integer
 	[GETVY_FUNC] = {lib_getvy, 0, NULL, Integer}, // getVY function returns an integer
 	[SETCOLOR_FUNC] = {lib_setcolor, 3, (int[]){Integer, Integer, Integer}, Undefined}, // setColor function takes 3 arguments
-	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 2, (int[]){Integer, String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
+	[WEB_RTC_BROADCAST_SEND_FUNC] = {lib_web_rtc_broadcast_send, 1, (int[]){String}, Undefined}, // WebRTC broadcast send function takes 2 arguments
 	[T_TIMER_RESET_FUNC] = {lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 };
 
