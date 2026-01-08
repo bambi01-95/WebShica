@@ -739,7 +739,7 @@ int executeWebCodes(void)
 		setActiveAgent(i); // set the agent as active
 		current_gc_ctx = ctxs[i]; // set the context to the current web agent
 		oop agent = (oop)*current_gc_ctx->roots[0]; // get the agent from the context memory
-		if(agent==retFlags[ERROR_F])continue;
+		if(WebExecs[i]==retFlags[ERROR_F] || WebExecs[i]==retFlags[HALT_F])continue;
 		// Wen you want to ...
 		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, current_gc_ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
@@ -756,9 +756,11 @@ int executeWebCodes(void)
 				continue;
 			}
 			if(ret==retFlags[ERROR_F]){
+				WebExecs[i] = retFlags[ERROR_F];
 				continue;
 			}
 			if(ret==retFlags[HALT_F]){
+				WebExecs[i] = retFlags[HALT_F];
 				continue;
 			}
 		}else{
@@ -767,6 +769,9 @@ int executeWebCodes(void)
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(WebExecs[i], eh);
 				ret = impleBody(WebExecs[i], eh);
+				if(ret == retFlags[EOE_F] || ret == retFlags[CONTINUE_F]){
+					continue; // continue to the next event handler
+				}
 				if(ret==retFlags[TRANSITION_F]){
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
@@ -775,6 +780,14 @@ int executeWebCodes(void)
 					getObj(agent, Agent, isActive) = 0;
 					getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
 					getObj(agent, Agent, eventHandlers) = NULL;
+					break;
+				}
+				if(ret==retFlags[ERROR_F]){
+					WebExecs[i] = retFlags[ERROR_F];
+					break;
+				}
+				if(ret==retFlags[HALT_F]){
+					WebExecs[i] = retFlags[HALT_F];
 					break;
 				}
 			}
