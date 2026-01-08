@@ -987,6 +987,12 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
 
 			// emit state event handlers
+			if(nEventHandlers == 0){
+				getNode(vars, EmitContext, state_vars) = NULL; // clear state variables
+				emitI(prog, iHALT); // emit HALT instruction for empty state
+				popUserTypeIndex(vars);
+				return 0;
+			}
 			emitII(prog, iSETSTATE, nEventHandlers); // set the number of events and position
 			dprintf("Number of event handlers: %d\n", nEventHandlers);//remove
 			// OPECODE FOR EVENTS

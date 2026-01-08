@@ -1,8 +1,14 @@
-stt s(){
+stt s1(){
+    entryEH(){
+        stt s2;
+    }
+}
+
+stt s2(){
     timerEH(int s){
         print(s);
     }
     timerEH(int s){
-        print(s);
+        if(s==3){stt s2;}
     }
 }

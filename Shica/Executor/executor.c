@@ -525,7 +525,7 @@ int locked = 0; // for print functions
 			assert(op == iIMPL);
 			printOP(iIMPL);
 			entity->Agent.isActive = 1; // set the agent to active
-			return exec; // return the entity
+			return retFlags[CONTINUE_F]; // return the entity
 		}
 		case iSETEVENT:{
 			printOP(iSETEVENT);
@@ -587,7 +587,7 @@ int locked = 0; // for print functions
 			for(int i = 0;  i < getObj(stack, Stack, size);  ++i) {
 				dprintf("%3d:<%p>\n",i, (stack->Stack.elements[i]));
 			}
-			return stack; // return the answer
+			return retFlags[HALT_F]; // return the answer
 		}
 	    default:{
 			reportError(DEVELOPER, 0, "execute: unknown opcode %d at pc %d", op, *pc -1);

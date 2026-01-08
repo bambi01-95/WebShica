@@ -730,7 +730,8 @@ int initWebAgents(int num)
 int executeWebCodes(void)
 {
 	gc_context **ctxs = (gc_context **)current_gc_ctx->roots; // initialize web agents
-	int ret = collision_calculation(nWebAgents);
+	int _ret = collision_calculation(nWebAgents);
+	oop ret = retFlags[ERROR_F];
 	for(int i = 0; i<nWebAgents ; i++){
 #ifdef DEBUG
 		printf("\n\x1b[34m[C] Agendd[%d] ----------------- \x1b[0m\n", i);
@@ -742,13 +743,31 @@ int executeWebCodes(void)
 		// Wen you want to ...
 		// printf("\x1b[34m[C] Agent[%d] -> agent[%p] = memory[%p]\x1b[0m\n", i, agent, current_gc_ctx->roots[0]);
 		if(getObj(agent, Agent, isActive) == 0){
-			WebExecs[i] = execute(WebExecs[i], agent);
+			// WebExecs[i] =
+			ret = execute(WebExecs[i], agent);
+			if(ret==retFlags[TRANSITION_F]){
+				for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
+					oop eh2 = getObj(agent, Agent, eventHandlers)[k];
+					reinitializeEventObject(eh2);
+				}
+				getObj(agent, Agent, isActive) = 0;
+				getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
+				getObj(agent, Agent, eventHandlers) = NULL;
+				continue;
+			}
+			if(ret==retFlags[ERROR_F]){
+				continue;
+			}
+			if(ret==retFlags[HALT_F]){
+				continue;
+			}
 		}else{
 			for(int j = 0; j < getObj(agent, Agent, nEvents); ++j){
 				// get event data
 				oop eh = getObj(agent, Agent, eventHandlers)[j];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(WebExecs[i], eh);
-				if(impleBody(WebExecs[i], eh)==retFlags[TRANSITION_F]){
+				ret = impleBody(WebExecs[i], eh);
+				if(ret==retFlags[TRANSITION_F]){
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
 						oop eh2 = getObj(agent, Agent, eventHandlers)[k];
 						reinitializeEventObject(eh2);
@@ -809,19 +828,30 @@ int runNative(oop code){
 	GC_PUSH(oop, agent, newAgent(0,0));//nroos[0] = agent; // set the first root to the agent
 	oop exec = newRunCtx(agent, code);
 	GC_POP(agent);
-	gc_pushRoot(exec);
-	exec = execute(exec, agent);
-	if(exec->RunCtx.agent == retFlags[ERROR_F]){
-		GC_POP(exec);
-		return 1; // return 1 to indicate error
-	}
+	gc_pushRoot((void*)&exec);
 	dprintf("agent: %d\n", getObj(agent, Agent, isActive));
+	oop ret = retFlags[ERROR_F];
 	while(1){
 		if(getObj(agent, Agent, isActive) == 0) {
-			exec = execute(exec, agent);
-			if(exec->RunCtx.agent == retFlags[ERROR_F]){
+			ret = execute(exec, agent);
+			if(ret == retFlags[TRANSITION_F]){
+				//initialize event objects
+				for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
+					oop eh2 = getObj(agent, Agent, eventHandlers)[k];
+					reinitializeEventObject(eh2);
+				}
+				getObj(agent,Agent,isActive) = 0;
+				getObj(agent, Agent, pc) = IntVal_value(popStack(getObj(agent, Agent, stack)));
+				getObj(agent, Agent, eventHandlers) = NULL;
+				continue;
+			}
+			if(ret == retFlags[ERROR_F]){
 				GC_POP(exec);
 				return 1; // return 1 to indicate error
+			}
+			if(ret == retFlags[HALT_F]){
+				GC_POP(exec);
+				return 0; // return 0 to indicate success
 			}
 		}else{
 			agent = exec->RunCtx.agent;
@@ -829,7 +859,7 @@ int runNative(oop code){
 				// get event data
 				oop eh = getObj(agent,Agent,eventHandlers)[i];
 				EventTable[getObj(eh, EventHandler, EventH)].eh(exec, eh);
-				oop ret = impleBody(exec, eh);
+				ret = impleBody(exec, eh);
 				if(ret == retFlags[TRANSITION_F]){
 					//initialize event objects
 					for(int k = 0; k < getObj(agent, Agent, nEvents); ++k){
@@ -844,6 +874,10 @@ int runNative(oop code){
 				if(ret == retFlags[ERROR_F]){
 					GC_POP(exec);
 					return 1; // return 1 to indicate error
+				}
+				if(ret == retFlags[HALT_F]){
+					GC_POP(exec);
+					return 0; // return 0 to indicate success
 				}
 			}
 		}

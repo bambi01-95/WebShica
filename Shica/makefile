@@ -86,11 +86,9 @@ $(WASMOUT): $(SRC)
 move: wasm
 	mkdir -p $(DEST)
 	cp $(FILES) $(DEST)
-
-app: move
-    mkdir -p $(APPDEST)
+appmove: wasm
+	mkdir -p $(APPDEST)
 	cp $(FILES) $(APPDEST)
-
 
 clean:
 	rm -f shica.c shica shica.js shica.wasm
