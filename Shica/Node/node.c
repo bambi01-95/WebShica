@@ -1040,6 +1040,23 @@ node TYPES[5] = {
 	MAKE_OOP_FLAG(String),// string
 	MAKE_OOP_FLAG(EventObject),// event object
 };
+void printShicaType(node type)
+{
+	printf("	Type: ");
+	if(type == TYPES[Undefined]){
+		printf("undefined\n");
+	}else if(type == TYPES[Integer]){
+		printf("int\n");
+	}else if(type == TYPES[Float]){
+		printf("float\n");
+	}else if(type == TYPES[String]){
+		printf("string\n");
+	}else if(type == TYPES[EventObject]){
+		printf("event object\n");
+	}else{
+		printf("unknown type\n");
+	}
+}
 
 #ifdef MSGC
 #undef newAtomicObject

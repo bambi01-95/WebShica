@@ -341,6 +341,8 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			node sym = getNode(ast, SetVar,id);
 			node rhs = getNode(ast, SetVar,rhs);
 			node declaredType = getNode(ast, SetVar,type);
+			printShicaType(declaredType);
+			
 			switch(getType(rhs)){
 				case UserFunc:{
 					printTYPE(_Function_);
@@ -477,16 +479,17 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					}
 				}
 				case Integer:
-				case String:{
-					if(declaredType == nil){
-						declaredType = TYPES[parseType(vars, rhs)];
-					}
-				}
+				case String:
 				case GetArray:
 				case GetField:
 				case GetVar:
 				case Unyop:
 				case Binop:{
+					if(declaredType == nil){
+						struct RetVarFunc var = searchVariable(vars, sym, NULL);
+						if(var.index == -1){return 1;}
+						declaredType = var.variable->Variable.type;
+					}
 					int scope = getNode(ast, SetVar,scope);
 					switch(scope) {
 						case SCOPE_LOCAL:{
