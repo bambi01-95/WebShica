@@ -1,9 +1,9 @@
 state CountDown(){
 	entryEH(){
 		int count = 5;
-		while(count > 0){
-			print(count);
-			count = count - 1;
-		}
+		if(count < 10)
+		print(1);
+		else print(11);
+		print(123);
 	}
 }

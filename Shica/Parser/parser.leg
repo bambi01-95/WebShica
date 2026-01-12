@@ -75,15 +75,15 @@ define = t:TYPE i:id p:params b:block { $$ = newSetVar(t,i, newUserFunc(p, b),0,
 	   | STRUCT i:id ASSIGN x:typer SEMI    { $$ = newSetType(i, x, nlines); }
 
 stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }	
-		| IF LPAR c:expr RPAR (s:expr | s:block )
-	  		ELSE (t:expr | t:block)          	  { $$ = newIf(c, s, t) }
-		| IF LPAR c:expr RPAR (s:block|s:expr)	  { $$ = newIf(c, s, FALSE) }
+		| IF LPAR c:expr RPAR (s:stmt | s:block )
+	  		ELSE (t:stmt | t:block)          	  { $$ = newIf(c, s, t) }
+		| IF LPAR c:expr RPAR (s:block|s:stmt)	  { $$ = newIf(c, s, FALSE) }
 		| WHILE LPAR c:expr RPAR (s:stmt|s:block)	  { $$ = newLoop(FALSE, c,FALSE, s) }
 		| FOR LPAR (i:expr|i:mkFalse) SEMI 
 		  		   (c:expr|c:mkFalse) SEMI 
 		  		   (t:expr|k:mkFalse) RPAR 
-		  (s:block|s:expr)	  { $$ = newLoop(i, c, t, s) }
-		| RET (x:expr | x:mkFalse) SEMI			  { $$ = newReturn(x); }
+		  (s:block|s:stmt)	  { $$ = newLoop(i, c, t, s) }
+		| RET (x:stmt | x:mkFalse) SEMI			  { $$ = newReturn(x); }
 		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
 		| - SEMI			
@@ -225,7 +225,7 @@ DQUOTE  = "\""
 DOT   = "."
 
 
-STATE = "stt" | "state" -
+STATE = ("stt" | "state") -
 IF    = "if" -
 ELSE  = "else" -
 PRINT = "print" -
