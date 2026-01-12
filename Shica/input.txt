@@ -1,9 +1,5 @@
 state CountDown(){
 	entryEH(){
-		int count = 5;
-		if(count < 10)
-		print(1);
-		else print(11);
-		print(123);
+		print(sqrt(2));
 	}
 }

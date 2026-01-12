@@ -145,11 +145,44 @@ static int parseType(node vars, node ast)
 {
 	switch(getType(ast)){
 		case Integer:return Integer;
+		case Float:return Float;
 		case String:return String;
 		case GetVar:{
 			struct RetVarFunc var = searchVariable(vars, getNode(ast, GetVar,id), NULL);
 			if(var.index == -1)return -1; // variable not found
 			return GET_OOP_FLAG(var.variable->Variable.type);
+		}
+		case Call:{
+			node id   = getNode(ast, Call, function);
+			if(getType(id) == GetVar)id = id->GetVar.id;
+			const node func = getNode(id, Symbol, value); // get the function from the variable;
+
+			switch(getType(func)){
+				case EventObject:{
+					reportError(ERROR, getNode(ast,Call,line), "event object call is not supported yet");
+					return -1;
+				}
+				case EventH:{// event handler
+					reportError(ERROR, getNode(ast,Call,line), "event handler call is not supported yet");
+					return -1;
+				}
+				case StdFunc:{// standard function
+					const int funcIndex = getNode(func, StdFunc, index); // get the index of the standard function
+					struct StdFuncTable func = StdFuncTable[funcIndex];
+					return func.retType;
+				}
+				case Closure:{ // user defined function
+					return getNode(func, Closure,retType); 
+				}
+				default:{
+					fatal("file %s line %d call function with type %d",__FILE__,__LINE__,getType(func));
+					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					return 1;
+				}
+			}
+			fatal("file %s line %d unknown Call type %d", __FILE__, __LINE__, getType(id));
+			reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+			return 1;
 		}
 		default:
 			reportError(DEVELOPER, 0, "unknown AST type %d", getType(ast));

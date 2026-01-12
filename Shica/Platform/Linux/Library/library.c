@@ -2,7 +2,7 @@
 #ifndef LIBRARY_C
 #define LIBRARY_C
 #include "library.h"
-
+#include <math.h>
 int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
@@ -96,6 +96,7 @@ struct EventTable __EventTable__[] = {
  enum {
 	EXIT_FUNC=0,   // exit function
 	CHAT_SEND_FUNC, // chat send function
+	MATH_SQRT_FUNC, // math sqrt function
 	T_TIMER_RESET_FUNC, // timer reset function
 };
 
@@ -111,6 +112,14 @@ int lib_chat_send(oop stack)
 	oop chat = popStack(stack); // get chat object from stack
 	char *msg = StrVal_value(popStack(stack)); // get message from stack
 	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
+	return 0; // return 0 to indicate success
+}
+
+int lib_math_sqrt(oop stack)
+{
+	int value = IntVal_value(popStack(stack)); // get value from stack
+	int result = (int)sqrt((double)value); // calculate square root
+	pushStack(stack, newIntVal(result)); // push result back to stack
 	return 0; // return 0 to indicate success
 }
 
@@ -134,6 +143,7 @@ int lib_timer_reset(oop stack)
 {
 	{lib_exit, 1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
 	{lib_chat_send, 2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
+	{lib_math_sqrt, 1, (int[]){Integer}, Integer}, // math sqrt function takes 1 argument and returns an integer
 	{lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 };
 
@@ -143,6 +153,9 @@ int compile_func_init()
 	node FUNC = NULL;
 	FUNC = intern("exit");
 	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
+
+	FUNC = intern("sqrt");
+	FUNC->Symbol.value = newStdFunc(MATH_SQRT_FUNC); // math sqrt function
 
 	return 0; // return 0 to indicate success
 }
