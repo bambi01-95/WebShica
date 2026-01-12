@@ -27,7 +27,7 @@ node parserRetFlags[3] = {
 
 
 
-static int nlines = 0;
+static int nlines = 1;
 //LEG AREA
 
 #ifndef YY_MALLOC

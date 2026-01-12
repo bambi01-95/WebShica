@@ -817,8 +817,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					return 0; 
 				}
 				default:{
-					fatal("file %s line %d call function with type %d",__FILE__,__LINE__,getType(func));
-					reportError(DEVELOPER, 0, "please contact %s", DEVELOPER_EMAIL);
+					reportError(ERROR, getNode(ast,Call, line), "function %s() is not defined", getNode(id, Symbol,name));
 					return 1;
 				}
 			}
