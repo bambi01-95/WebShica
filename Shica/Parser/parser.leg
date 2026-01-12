@@ -20,7 +20,7 @@ node parserRetFlags[3] = {
 
 
 
-static int nlines = 1;
+static int nlines = 0;
 //LEG AREA
 %}
 
@@ -83,7 +83,7 @@ stmt =  PRINT a:args SEMI     	  { $$ = newPrint(a, nlines) }
 		  		   (c:expr|c:mkFalse) SEMI 
 		  		   (t:expr|k:mkFalse) RPAR 
 		  (s:block|s:stmt)	  { $$ = newLoop(i, c, t, s) }
-		| RET (x:stmt | x:mkFalse) SEMI			  { $$ = newReturn(x); }
+		| RET (x:stmt | x:mkFalse)			  { $$ = newReturn(x); }
 		| STATE i:id SEMI                 { $$ = newTransition(i); }
 		| x:expr SEMI			  		  { result = x; }
 		| - SEMI			

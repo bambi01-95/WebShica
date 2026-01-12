@@ -27,7 +27,7 @@ node parserRetFlags[3] = {
 
 
 
-static int nlines = 1;
+static int nlines = 0;
 //LEG AREA
 
 #ifndef YY_MALLOC
@@ -2981,7 +2981,7 @@ YY_RULE(int) yy_stmt(yycontext *yy)
   {  int yypos176= yy->__pos, yythunkpos176= yy->__thunkpos;  if (!yy_stmt(yy)) goto l177;  yyDo(yy, yySet, -1, 0);  goto l176;
   l177:;	  yy->__pos= yypos176; yy->__thunkpos= yythunkpos176;  if (!yy_mkFalse(yy)) goto l175;  yyDo(yy, yySet, -1, 0);
   }
-  l176:;	  if (!yy_SEMI(yy)) goto l175;  yyDo(yy, yy_6_stmt, yy->__begin, yy->__end);  goto l153;
+  l176:;	  yyDo(yy, yy_6_stmt, yy->__begin, yy->__end);  goto l153;
   l175:;	  yy->__pos= yypos153; yy->__thunkpos= yythunkpos153;  if (!yy_STATE(yy)) goto l178;  if (!yy_id(yy)) goto l178;  yyDo(yy, yySet, -3, 0);  if (!yy_SEMI(yy)) goto l178;  yyDo(yy, yy_7_stmt, yy->__begin, yy->__end);  goto l153;
   l178:;	  yy->__pos= yypos153; yy->__thunkpos= yythunkpos153;  if (!yy_expr(yy)) goto l179;  yyDo(yy, yySet, -1, 0);  if (!yy_SEMI(yy)) goto l179;  yyDo(yy, yy_8_stmt, yy->__begin, yy->__end);  goto l153;
   l179:;	  yy->__pos= yypos153; yy->__thunkpos= yythunkpos153;  if (!yy__(yy)) goto l152;  if (!yy_SEMI(yy)) goto l152;

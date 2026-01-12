@@ -398,7 +398,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 							return 1; // type error
 						}
 						appendNewInt(argTypes, ++(closure->Closure.nArgs), GET_OOP_FLAG(type)); // append parameter type to argument types
-						params = getNode(params, Pair,b);
+						params = getNode(params, Params, next);
 					}
 					closure->Closure.argTypes = argTypes; // set the argument types
 					closure->Closure.retType = GET_OOP_FLAG(declaredType); // set the return type
@@ -409,11 +409,13 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
 					int codePos = prog->IntArray.size - 1; // remember the position of the function code
 					if(emitOn(prog, vars, body, declaredType)) {//declated type is the return type
+						GC_POP(argTypes);
 						GC_POP(closure);
 						return 1; // compile function body
 					}
 					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
+					GC_POP(argTypes);
 					GC_POP(closure);
 					getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
