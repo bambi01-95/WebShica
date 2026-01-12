@@ -575,6 +575,10 @@ int lib_setxy(oop stack)
 {
 	int y = IntVal_value(popStack(stack)); // get x coordinate from stack
 	int x = IntVal_value(popStack(stack)); // get y coordinate from stack
+	if(x < 0) x = 0;
+	else if(x > STAGE_WIDTH) x = STAGE_WIDTH;
+	if(y < 0) y = 0;
+	else if(y > STAGE_HEIGHT) y = STAGE_HEIGHT;
 	AN_AGENT_DATA->x = x; // set x coordinate
 	AN_AGENT_DATA->y = y; // set y coordinate
 	return 0;
@@ -582,12 +586,16 @@ int lib_setxy(oop stack)
 int lib_setx(oop stack)
 {
 	int x = IntVal_value(popStack(stack)); // get x coordinate from stack
+	if(x < 0) x = 0;
+	else if(x > STAGE_WIDTH) x = STAGE_WIDTH;
 	AN_AGENT_DATA->x = x; // set x coordinate
 	return 0;
 }
 int lib_sety(oop stack)
 {
 	int y = IntVal_value(popStack(stack)); // get y coordinate from stack
+	if(y < 0) y = 0;
+	else if(y > STAGE_HEIGHT) y = STAGE_HEIGHT;
 	AN_AGENT_DATA->y = y; // set y coordinate
 	return 0;
 }
@@ -606,11 +614,16 @@ int lib_gety(oop stack)
 /*
 	velocity functions
 */
+#define MAX_VELOCITY 10
 
 int lib_setvxy(oop stack)
 {
 	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
+	if(vx > MAX_VELOCITY) vx = MAX_VELOCITY;
+	else if(vx < -MAX_VELOCITY) vx = -MAX_VELOCITY;
+	if(vy > MAX_VELOCITY) vy = MAX_VELOCITY;
+	else if(vy < -MAX_VELOCITY) vy = -MAX_VELOCITY;
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
@@ -619,6 +632,8 @@ int lib_setvxy(oop stack)
 int lib_setvx(oop stack)
 {
 	int vx = IntVal_value(popStack(stack)); // get x velocity from stack
+	if(vx > MAX_VELOCITY) vx = MAX_VELOCITY;
+	else if(vx < -MAX_VELOCITY) vx = -MAX_VELOCITY;
 	AN_AGENT_DATA->vx = vx; // set x velocity
 	return 0; // return 0 to indicate success
 }
@@ -626,6 +641,8 @@ int lib_setvx(oop stack)
 int lib_setvy(oop stack)
 {
 	int vy = IntVal_value(popStack(stack)); // get y velocity from stack
+	if(vy > MAX_VELOCITY) vy = MAX_VELOCITY;
+	else if(vy < -MAX_VELOCITY) vy = -MAX_VELOCITY;
 	AN_AGENT_DATA->vy = vy; // set y velocity
 	return 0; // return 0 to indicate success
 }
@@ -651,6 +668,12 @@ int lib_setcolor(oop stack)
 	int  red = IntVal_value(popStack(stack)); // get red value from stack
 	int green = IntVal_value(popStack(stack)); // get green value from stack
 	int blue = IntVal_value(popStack(stack)); // get blue value from stack
+	if(red < 0) red = 0;
+	else if(red > 255) red = 255;
+	if(green < 0) green = 0;
+	else if(green > 255) green = 255;
+	if(blue < 0) blue = 0;
+	else if(blue > 255) blue = 255;
 	AN_AGENT_DATA->red = (char)red; // set red value
 	AN_AGENT_DATA->green = (char)green; // set green value
 	AN_AGENT_DATA->blue = (char)blue; // set blue value
