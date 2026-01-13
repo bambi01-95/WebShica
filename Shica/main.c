@@ -579,15 +579,18 @@ int initWebCodes(int num)
 	return 0; 
 }
 
-int addWebCode(void)
+//CCALL
+//index starts from 1
+int addWebCode(int index)
 {
-	assert(current_gc_ctx == compiler_gc_ctx); // check if the context is equal to the compilation context
-	if(nWebCodes >= maxNumWebCodes){
-		dprintf("%s %d contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
+	current_gc_ctx = compiler_gc_ctx; // use the context for the garbage collector
+	if(index <= 0 || index > maxNumWebCodes){
+		printf("%s %d: contact the developer %s\n", __FILE__, __LINE__, DEVELOPER_EMAIL);
 		reportError(DEVELOPER, 0, "out of range compiler.");
 		return 1; // return 1 to indicate failure
 	}
-	webCodes[nWebCodes++] = NULL; // add a new web code
+	webCodes[index -1] = NULL; // add a new web code
+	for(int i = index; i<maxNumWebCodes;i++)webCodes[i] = NULL; // initialize the web code to NULL
 	return 0; 
 }
 

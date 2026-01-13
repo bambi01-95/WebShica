@@ -81,21 +81,41 @@ struct AgentData **ALL_AGENT_DATA = NULL; // Web内のゴーストのデータ�
 
 // Initial agent data: FIXME: set all {0,i*50,0,0,0,0,0,0,0,0}
 struct AgentData allAgentData[12] = {
-	[0] = { 0, 0,  0, 0,0,0,0,0,0,0,0},
-	[1] = { 1, 50,  0, 0,0,0,0,0,0,0,0},
-	[2] = { 2, 100,  0, 0,0,0,0,0,0,0,0},
-	[3] = { 3, 150,  0, 0,0,0,0,0,0,0,0},
-	[4] = { 4, 200,  0,0,0,0,0,0,0,0,0},
-	[5] = { 5, 250,  0,0,0,0,0,0,0,0,0},
-	[6] = { 6, 300,  0,0,0,0,0,0,0,0,0},
-	[7] = { 7, 350,  0,0,0,0,0,0,0,0,0},
-	[8] = { 8, 400,  0,0,0,0,0,0,0,0,0},
-	[9] = { 9, 450,  0,0,0,0,0,0,0,0,0},
-	[10] = { 10, 500,  0,0,0,0,0,0,0,0,0},
-	[11] = { 11, 550,  0,0,0,0,0,0,0,0,0}
+	[0] = { 0, 25,  25, 0,0,0,0,0,0,0,0},
+	[1] = { 1, 75,  25, 0,0,0,0,0,0,0,0},
+	[2] = { 2, 125,  25, 0,0,0,0,0,0,0,0},
+	[3] = { 3, 175,  25, 0,0,0,0,0,0,0,0},
+	[4] = { 4, 225,  25,0,0,0,0,0,0,0,0},
+	[5] = { 5, 275,  25,0,0,0,0,0,0,0,0},
+	[6] = { 6, 325,  25,0,0,0,0,0,0,0,0},
+	[7] = { 7, 375,  25,0,0,0,0,0,0,0,0},
+	[8] = { 8, 425,  25,0,0,0,0,0,0,0,0},
+	[9] = { 9, 475,  25,0,0,0,0,0,0,0,0},
+	[10] = { 10, 525,  25,0,0,0,0,0,0,0,0},
+	[11] = { 11, 575,  25,0,0,0,0,0,0,0,0}
 }; // Initialize the agent data array with 12 agents
 
 
+//CCALL FUNCTIONS
+int reinitAllAgentData(){
+	for(int i = 0; i< ALL_AGENT_SIZE; i++){
+		allAgentData[i].x = i * 50 + 25; // x-coordinate
+		allAgentData[i].y = 25; // y-coordinate
+		allAgentData[i].vx = 0; // x velocity
+		allAgentData[i].vy = 0; // y velocity
+		allAgentData[i].isClick = 0; // is click
+		allAgentData[i].collisionT = 0; // collision top	
+		allAgentData[i].collisionB = 0; // collision bottom
+		allAgentData[i].collisionL = 0; // collision left
+		allAgentData[i].collisionR = 0; // collision right
+		allAgentData[i].status = 0; // status
+		allAgentData[i].red = 0; // red
+		allAgentData[i].green = 0; // green
+		allAgentData[i].blue = 0; // blue
+		allAgentData[i].isLEDOn = 0; // is LED on
+	}
+	return 0;
+}
 
 
 /*==============   TIMER  ================= */

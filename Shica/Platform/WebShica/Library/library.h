@@ -41,6 +41,9 @@ struct AgentData {
 typedef struct AgentData *AgentPtr;
 int getCurrentAgentIndex();
 
+//CCALL FUNCTIONS
+int reinitAllAgentData();
+
 /*==============   TIMER  ================= */
 int *initWebTimerPtr();
 int setWebTimer(int value);
