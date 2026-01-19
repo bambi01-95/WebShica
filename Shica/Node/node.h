@@ -271,7 +271,6 @@ enum {
 #define ISTAG_PTR(o)  ((((intptr_t)(o)) & TAGMASK) == TAG_PTR_OOP)
 
 char* appendNewChar(char* arr, int size, char value);
-int* appendNewInt(int* arr, int size, int value);
 
 extern node TYPES[5]; // 0: Undefined, 1: Integer, 2: Float, 3: String, 4: EventObject
 void printShicaType(node type);

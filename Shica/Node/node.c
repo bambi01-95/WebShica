@@ -1024,15 +1024,6 @@ char* appendNewChar(char *arr, int size, char value)
 	return arr;
 }
 
-int* appendNewInt(int *arr, int size, int value)
-{
-	gc_pushRoot((void*)&arr);
-	arr = realloc(arr, sizeof(*arr) * (size + 1));
-	arr[size] = value;
-	gc_popRoots(1);
-	return arr;
-}
-
 node TYPES[5] = {
 	MAKE_OOP_FLAG(Undefined),// var | fn
 	MAKE_OOP_FLAG(Integer),// int

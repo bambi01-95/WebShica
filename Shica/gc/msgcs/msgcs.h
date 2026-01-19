@@ -7,9 +7,9 @@
 #include <assert.h>
 
 #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
-# define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
+# define gc_debug_log(fmt, ...) (void)0
 #else // NDEBUGが「定義されている」場合（リリースビルド）
-# define gc_debug_log(fmt, ...) ;
+# define gc_debug_log(fmt, ...) printf(fmt, __VA_ARGS__)
 #endif
 
 extern unsigned long gc_total;

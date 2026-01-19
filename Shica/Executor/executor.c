@@ -112,7 +112,7 @@ oop execute(oop exec, oop entity)
 	assert(getKind(exec) == RunCtx);
 #endif // DEBUG
 	dprintf("Execute Start: entity kind %d\n", getKind(entity));
-	int opstep = 20; // number of operations to execute before returning
+	int opstep = 1000; // number of operations to execute before returning
     int* code = getObj(exec->RunCtx.code, IntArray, elements);
 	int size = getObj(exec->RunCtx.code, IntArray, size);
 	int *pc;
@@ -129,7 +129,7 @@ oop execute(oop exec, oop entity)
 			pc = &getObj(entity, Agent, pc);
 			rbp = &getObj(entity, Agent, rbp);
 			stack = getObj(entity, Agent, stack);
-			opstep = 100; // number of operations to execute before returning
+			opstep = 1000; // number of operations to execute before returning
 			break;
 		}
 		default:{
@@ -192,17 +192,63 @@ int locked = 0; // for print functions
 	    case iDIV:printOP(iDIV);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l % r));  continue;
 #else
-	    case iGT:printOP(iGT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l > r));  continue;
-		case iGE:printOP(iGE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l >= r)); continue;
-		case iEQ:printOP(iEQ);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l == r)); continue;
-		case iNE:printOP(iNE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l != r)); continue;
-		case iLE:printOP(iLE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l <= r)); continue;
-		case iLT:printOP(iLT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l < r));  continue;
-	    case iADD:printOP(iADD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l + r));  continue;
-	    case iSUB:printOP(iSUB);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l - r));  continue;
-	    case iMUL:printOP(iMUL);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l * r));  continue;
-	    case iDIV:printOP(iDIV);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l / r));  continue;
-	    case iMOD:printOP(iMOD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push(newIntVal(l % r));  continue;
+#define TAG_INT_ENT 0x1
+	    case iGT:printOP(iGT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l > r) << TAGBITS) | TAG_INT_ENT));  continue;
+		case iGE:printOP(iGE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l >= r) << TAGBITS) | TAG_INT_ENT)); continue;
+		case iEQ:printOP(iEQ);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l == r) << TAGBITS) | TAG_INT_ENT)); continue;
+		case iNE:printOP(iNE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l != r) << TAGBITS) | TAG_INT_ENT)); continue;
+		case iLE:{
+			printOP(iLE); 
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			int r = (int)((intptr_t)(*--sp) >> TAGBITS);
+			int l = (int)((intptr_t)(*--sp) >> TAGBITS);
+
+			*sp++ = (oop)(((intptr_t)(l <= r) << TAGBITS) | TAG_INT_ENT);
+
+			stack->Stack.size = sp - base;
+			continue;
+		}
+		case iLT:{
+			printOP(iLT); 
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			int r = (int)((intptr_t)(*--sp) >> TAGBITS);
+			int l = (int)((intptr_t)(*--sp) >> TAGBITS);
+
+			*sp++ = (oop)(((intptr_t)(l < r) << TAGBITS) | TAG_INT_ENT);
+
+			stack->Stack.size = sp - base;
+			continue;
+		}
+	    case iADD:{printOP(iADD); 
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			int r = (int)((intptr_t)(*--sp) >> TAGBITS);
+			int l = (int)((intptr_t)(*--sp) >> TAGBITS);
+
+			*sp++ = (oop)(((intptr_t)(l + r) << TAGBITS) | TAG_INT_ENT);
+
+			stack->Stack.size = sp - base;
+			continue;}
+	    case iSUB:{printOP(iSUB); 
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			int r = (int)((intptr_t)(*--sp) >> TAGBITS);
+			int l = (int)((intptr_t)(*--sp) >> TAGBITS);
+
+			*sp++ = (oop)(((intptr_t)(l - r) << TAGBITS) | TAG_INT_ENT);
+
+			stack->Stack.size = sp - base;
+			continue;}
+	    case iMUL:printOP(iMUL);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l * r) << TAGBITS) | TAG_INT_ENT));  continue;
+	    case iDIV:printOP(iDIV);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l / r) << TAGBITS) | TAG_INT_ENT));  continue;
+	    case iMOD:printOP(iMOD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l % r) << TAGBITS) | TAG_INT_ENT));  continue;
+#undef TAG_INT_ENT
 #endif
 		case iARRAY:{
 			int n = fetch();
@@ -311,7 +357,7 @@ int locked = 0; // for print functions
 				fatal("return without call");
 			}
 			oop retValue = pop(); // get the return value
-			stack->Stack.size = *rbp+1; // restore the stack size to the base pointer
+			stack->Stack.size = *rbp; // restore the stack size to the base pointer
 #ifdef WEBSHICA
 			*rbp = IntVal_value(pop()); // restore the base pointer
 			*pc = IntVal_value(pop()); // restore the program counter
@@ -335,12 +381,16 @@ int locked = 0; // for print functions
 			printOP(iUCALL);
 			l = fetch(); // get the function rel position
 			r = fetch(); // get the number of arguments
+#ifdef WEBSHICA
 			push(newIntVal(*pc)); // save the current program counter
+			push(newIntVal(*rbp)); // save the current base pointer
+#else
+			push((oop)((intptr_t)(*pc) << TAGBITS)); // save the current program counter
+			push((oop)((intptr_t)(*rbp) << TAGBITS)); // save the current base pointer
+#endif
 			*pc += l; // set program counter to the function position
 
-			push(newIntVal(*rbp)); // save the current base pointer
 			*rbp = stack->Stack.size-1; // set the base pointer to the current stack size
-			dprintf("rbp: %d, pc: %d\n", *rbp, *pc);
 
 			for (int i = 1;  i <= r;  ++i) {
 				push(pick((*rbp - i -1)));//pc
@@ -356,7 +406,11 @@ int locked = 0; // for print functions
 		case iPUSH:{
 		printOP(iPUSH);
 			l = fetch();
+#ifdef WEBSHICA
 			push(newIntVal(l));
+#else
+			push((oop)((intptr_t)(l) << TAGBITS));
+#endif
 			continue;
 		}
 		case sPUSH:{
@@ -377,12 +431,14 @@ int locked = 0; // for print functions
 			printOP(iCLEAN);
 			l = fetch(); // number of variables to clean
 			oop retVal = pop(); // get the return value
-			for(int i = 0;  i < l;  ++i) {
-				if (stack->Stack.size == 0) {
-					fatal("stack is empty");
-				}
-				pop(); // clean the top element
-			}
+			// for(int i = 0;  i < l;  ++i) {
+			// 	if (stack->Stack.size == 0) {
+			// 		fatal("stack is empty");
+			// 	}
+			// 	pop(); // clean the top element
+			// }
+			stack->Stack.size -= l; // clean the top l elements from the stack
+			assert(stack->Stack.size >= 0);
 			push(retVal); // push the return value back to the stack
 			// stack->Stack.size -= l; // clean the top l elements from the stack
 			continue;

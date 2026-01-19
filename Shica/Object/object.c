@@ -133,7 +133,7 @@ oop intArray_init(void)
 	return a;
 }
 
-oop newStack(const int initVal)
+inline oop newStack(const int initVal)
 {
 	GC_PUSH(oop, a, newEntity(Stack));
 	a->Stack.elements = NULL;
@@ -145,11 +145,12 @@ oop newStack(const int initVal)
 	return a;
 }
 
-oop pushStack(oop stack, oop value)
+inline oop pushStack(oop stack, oop value)
 {
 	assert(getKind(stack) == Stack);
+	assert(stack->Stack.capacity > 0);
 	if (stack->Stack.size >= stack->Stack.capacity) {
-		stack->Stack.capacity = stack->Stack.capacity ? stack->Stack.capacity * 2 : 4;
+		stack->Stack.capacity = stack->Stack.capacity * 2;
 		gc_pushRoot((void*)stack);
 		stack->Stack.elements = realloc(stack->Stack.elements, sizeof(oop) * stack->Stack.capacity);
 		gc_popRoots(1);
@@ -157,16 +158,16 @@ oop pushStack(oop stack, oop value)
 	stack->Stack.elements[stack->Stack.size++] = value;
 	return stack;
 }
-oop popStack(oop stack)
+inline oop popStack(oop stack)
 {
 	assert(getKind(stack) == Stack);
-	if (stack->Stack.size == 0) fatal("pop: stack is empty");
+	assert(stack->Stack.size > 0);
 	return stack->Stack.elements[--stack->Stack.size];
 }
-oop lastStack(oop stack)
+inline oop lastStack(oop stack)
 {
 	assert(getKind(stack) == Stack);
-	if (stack->Stack.size == 0) fatal("last: stack is empty");
+	assert(stack->Stack.size > 0);
 	return stack->Stack.elements[stack->Stack.size - 1];
 }
 
@@ -184,7 +185,7 @@ void intArray_push(oop a, int value)
 {
 	assert(getKind(a) == IntArray);
 	if (getObj(a, IntArray, size) >= getObj(a, IntArray, capacity)) {
-		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) ? getObj(a, IntArray, capacity) + 10000 : 10000;
+		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) + 10000;
 		// printf("intArray_push: size %d >= capacity %d\n", a->size, a->capacity);
 		// printf("              %p\n",a);
 		gc_pushRoot((void*)a);
@@ -199,7 +200,7 @@ void intArray_append(oop a, int value)
 {
 	assert(getKind(a) == IntArray);
 	if (getObj(a, IntArray, size) >= getObj(a, IntArray, capacity)) {
-		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) ? getObj(a, IntArray, capacity) * 2 : 4;
+		getObj(a, IntArray, capacity) = getObj(a, IntArray, capacity) * 2;
 		getObj(a, IntArray, elements) = realloc(getObj(a, IntArray, elements), sizeof(int) * getObj(a, IntArray, capacity));
 	}
 	getObj(a, IntArray, elements)[getObj(a, IntArray, size)++] = value;

@@ -387,20 +387,24 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					node body = getNode(rhs, UserFunc,body);
 					getNode(vars, EmitContext, local_vars) = newArray(0);
 					GC_PUSH(node, closure, newClosure());
-					GC_PUSH(int*, argTypes, NULL);
+					int* argTypes = NULL;
+					int nArgs = 0;
+					// process parameters
 					while(params != nil){
 						node sym = getNode(params, Params, id);
 						node type = getNode(params, Params, type);
 						struct RetVarFunc var = appendVariable(getNode(vars, EmitContext, local_vars), sym, type, NULL); // insert parameter into local variables
 						if(var.index == -1){
-							GC_POP(argTypes);
 							GC_POP(closure);
 							return 1; // type error
 						}
-						appendNewInt(argTypes, ++(closure->Closure.nArgs), GET_OOP_FLAG(type)); // append parameter type to argument types
+						argTypes = gc_beAtomic(realloc(argTypes, sizeof(int) * (nArgs + 1)));
+						argTypes[nArgs++] = GET_OOP_FLAG(type); // set the argument type
+						closure->Closure.argTypes = argTypes; // set the argument types
 						params = getNode(params, Params, next);
 					}
 					closure->Closure.argTypes = argTypes; // set the argument types
+					closure->Closure.nArgs = nArgs; // set the number of arguments
 					closure->Closure.retType = GET_OOP_FLAG(declaredType); // set the return type
 					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
 					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
@@ -408,14 +412,14 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					sym->Symbol.value = closure; // set the closure as the value of the variable
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
 					int codePos = prog->IntArray.size - 1; // remember the position of the function code
+					// emit function body
 					if(emitOn(prog, vars, body, declaredType)) {//declated type is the return type
-						GC_POP(argTypes);
+						sym->Symbol.value = NULL; // reset the variable value
 						GC_POP(closure);
 						return 1; // compile function body
 					}
 					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // set the size of local variables
 					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
-					GC_POP(argTypes);
 					GC_POP(closure);
 					getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
@@ -800,14 +804,20 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					int *argTypes = getNode(func, Closure, argTypes);
 					int pos   = getNode(func, Closure,pos);
 					int argsCount = 0;
-					while(args != nil){
-						node arg = getNode(args, Args, value);
-						if(emitOn(prog, vars, arg, TYPES[argTypes[argsCount]]))return 1; // compile argument
-						args = getNode(args, Args, next);
+					printf("Closure data: nArgs=%d pos=%d\n", nArgs, pos);
+					
+					for(int i=0; i<nArgs; i++){
+						if(args == nil){
+							reportError(ERROR, getNode(ast,Call,line), "function %s expects %d arguments, but got %d", getNode(id, Symbol,name), nArgs, argsCount);
+							return 1; 
+						}
 						argsCount++;
+						node arg = getNode(args, Args, value);
+						if(emitOn(prog, vars, arg, TYPES[argTypes[i]]))return 1; // compile argument
+						args = getNode(args, Args, next);
 					}
-					if(nArgs != argsCount){
-						reportError(ERROR, getNode(ast, Call, line), "function %s expects %d arguments, but got %d", getNode(id, Symbol,name), nArgs, argsCount);
+					if(args != nil){
+						reportError(ERROR, getNode(ast,Call,line), "function %s expects %d arguments, but got more", getNode(id, Symbol,name), nArgs);
 						return 1; 
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
