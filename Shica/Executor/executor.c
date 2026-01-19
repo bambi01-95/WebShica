@@ -51,10 +51,19 @@ int executor_func_init()
 	return 1;
 }
 
-
-
-
-
+#define POP_INT() ((int)((intptr_t)(*--sp) >> TAGBITS))
+#define PUSH_INT(v) (*sp++ = (oop)(((intptr_t)(v) << TAGBITS) | TAG_INT_ENT))
+#define INT_TO_OOP(v) ((oop)(((intptr_t)(v) << TAGBITS) | TAG_INT_ENT))
+#define OOP_TO_INT(o) ((int)((intptr_t)(o) >> TAGBITS))
+#define FAST_PUSH(o) (*sp++ = (o))
+static inline void slow_push(oop stack, oop o) {
+	gc_pushRoot((void*)&stack->Stack.elements);
+	stack->Stack.elements = realloc(stack->Stack.elements, sizeof(oop) * (stack->Stack.capacity * 2));
+	stack->Stack.capacity *= 2;
+	gc_popRoots(1);
+	stack->Stack.elements[stack->Stack.size++] = o;
+}
+#define OPT_PUSH(o) if (UNLIKELY(sp >= stack_limit)) {slow_push(o);} else {FAST_PUSH(o);}
 
 #if WEBSHICA
 oop retFlags[8];
@@ -102,8 +111,10 @@ oop impleBody(oop exec, oop eh){
 	return ret; // return 1 to indicate success
 }
 
+
 oop execute(oop exec, oop entity)
 {
+#define TAG_INT_ENT 0x1
 #define push(O)	pushStack(stack, O)
 #define pop()	popStack(stack)
 #define top()	lastStack(stack)
@@ -192,7 +203,6 @@ int locked = 0; // for print functions
 	    case iDIV:printOP(iDIV);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l / r));  continue;
 	    case iMOD:printOP(iMOD);  r = IntVal_value(pop());  l = IntVal_value(pop());  push(newIntVal(l % r));  continue;
 #else
-#define TAG_INT_ENT 0x1
 	    case iGT:printOP(iGT);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l > r) << TAGBITS) | TAG_INT_ENT));  continue;
 		case iGE:printOP(iGE);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l >= r) << TAGBITS) | TAG_INT_ENT)); continue;
 		case iEQ:printOP(iEQ);    r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l == r) << TAGBITS) | TAG_INT_ENT)); continue;
@@ -248,7 +258,7 @@ int locked = 0; // for print functions
 	    case iMUL:printOP(iMUL);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l * r) << TAGBITS) | TAG_INT_ENT));  continue;
 	    case iDIV:printOP(iDIV);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l / r) << TAGBITS) | TAG_INT_ENT));  continue;
 	    case iMOD:printOP(iMOD);  r = (intptr_t)pop()>>2;  l = (intptr_t)pop()>>2;  push((oop)(((intptr_t)(l % r) << TAGBITS) | TAG_INT_ENT));  continue;
-#undef TAG_INT_ENT
+
 #endif
 		case iARRAY:{
 			int n = fetch();
@@ -361,11 +371,19 @@ int locked = 0; // for print functions
 #ifdef WEBSHICA
 			*rbp = IntVal_value(pop()); // restore the base pointer
 			*pc = IntVal_value(pop()); // restore the program counter
-#else 
-			*rbp = (intptr_t)pop()>>2; // restore the base pointer
-			*pc = (intptr_t)pop()>>2; // restore the program counter
-#endif
 			push(retValue); // push the return value to the stack
+#else 
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+			// restore frame
+			*rbp = (intptr_t)(*--sp) >> TAGBITS;
+			*pc  = (intptr_t)(*--sp) >> TAGBITS;
+			// push return value
+			*sp++ = retValue;
+			stack->Stack.size = sp - base;
+			// *rbp = (intptr_t)pop()>>2; // restore the base pointer
+			// *pc = (intptr_t)pop()>>2; // restore the program counter
+#endif
 			continue;
 		}
 		case iPCALL:{
@@ -384,10 +402,7 @@ int locked = 0; // for print functions
 #ifdef WEBSHICA
 			push(newIntVal(*pc)); // save the current program counter
 			push(newIntVal(*rbp)); // save the current base pointer
-#else
-			push((oop)((intptr_t)(*pc) << TAGBITS)); // save the current program counter
-			push((oop)((intptr_t)(*rbp) << TAGBITS)); // save the current base pointer
-#endif
+
 			*pc += l; // set program counter to the function position
 
 			*rbp = stack->Stack.size-1; // set the base pointer to the current stack size
@@ -395,6 +410,39 @@ int locked = 0; // for print functions
 			for (int i = 1;  i <= r;  ++i) {
 				push(pick((*rbp - i -1)));//pc
 			}
+#else
+			if(stack->Stack.size + 2 + r > stack->Stack.capacity){
+				stack->Stack.capacity = stack->Stack.size * 4;
+				gc_pushRoot((void*)stack);
+				stack->Stack.elements = realloc(stack->Stack.elements, sizeof(oop) * stack->Stack.capacity);
+				gc_popRoots(1);
+			}
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			// save caller frame
+			*sp++ = INT_TO_OOP(*pc);
+			*sp++ = INT_TO_OOP(*rbp);
+			*pc += l;
+
+			*rbp = (sp - base) - 1;   // new frame base
+
+			// copy arguments
+			for (int i = 1;  i <= r;  ++i) {
+				*sp++ = base[*rbp - i - 1];
+			}
+			stack->Stack.size = sp - base;
+			// NOT OPTIMIZED:
+			// push((oop)((intptr_t)(*pc) << TAGBITS)); // save the current program counter
+			// push((oop)((intptr_t)(*rbp) << TAGBITS)); // save the current base pointer
+			// *pc += l; // set program counter to the function position
+
+			// *rbp = stack->Stack.size-1; // set the base pointer to the current stack size
+
+			// for (int i = 1;  i <= r;  ++i) {
+			// 	push(pick((*rbp - i -1)));//pc
+			// }
+#endif
 			continue;
 		}
 		case eCALL:{
@@ -660,5 +708,6 @@ int locked = 0; // for print functions
 #undef pop
 #undef top
 #undef pick
+#undef TAG_INT_ENT
 }
 #endif // EXECUTOR_C
