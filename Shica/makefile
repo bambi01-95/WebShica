@@ -23,7 +23,8 @@ WASMCC = emcc
 COMMON_SRC = ./GC/msgcs/msgcs.c  \
 	  		 ./Error/error.c  \
 			 ./Opcode/opcode.c \
-			 ./File/file.c
+			 ./File/file.c \
+			 ./Tool/tool.c
 COMPILER_SRC = ./Node/node.c\
 			   ./Compiler/compiler.c \
 			   ./Parser/parser.c 
@@ -33,7 +34,8 @@ EXECUTOR_SRC = ./Executor/executor.c \
 COMMON_INCLUDE_DIRS = -I ./GC \
 		   	          -I ./Error \
 				      -I ./Opcode \
-					  -I ./File
+					  -I ./File \
+					  -I ./Tool
 COMPILER_INCLUDE_DIRS = -I ./Node \
 					   -I ./Compiler \
 					   -I ./Parser
@@ -64,7 +66,8 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DNDEBUG -O2 
+FLAGS = -DMSGCS -DDEBUG
+# -DNDEBUG -O2 
 #-DDEBUG
 #-DNDEBUG   assert()を無効化
 #-DSHICACOMP     コンパイラ用コードを有効化
@@ -85,8 +88,16 @@ input: cc
 	./$(NATIVEOUT) < ./input.txt
 
 compiler: leg
-	gcc ./Shica-compiler.c $(COMMON_SRC) $(COMPILER_SRC)./Platform/Linux/Library/library.c -o ./Shica-compiler $(FLAGS) -DSHICACOMP $(COMMON_INCLUDE_DIRS) $(COMPILER_INCLUDE_DIRS) -I ./Platform/Linux/Library/
+	gcc -o ./Shica-compiler ./Shica-compiler.c \
+	 $(FLAGS) -DSHICACOMP \
+	 $(COMMON_SRC) $(COMPILER_SRC) ./Platform/Linux/Library/library.c  \
+	 $(COMMON_INCLUDE_DIRS) $(COMPILER_INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
+executor: 
+	gcc -o ./Shica-executor ./Shica-executor.c \
+	 $(FLAGS) -DSHICAEXEC \
+	 $(COMMON_SRC) $(EXECUTOR_SRC) ./Platform/Linux/Library/library.c  \
+	 $(COMMON_INCLUDE_DIRS) $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode", "_reinitAllAgentData"
 WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
@@ -126,4 +137,4 @@ clean:
 	rm -rf $(FILES)
 
 
-.PHONY: all clean
+.PHONY: all clean executor

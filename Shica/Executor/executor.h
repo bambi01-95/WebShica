@@ -12,9 +12,6 @@
 #include "../Platform/Linux/Library/library.h"
 #endif
 
-int executor_event_init();
-int executor_func_init();
-
 #define TAGBITS 2
 enum {
 	TAG_PTR = 0b00, // ordinary pointer (lower 2 bits = 00)
@@ -36,18 +33,6 @@ oop execute(oop exec, oop entity);
 extern oop WebExecs[12];
 #endif		
 
-struct ExecEventTable {
-	int (*eh)(oop exec, oop eh); // event handler function
-	int (*init)(oop eh); // initialize function
-};
-extern struct ExecEventTable __ExecEventTable__[] ;
-struct ExecStdFuncTable {
-	int (*func)(oop stack); //function pointer
-};
-extern struct ExecStdFuncTable __ExecStdFuncTable__[] ;
-struct ExecEventObjectTable {
-	oop (*eo)(oop stack); // event object function
-};
-extern struct ExecEventObjectTable __ExecEventObjectTable__[] ;
+
 
 #endif // EXECUTOR_H

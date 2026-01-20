@@ -17,7 +17,7 @@ typedef enum kind{
 	FloVal,
 	StrVal,
 	ArrVal,
-	IntArray,
+	IntArray=5,
 	Stack,
 	Queue,
 	Thread,
@@ -175,16 +175,7 @@ oop newQueue(int nArgs);
 void enqueue(oop exec, oop eh, oop value);
 oop dequeue(oop thread);
 
-struct EventTable{
-	int (*eh)(oop exec, oop eh); // event handler function
-	int (*init)(oop eh); // initialize function
-	int nArgs; // number of arguments for the event handler
-	char *argTypes; // types of arguments for the event handler
-	char nData; // number of data for the event handler
-};
 
-extern struct EventTable *EventTable;
-void setEventTable(struct EventTable *tables);
 
 oop newThread(int aPos, int cPos,int ehIndex);
 
@@ -192,9 +183,7 @@ oop newEventHandler(int ehIndex, int nThreads);
 
 oop newAgent(int id, int nEvents);
 
-typedef oop (*eo_func_t)(oop stack);
-extern eo_func_t *EventObjectFuncTable;
-void setEventObjectFuncTable(eo_func_t *tables);
+
 
 oop newInstance(int nFeilds);
 #define getInstanceField(obj, index) (((obj)->Instance.fields)[index])
@@ -210,30 +199,32 @@ extern oop *IrCodeList;
 extern int nIrCode; // index of getIrCode
 oop getIrCode(int index);
 
-struct StdFuncTable{
-	int (*stdfunc)(oop stack); // standard function
-	int nArgs;
-	int *argTypes;
-	int retType;
-	//return value
-};
-extern struct StdFuncTable *StdFuncTable;
-void setStdFuncTable(struct StdFuncTable *tables);
-
-
-// Event Object Table
-struct EventObjectTable{
-	char nArgs; // number of arguments
-	char nFuncs; // number of functions
-	int *argTypes; // types of arguments
-};
-extern struct EventObjectTable *EventObjectTable;
-void setEventObjectTable(struct EventObjectTable *tables);
-void reinitializeEventObject(oop eh);
-
 int printAgent(oop agent);
 void printObj(oop obj, int indent);
+//----------------------------------------
+// Library API
+//----------------------------------------
+typedef oop (*eo_func_t)(oop stack);
 
+struct ExecEventTable {
+	int (*eh)(oop exec, oop eh); // event handler function
+	int (*init)(oop eh); // initialize function
+	int nArgs; // number of arguments
+	int nData; // number of data
+};
+struct ExecStdFuncTable {
+	int (*func)(oop stack); //function pointer
+};
+struct ExecEventObjectTable {
+	oop (*eo)(oop stack); // event object function
+};
+
+extern struct ExecEventTable  *ExecEventTable;
+extern struct ExecStdFuncTable *ExecStdFuncTable;
+extern struct ExecEventObjectTable  *ExecEventObjectTable;
+void reinitializeEventObject(oop eh);
+//----------------------------------------
 // GC
+//----------------------------------------
 void markExecutors(oop ptr);
 #endif // OBJECT_H

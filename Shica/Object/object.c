@@ -334,7 +334,7 @@ oop newThread(int aPos, int cPos,int ehIndex)
 	thread->Thread.stack = NULL;
 	thread->Thread.rbp = 0; // base pointer
 	thread->Thread.pc = 0; // program counter
-	thread->Thread.queue = newQueue(EventTable[ehIndex].nArgs);
+	thread->Thread.queue = newQueue(ExecEventTable[ehIndex].nArgs);
 	GC_POP(thread);
 	return thread;
 }
@@ -344,12 +344,12 @@ oop newEventHandler(int ehIndex, int nThreads)
 	GC_PUSH(oop, eh, newEntity(EventHandler));
 
 	eh->EventHandler.size = nThreads;
-	eh->EventHandler.nData = 1;//1 for instance else, later set by EventTable
+	eh->EventHandler.nData = 1;//1 for instance else, later set by ExecEventTable
 	eh->EventHandler.EventH = ehIndex;
 	eh->EventHandler.data = NULL;
 	eh->EventHandler.threads = NULL;
 
-	int nData = EventTable[ehIndex].nData;
+	int nData = ExecEventTable[ehIndex].nData;
 	if(nData > 0) {
 		eh->EventHandler.data = (oop*)gc_beAtomic(gc_alloc(sizeof(oop) * nData));
 	} else {
@@ -555,7 +555,28 @@ void printObj(oop obj, int indent)
 	}
 	return;
 }
-
+//----------------------------------------
+// Library API
+//----------------------------------------
+struct ExecEventTable *ExecEventTable = NULL;
+struct ExecEventObjectTable *ExecEventObjectTable = NULL;
+struct ExecStdFuncTable  *ExecStdFuncTable = NULL;
+void reinitializeEventObject(oop eh)
+{
+	assert(getKind(eh) == EventHandler);
+// initialize event objects
+	if(eh->EventHandler.data[0] == NULL || getKind(eh->EventHandler.data[0]) != Instance){
+			return;//not event object
+	}
+	// if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
+	// ){
+	// 	#ifdef DEBUG
+	// 	_reportError(WARNING,0000, "%s", "init event object");
+	// 	#endif
+	// 	eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
+	// }
+	return;
+}
 //----------------------------------------
 // GC
 //----------------------------------------
@@ -696,31 +717,5 @@ void markExecutors(oop ptr)
 	return;
 }
 
-// ----------------------------------------
-// Global Tables
-// ----------------------------------------
-struct EventTable *EventTable = NULL;
-void setEventTable(struct EventTable *table)
-{
-	EventTable = table;
-}
-
-struct StdFuncTable *StdFuncTable = NULL;
-void setStdFuncTable(struct StdFuncTable *table)
-{
-	StdFuncTable = table;
-}
-
-eo_func_t *EventObjectFuncTable = NULL;
-void setEventObjectFuncTable(eo_func_t *tables)
-{
-	EventObjectFuncTable = tables;
-}
-
-struct EventObjectTable *EventObjectTable = NULL;
-void setEventObjectTable(struct EventObjectTable *table)
-{
-	EventObjectTable = table;
-}
 
 #endif // OBJECT_C

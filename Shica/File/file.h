@@ -13,7 +13,9 @@
 void memoryWrite(char *path); // write memory to a file
 void memoryWriteC(const char *path); // write memory to a C file
 
-void memoryRead(char *path) ;
+void memoryRead(char *path) ; //
+int *memoryCastIntAddr(void);
+int memoryCastIntSize(void);
 void genBytes(int bytes);
 void memoryClear(void) ;
 #endif // WEBSHICA

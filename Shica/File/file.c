@@ -25,6 +25,14 @@ void memoryWrite(char *path) // write memory to a file
 	error(path);
     fclose(fp);
 }
+int *memoryCastIntAddr(void)
+{
+    return (int *)memory;
+}
+int memoryCastIntSize(void)
+{
+    return (int)memsize/sizeof(int);
+}
 
 
 // メモリをファイルに書き込む関数

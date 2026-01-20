@@ -6,6 +6,9 @@
 #include "../../../GC/gc.h"
 #ifdef SHICAEXEC
 #include "../../../Object/object.h"
+extern struct ExecEventTable __ExecEventTable__[];
+extern struct ExecStdFuncTable __ExecStdFuncTable__[];
+extern struct ExecEventObjectTable  __ExecEventObjectTable__[];
 #endif
 #ifdef SHICACOMP
 #include "../../../Node/node.h"
@@ -16,8 +19,7 @@ extern struct CompEventObjectTable  __CompEventObjectTable__[];
 
 /*================Event Handler==============*/
 #ifdef SHICAEXEC
-//extern  struct EventTable __EventTable__[];
-int executor_event_init();
+
 #endif
 #ifdef SHICACOMP
 int compile_eh_init();
@@ -26,7 +28,7 @@ int compile_eh_init();
 /*===============STANDARD LIBRARY==============*/
 // extern  struct StdFuncTable __StdFuncTable__[];
 #ifdef SHICAEXEC
-int executor_func_init();
+
 #endif
 #ifdef SHICACOMP
 int compile_func_init();
@@ -34,7 +36,7 @@ int compile_func_init();
 
 /*=============== Event Object Table ===============*/
 #ifdef SHICAEXEC
-// extern  eo_func_t __EventObjectFuncTable__[];
+
 #endif
 #ifdef SHICACOMP
 int compile_eo_init();

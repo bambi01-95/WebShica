@@ -29,158 +29,7 @@ enum {
 	END_EO, /* DO NOT REMOVE THIS LINE */
 } EventObjectType;
 
-//-------------------------------
-// SHICA EXECUTER CODE
-//-------------------------------
-#ifdef SHICAEXEC
-#include <math.h>
-#include <time.h>
-// Event Handlers and its initializers
-int event_handler(oop exec, oop eh){
-	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
-		oop thread = eh->EventHandler.threads[0];
-		oop stack = newStack(0);
-		enqueue(exec, eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
-	}
-	return 0; // return 0 to indicate no event
-}
-int event_handler_init(oop eh){
-	return 1;
-}
-int event_object_handler_init(oop eh){
-	return 1;
-}
 
-int timer_handler(oop exec, oop eh){
-	time_t t = time(NULL);
-	int now = (int)(t % 10000);
-	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
-		eh->EventHandler.data[0] = newIntVal(now);
-		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1); // increment count
-		oop stack = newStack(0);
-		enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
-		return 1; // return 1 to indicate event was handled
-	}
-	return 0; // return 0 to indicate no event
-}
-int timer_handler_init(oop eh){//normal timer handler (not EO)
-	time_t t = time(NULL);
-	int now = (int)(t % 10000);
-	eh->EventHandler.data[0] = newIntVal(now); //start time
-	eh->EventHandler.data[1] = newIntVal(0);   //count
-	return 1;
-}
-
-int timer_sec_handler(oop exec, oop eh){
-	oop instance = eh->EventHandler.data[0];
-	assert(instance->kind == Instance);
-	oop* fields = getObj(instance, Instance, fields);
-	assert(fields != NULL);
-
-	oop obj = fields[0];
-	assert(obj != NULL);
-	assert(getKind(obj) == IntVal);
-	int interval = IntVal_value(obj);
-
-	int pre = IntVal_value(fields[2]);	
-	time_t t = time(NULL);
-	int now = (int)(t % 10000);
-
-	if(now - pre >= interval){
-		fields[2] = newIntVal(now);
-		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
-		oop stack = newStack(0);
-		enqueue(exec, eh, pushStack(stack, fields[1])); // enqueue a stack with value
-		return 1; // return 1 to indicate event was handled
-	}
-	return 0;
-}
-int timer_min_handler(oop exec, oop eh){
-	return 0;
-}
-int timer_hour_handler(oop exec, oop eh){
-	return 0;
-}
-struct ExecEventTable  __ExecEventTable__[] = {
-	[EVENT_EH] = {event_handler,      event_handler_init},      // EVENT_EH
-	[TIMER_EH] = {timer_handler,      timer_handler_init},      // TIMER_EH
-	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init},      // T_TIMER_SEC_EH
-	[T_TIMER_MIN_EH] = {timer_min_handler,    event_object_handler_init},      // T_TIMER_MIN_EH
-	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init},      // T_TIMER_HOUR_EH
-};
-//-------------------------------
-// Standard Library Functions
-//-------------------------------
-int lib_exit(oop stack)
-{
-	int status = intArray_pop(stack); // get exit status from stack
-	exit(status); // exit with the given status
-	return 0; // return 0 to indicate success
-}
-
-int lib_chat_send(oop stack)
-{
-	oop chat = popStack(stack); // get chat object from stack
-	char *msg = StrVal_value(popStack(stack)); // get message from stack
-	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
-	return 0; // return 0 to indicate success
-}
-
-int lib_math_sqrt(oop stack)
-{
-	int value = IntVal_value(popStack(stack)); // get value from stack
-	int result = (int)sqrt((double)value); // calculate square root
-	pushStack(stack, newIntVal(result)); // push result back to stack
-	return 0; // return 0 to indicate success
-}
-
-int lib_timer_reset(oop stack)
-{
-	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
-	oop instance = popStack(stack); // get timer object from stack
-	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
-	assert(getKind(instance) == Instance);
-	assert(getKind(initVal) == IntVal);
-	//DEBUG POINT
-	getInstanceField(instance, 0) = newIntVal(1); // reset interval to 0
-	getInstanceField(instance, 1) = initVal; // reset the timer to initial value
-	time_t t = time(NULL);
-	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // reset label to current time
-	GC_POP(initVal);
-	return 0;
-}
-struct ExecStdFuncTable  __ExecStdFuncTable__[] = {
-	[EXIT_FUNC] = {lib_exit}, // exit function
-	[CHAT_SEND_FUNC] = {lib_chat_send}, // chat send function
-	[MATH_SQRT_FUNC] = {lib_math_sqrt}, // math sqrt function
-	[T_TIMER_RESET_FUNC] = {lib_timer_reset}, // timer reset function
-};
-//-------------------------------
-//Event Object 
-//-------------------------------
-oop wifi_udp_broadcast_eo(oop stack){
-	return 0;
-}
-oop time_eo(oop stack){
-/*
-0: interval
-1: count 
-2: label (hold time for comparison)
-*/
-	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
-	oop* fields = getObj(instance, Instance, fields);
-	fields[0] = newIntVal(1); // interval
-	fields[1] = newIntVal(0); // count
-	time_t t = time(NULL);
-	fields[2] = newIntVal((int)(t % 10000)); // label
-	GC_POP(instance);
-	return instance;
-}
-struct ExecEventObjectTable __ExecEventObjectTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = {wifi_udp_broadcast_eo},
-	[TIME_EO] = {time_eo},
-};
-#endif // SHICAEXEC
 
 //-------------------------------
 // SHICA COMPILER CODE
@@ -283,5 +132,160 @@ struct CompEventObjectTable  __CompEventObjectTable__[] = {
 // };
 
 #endif // SHICACOMP
+
+
+
+//-------------------------------
+// SHICA EXECUTER CODE
+//-------------------------------
+#ifdef SHICAEXEC
+#include <math.h>
+#include <time.h>
+// Event Handlers and its initializers
+int event_handler(oop exec, oop eh){
+	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
+		oop thread = eh->EventHandler.threads[0];
+		oop stack = newStack(0);
+		enqueue(exec, eh, pushStack(stack, newIntVal(0))); // enqueue a stack with value 0
+	}
+	return 0; // return 0 to indicate no event
+}
+int event_handler_init(oop eh){
+	return 1;
+}
+int event_object_handler_init(oop eh){
+	return 1;
+}
+
+int timer_handler(oop exec, oop eh){
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	if(now - IntVal_value(eh->EventHandler.data[0]) >= 1){
+		eh->EventHandler.data[0] = newIntVal(now);
+		eh->EventHandler.data[1] = newIntVal(IntVal_value(eh->EventHandler.data[1]) + 1); // increment count
+		oop stack = newStack(0);
+		enqueue(exec, eh, pushStack(stack, eh->EventHandler.data[1])); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
+	}
+	return 0; // return 0 to indicate no event
+}
+int timer_handler_init(oop eh){//normal timer handler (not EO)
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+	eh->EventHandler.data[0] = newIntVal(now); //start time
+	eh->EventHandler.data[1] = newIntVal(0);   //count
+	return 1;
+}
+
+int timer_sec_handler(oop exec, oop eh){
+	oop instance = eh->EventHandler.data[0];
+	assert(instance->kind == Instance);
+	oop* fields = getObj(instance, Instance, fields);
+	assert(fields != NULL);
+
+	oop obj = fields[0];
+	assert(obj != NULL);
+	assert(getKind(obj) == IntVal);
+	int interval = IntVal_value(obj);
+
+	int pre = IntVal_value(fields[2]);	
+	time_t t = time(NULL);
+	int now = (int)(t % 10000);
+
+	if(now - pre >= interval){
+		fields[2] = newIntVal(now);
+		fields[1] = newIntVal(IntVal_value(fields[1]) + 1); // increment count
+		oop stack = newStack(0);
+		enqueue(exec, eh, pushStack(stack, fields[1])); // enqueue a stack with value
+		return 1; // return 1 to indicate event was handled
+	}
+	return 0;
+}
+int timer_min_handler(oop exec, oop eh){
+	return 0;
+}
+int timer_hour_handler(oop exec, oop eh){
+	return 0;
+}
+struct ExecEventTable  __ExecEventTable__[] = {
+	[EVENT_EH] = {event_handler,      event_handler_init,0,0 },      // EVENT_EH
+	[TIMER_EH] = {timer_handler,      timer_handler_init,1,2 },      // TIMER_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init,1,1 },      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,    event_object_handler_init,1,1 },      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init,1,1 },      // T_TIMER_HOUR_EH
+};
+//-------------------------------
+// Standard Library Functions
+//-------------------------------
+int lib_exit(oop stack)
+{
+	int status = intArray_pop(stack); // get exit status from stack
+	exit(status); // exit with the given status
+	return 0; // return 0 to indicate success
+}
+
+int lib_chat_send(oop stack)
+{
+	oop chat = popStack(stack); // get chat object from stack
+	char *msg = StrVal_value(popStack(stack)); // get message from stack
+	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
+	return 0; // return 0 to indicate success
+}
+
+int lib_math_sqrt(oop stack)
+{
+	int value = IntVal_value(popStack(stack)); // get value from stack
+	int result = (int)sqrt((double)value); // calculate square root
+	pushStack(stack, newIntVal(result)); // push result back to stack
+	return 0; // return 0 to indicate success
+}
+
+int lib_timer_reset(oop stack)
+{
+	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
+	oop instance = popStack(stack); // get timer object from stack
+	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
+	assert(getKind(instance) == Instance);
+	assert(getKind(initVal) == IntVal);
+	//DEBUG POINT
+	getInstanceField(instance, 0) = newIntVal(1); // reset interval to 0
+	getInstanceField(instance, 1) = initVal; // reset the timer to initial value
+	time_t t = time(NULL);
+	getInstanceField(instance, 2) = newIntVal((int)(t % 10000)); // reset label to current time
+	GC_POP(initVal);
+	return 0;
+}
+struct ExecStdFuncTable  __ExecStdFuncTable__[] = {
+	[EXIT_FUNC] = {lib_exit}, // exit function
+	[CHAT_SEND_FUNC] = {lib_chat_send}, // chat send function
+	[MATH_SQRT_FUNC] = {lib_math_sqrt}, // math sqrt function
+	[T_TIMER_RESET_FUNC] = {lib_timer_reset}, // timer reset function
+};
+//-------------------------------
+//Event Object 
+//-------------------------------
+oop wifi_udp_broadcast_eo(oop stack){
+	return 0;
+}
+oop time_eo(oop stack){
+/*
+0: interval
+1: count 
+2: label (hold time for comparison)
+*/
+	GC_PUSH(oop,instance,newInstance(3)); // timer eo has 3 fields: interval, count and label
+	oop* fields = getObj(instance, Instance, fields);
+	fields[0] = newIntVal(1); // interval
+	fields[1] = newIntVal(0); // count
+	time_t t = time(NULL);
+	fields[2] = newIntVal((int)(t % 10000)); // label
+	GC_POP(instance);
+	return instance;
+}
+struct ExecEventObjectTable __ExecEventObjectTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = {wifi_udp_broadcast_eo},
+	[TIME_EO] = {time_eo},
+};
+#endif // SHICAEXEC
 
 #endif // STDLIB_C

@@ -34,22 +34,6 @@ oop WebExecs[12] = {
 #endif // WEBSHICA
 
 /* ==================== EXECUTOR ==================== */
-/* EVENT HANDLER */
-int executor_event_init()
-{
-	// Initialize the event handler for the executor
-	setEventTable(__EventTable__);
-	return 1;
-}
-
-/* STANDARD LIBRARY */
-int executor_func_init()
-{
-	// Initialize the function handler for the executor
-	setStdFuncTable(__StdFuncTable__);
-	setEventObjectFuncTable(__EventObjectFuncTable__);
-	return 1;
-}
 
 #define POP_INT() ((int)((intptr_t)(*--sp) >> TAGBITS))
 #define PUSH_INT(v) (*sp++ = (oop)(((intptr_t)(v) << TAGBITS) | TAG_INT_ENT))
@@ -419,7 +403,7 @@ int locked = 0; // for print functions
 		}
 		case iSCALL:{
 			printOP(iSCALL);
-			StdFuncTable[fetch()].stdfunc(stack); // call the standard function
+			ExecStdFuncTable[fetch()].func(stack); // call the standard function
 			continue;
 		}
 		case iUCALL:{
@@ -472,10 +456,10 @@ int locked = 0; // for print functions
 #endif
 			continue;
 		}
-		case eCALL:{
+		case eCALL:{// event object call
 			printOP(eCALL);
 			l = fetch(); // get index of Function for initializing EO.
-			push(EventObjectFuncTable[l](stack));
+			push(ExecEventObjectTable[l].eo(stack));
 			continue;
 		}
 		case iPUSH:{
@@ -637,11 +621,11 @@ int locked = 0; // for print functions
 				int nThreads = fetch(); // get the number of threads
 				ehs[i] = newEventHandler(eventID, nThreads); // initialize the event handler <------ ERROR: FIX HERE
 				if(instance == NULL){
-					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
+					ExecEventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}else{
 					assert(instance->kind == Instance);
 					ehs[i]->EventHandler.data[0]/*event object eh data[0] should be hold instance data*/ = instance;
-					EventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
+					ExecEventTable[eventID].init(ehs[i]);// initialize the event handler data (std event object)
 				}
 				for(int j=0; j<nThreads; ++j){
 					int opPos = *pc;
