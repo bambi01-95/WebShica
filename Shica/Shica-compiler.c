@@ -21,6 +21,7 @@ UserFunc Name: should start with a lowwer letter
 #include "./Node/node.h"
 #include "./Parser/parser.h"
 #include "./Compiler/compiler.h"
+#include "./File/file.h"
 #include "./Tool/tool.h"
 
 #include "./Platform/Linux/Library/library.h"
@@ -83,7 +84,13 @@ int main(int argc, char **argv)
 	// print bytecode 
 	dprintf("Print IR code:\n");
 	printCode(code);
-
+    char* outFile = "shica.stt";
+    int size = code->Intruction.size;
+    for(int i = 0; i<size; ++i)genBytes(code->Intruction.elements[i]);
+    memoryWrite(outFile);
+    char* outFileC = "shica.c";
+    memoryWriteC(outFileC);
+    // garbage collection
 	gc_collect();
     return 0;
 }

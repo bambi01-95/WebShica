@@ -22,7 +22,8 @@ WASMCC = emcc
 # ソースとターゲット
 COMMON_SRC = ./GC/msgcs/msgcs.c  \
 	  		 ./Error/error.c  \
-			 ./Opcode/opcode.c 
+			 ./Opcode/opcode.c \
+			 ./File/file.c
 COMPILER_SRC = ./Node/node.c\
 			   ./Compiler/compiler.c \
 			   ./Parser/parser.c 
@@ -31,7 +32,8 @@ EXECUTOR_SRC = ./Executor/executor.c \
 # インクルードディレクトリ
 COMMON_INCLUDE_DIRS = -I ./GC \
 		   	          -I ./Error \
-				      -I ./Opcode
+				      -I ./Opcode \
+					  -I ./File
 COMPILER_INCLUDE_DIRS = -I ./Node \
 					   -I ./Compiler \
 					   -I ./Parser
@@ -45,7 +47,8 @@ SRC = ./GC/msgcs/msgcs.c  \
 	  ./Compiler/compiler.c \
 	  ./Object/object.c \
 	  ./Parser/parser.c \
-	  ./Executor/executor.c 
+	  ./Executor/executor.c \
+	  ./File/file.c
 
 INCLUDE_DIRS = -I ./GC \
            	   -I ./Error \
@@ -54,7 +57,8 @@ INCLUDE_DIRS = -I ./GC \
 			   -I ./Compiler \
 			   -I ./Object \
 			   -I ./Parser \
-			   -I ./Executor
+			   -I ./Executor \
+			   -I ./File
 # shica.js
 WASMOUT = ./Platform/WebShica/shica.js
 # shica-native

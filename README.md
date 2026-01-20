@@ -1,6 +1,6 @@
 # Shica -Web-
 
-
+## size ...
 ## MEMO
 
 ISSUEを作成してください。
