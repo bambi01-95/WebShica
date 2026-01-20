@@ -1,6 +1,7 @@
 #ifndef TOOL_H
 #define TOOL_H
 
+#include "../Opcode/opcode.h"
 #ifdef SHICAEXEC
 #include "../Object/object.h"
 #else

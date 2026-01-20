@@ -66,8 +66,7 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DDEBUG
-# -DNDEBUG -O2 
+FLAGS = -DMSGCS -DNDEBUG -O2 
 #-DDEBUG
 #-DNDEBUG   assert()を無効化
 #-DSHICACOMP     コンパイラ用コードを有効化

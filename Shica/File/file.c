@@ -105,10 +105,13 @@ void _genByte(byte b)  // append one byte the the memory
     memory[memsize++] = b;
 }
 void genBytes(int bytes) {
-_genByte((bytes >> 24) & 0xFF);
-    _genByte((bytes >> 16) & 0xFF);
-    _genByte((bytes >> 8) & 0xFF);
-    _genByte((bytes >> 0) & 0xFF);
+// _genByte((bytes >> 24) & 0xFF);
+//     _genByte((bytes >> 16) & 0xFF);
+//     _genByte((bytes >> 8) & 0xFF);
+//     _genByte((bytes >> 0) & 0xFF);
+    for (int i = 0; i < 4; i++) {
+        _genByte((bytes >> (i * 8)) & 0xFF);
+    }
 }
 
 void memoryClear(void) // clear the contents of memory

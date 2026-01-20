@@ -90,6 +90,15 @@ int main(int argc, char **argv)
     memoryWrite(outFile);
     char* outFileC = "shica.c";
     memoryWriteC(outFileC);
+	memoryClear();
+	printf("Compilation done.\n");
+	memoryRead(outFile);
+	int *codeAddr = memoryCastIntAddr();
+	int codeSize = memoryCastIntSize();
+	node codeArray = newInstruction();
+	codeArray->Intruction.size = codeSize;
+	codeArray->Intruction.elements = codeAddr;
+	printCode(codeArray);
     // garbage collection
 	gc_collect();
     return 0;

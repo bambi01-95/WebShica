@@ -124,9 +124,6 @@ int main(int argc, char **argv)
 	printf("Loading bytecode...\n");
 	printCode(code); // print the bytecode
 #endif 
-	return 0;
-
-
 
 	// execute code
 #ifdef MSGC
@@ -138,9 +135,7 @@ int main(int argc, char **argv)
 #endif
 
 	gc_pushRoot(code);
-	printf("\tExecuting...\n");
 	int ret = runNative(code);
-	printf("\tExecution done.\n");
 
 	if(ret){
 		dprintf("Execution error.\n");
