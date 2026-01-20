@@ -123,7 +123,7 @@ oop execute(oop exec, oop entity)
 	assert(getKind(exec) == RunCtx);
 #endif // DEBUG
 	dprintf("Execute Start: entity kind %d\n", getKind(entity));
-	int opstep = 1000; // number of operations to execute before returning
+	int opstep = 100; // number of operations to execute before returning
     int* code = getObj(exec->RunCtx.code, IntArray, elements);
 	int size = getObj(exec->RunCtx.code, IntArray, size);
 	int *pc;
@@ -140,7 +140,7 @@ oop execute(oop exec, oop entity)
 			pc = &getObj(entity, Agent, pc);
 			rbp = &getObj(entity, Agent, rbp);
 			stack = getObj(entity, Agent, stack);
-			opstep = 1000; // number of operations to execute before returning
+			opstep = 100; // number of operations to execute before returning
 			break;
 		}
 		default:{
@@ -291,7 +291,22 @@ int locked = 0; // for print functions
 	    case iGETVAR:{
 			printOP(iGETVAR);
 			int symIndex = fetch(); // need to change
+#if WEBSHICA
 			push(stack->Stack.elements[symIndex + *rbp ]); // get the variable value
+#else
+			if (stack->Stack.size >= stack->Stack.capacity) {
+				stack->Stack.capacity = stack->Stack.capacity * 2;
+				gc_pushRoot((void*)stack);
+				stack->Stack.elements = realloc(stack->Stack.elements, sizeof(oop) * stack->Stack.capacity);
+				gc_popRoots(1);
+			}
+			oop *base = stack->Stack.elements; 
+			oop *sp = base + stack->Stack.size; 
+			*sp++ = stack->Stack.elements[symIndex + *rbp ]; // get the variable value 
+			stack->Stack.size = sp - base;
+
+			// push(stack->Stack.elements[symIndex + *rbp ]); // get the variable value
+#endif
 			continue;
 		}
 		case iGETGLOBALVAR:{ /* I: index from global-stack[0] to value */
@@ -311,7 +326,19 @@ int locked = 0; // for print functions
 	    case iSETVAR:{ /* I: index from local-stack[0 + rbp] to value, memo: local-stack[0] is init rbp value */
 			printOP(iSETVAR);
 			int symIndex = fetch();
+#if WEBSHICA
 			stack->Stack.elements[symIndex+*rbp] = pop();
+#else
+			oop *base = stack->Stack.elements;
+			oop *sp   = base + stack->Stack.size;
+
+			oop value = *--sp;                         // pop
+			oop *slot = sp - *rbp - symIndex - 1;      // destination slot
+			*slot = value;
+
+			stack->Stack.size = sp - base;
+			// stack->Stack.elements[symIndex+*rbp] = pop(); //UNOPTIMIZED set the variable value
+#endif
 			continue;
 		}
 		case iSETGLOBALVAR:{
