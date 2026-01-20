@@ -3468,6 +3468,7 @@ void collectYYContext()
 {
 	if(yyctx){
 		gc_markOnly(yyctx);
+		
 		// char     *__buf;
 		// int       __buflen;
 		gc_markOnly(yyctx->__buf);
@@ -3496,7 +3497,7 @@ void collectYYContext()
 		#undef yy
 		#undef __
 		gc_mark(yyctx->__);
-		gc_mark(yyctx->__val);
+		gc_markOnly(yyctx->__val);
 		for(int i=0;i<yyctx->__valslen;i++){
 			gc_mark(yyctx->__vals[i]);
 		}

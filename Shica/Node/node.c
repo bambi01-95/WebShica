@@ -49,6 +49,24 @@ node newUndefine()
     return newAtomic(Undefined);
 }
 
+node newInstruction(){
+	GC_PUSH(node, instr, newNode(Intruction));
+	instr->Intruction.size = 0;
+	instr->Intruction.capacity = 4;
+	instr->Intruction.elements = gc_beAtomic(malloc(sizeof(int) * instr->Intruction.capacity));
+	GC_POP(instr);
+	return instr;
+}
+node Instruction_append(node instr, int value){
+	assert(getType(instr) == Intruction);
+	if(instr->Intruction.size >= instr->Intruction.capacity){
+		instr->Intruction.capacity *= 2;
+		instr->Intruction.elements = gc_beAtomic(realloc(instr->Intruction.elements, sizeof(int) * instr->Intruction.capacity));
+	}
+	instr->Intruction.elements[instr->Intruction.size++] = value;
+	return instr;
+}
+
 node newInteger(int value)
 {
     return (node)(((intptr_t)value << TAGBITS) | TAG_INT_OOP);
@@ -89,7 +107,7 @@ node newEventObject(node sym, int index)
 	gc_pushRoot((void*)&sym);
 	GC_PUSH(node, eo, newNode(EventObject));
 	eo->EventObject.index = index;
-	eo->EventObject.funcs = malloc(sizeof(node) * 1); // initial size 1
+	eo->EventObject.funcs = gc_beAtomic(malloc(sizeof(node) * 1)); // initial size 1
 	sym->Symbol.value = eo;
 	GC_POP(eo);
 	gc_popRoots(1);
@@ -1049,16 +1067,32 @@ void printShicaType(node type)
 	}
 }
 
+struct CompEventTable *CompEventTable = NULL ;
+struct CompStdFuncTable *CompStdFuncTable = NULL ;
+struct CompEventObjectTable *CompEventObjectTable = NULL ;
+
 //--------------------------------------------------------
 // GC
 //--------------------------------------------------------
 
 void markObject(node obj){
 	switch(getType(obj)){
+case Undefined:{return;}
+case Intruction:{
+	if(obj->Intruction.elements)gc_markOnly(obj->Intruction.elements);
+	return;
+}
 case Integer :{return;}
 case String :{
 	if (obj->String.value) {
 		gc_markOnly(obj->String.value);
+	}
+	return;
+}
+case Float   :{return;}
+case EventObject:{
+	if (obj->EventObject.funcs) {
+		gc_mark(obj->EventObject.funcs);
 	}
 	return;
 }
@@ -1076,6 +1110,15 @@ case Pair    :
 	}
 	if (obj->Pair.b) {
 		gc_mark(obj->Pair.b);
+	}
+	return;
+}
+case Args:{
+	if(obj->Args.next){
+		gc_mark(obj->Args.next);
+	}
+	if(obj->Args.value){
+		gc_markOnly(obj->Args.value);
 	}
 	return;
 }

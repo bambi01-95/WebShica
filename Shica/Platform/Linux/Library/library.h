@@ -1,35 +1,44 @@
 //Linux
 #ifndef LIBRARY_H
 #define LIBRARY_H
-#include "../../../Object/object.h"
-#include "../../../Node/node.h"
+
+
 #include "../../../GC/gc.h"
+#ifdef SHICAEXEC
+#include "../../../Object/object.h"
+#endif
+#ifdef SHICACOMP
+#include "../../../Node/node.h"
+extern struct CompEventTable __CompEventTable__[];
+extern struct CompStdFuncTable __CompStdFuncTable__[];
+extern struct CompEventObjectTable  __CompEventObjectTable__[];
+#endif
 
 /*================Event Handler==============*/
-#define EVENT_EH 0x00 // Loop Handler
-#define TIMER_EH 0x01 // Timer Handler
-#define CHAT_RECEIVED_EH 0x02 // WebRTC Broadcast Event Object
-#define T_TIMER_SEC_EH 0x03 // Timer second event handler
-#define T_TIMER_MIN_EH 0x04 // Timer minute event handler
-#define T_TIMER_HOUR_EH 0x05 // Timer hour event handler
-
-int event_handler_init(oop eh);
-
-int timer_handler_init(oop eh);
-
-
-extern  struct EventTable __EventTable__[];
-int compile_eh_init();
+#ifdef SHICAEXEC
+//extern  struct EventTable __EventTable__[];
 int executor_event_init();
-
+#endif
+#ifdef SHICACOMP
+int compile_eh_init();
+#endif
 
 /*===============STANDARD LIBRARY==============*/
-extern  struct StdFuncTable __StdFuncTable__[];
-int compile_func_init();
+// extern  struct StdFuncTable __StdFuncTable__[];
+#ifdef SHICAEXEC
 int executor_func_init();
+#endif
+#ifdef SHICACOMP
+int compile_func_init();
+#endif
+
 /*=============== Event Object Table ===============*/
-extern  eo_func_t __EventObjectFuncTable__[];
+#ifdef SHICAEXEC
+// extern  eo_func_t __EventObjectFuncTable__[];
+#endif
+#ifdef SHICACOMP
 int compile_eo_init();
+#endif
 
 
 #endif // LIBRARY_H

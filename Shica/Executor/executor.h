@@ -35,4 +35,19 @@ oop execute(oop exec, oop entity);
 #ifdef WEBSHICA
 extern oop WebExecs[12];
 #endif		
+
+struct ExecEventTable {
+	int (*eh)(oop exec, oop eh); // event handler function
+	int (*init)(oop eh); // initialize function
+};
+extern struct ExecEventTable __ExecEventTable__[] ;
+struct ExecStdFuncTable {
+	int (*func)(oop stack); //function pointer
+};
+extern struct ExecStdFuncTable __ExecStdFuncTable__[] ;
+struct ExecEventObjectTable {
+	oop (*eo)(oop stack); // event object function
+};
+extern struct ExecEventObjectTable __ExecEventObjectTable__[] ;
+
 #endif // EXECUTOR_H

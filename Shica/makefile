@@ -20,8 +20,25 @@ FILES = ./Platform/WebShica/shica.js \
 WASMCC = emcc
 
 # ソースとターゲット
-SRC = main.c \
-      ./GC/msgcs/msgcs.c  \
+COMMON_SRC = ./GC/msgcs/msgcs.c  \
+	  		 ./Error/error.c  \
+			 ./Opcode/opcode.c 
+COMPILER_SRC = ./Node/node.c\
+			   ./Compiler/compiler.c \
+			   ./Parser/parser.c 
+EXECUTOR_SRC = ./Executor/executor.c \
+               ./Object/object.c 
+# インクルードディレクトリ
+COMMON_INCLUDE_DIRS = -I ./GC \
+		   	          -I ./Error \
+				      -I ./Opcode
+COMPILER_INCLUDE_DIRS = -I ./Node \
+					   -I ./Compiler \
+					   -I ./Parser
+EXECUTOR_INCLUDE_DIRS = -I ./Executor \
+						-I ./Object
+# 共通ソース
+SRC = ./GC/msgcs/msgcs.c  \
 	  ./Error/error.c   \
 	  ./Opcode/opcode.c \
 	  ./Node/node.c \
@@ -43,8 +60,29 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DNDEBUG -O2
+FLAGS = -DMSGCS -DNDEBUG -O2 
 #-DDEBUG
+#-DNDEBUG   assert()を無効化
+#-DSHICACOMP     コンパイラ用コードを有効化
+#-DSHICAEXEC     実行用コードを有効化
+#-DWEBSHICA WebShica用コードを有効化
+
+
+
+leg:
+	leg -o ./Parser/parser.c ./Parser/parser.leg
+
+cc: leg
+	gcc ./main.c $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
+
+inputc: cc
+	./$(NATIVEOUT) < ./input.txt -c
+input: cc
+	./$(NATIVEOUT) < ./input.txt
+
+compiler: leg
+	gcc ./Shica-compiler.c $(COMMON_SRC) $(COMPILER_SRC)./Platform/Linux/Library/library.c -o ./Shica-compiler $(FLAGS) -DSHICACOMP $(COMMON_INCLUDE_DIRS) $(COMPILER_INCLUDE_DIRS) -I ./Platform/Linux/Library/
+
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode", "_reinitAllAgentData"
 WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
@@ -64,18 +102,6 @@ WEB_SHICA_FLAGS = -O3 \
          --no-entry \
 		 --js-library ./Platform/WebShica/shica-lib.js \
          -o $(WASMOUT)
-
-
-
-cc:
-	leg -o ./Parser/parser.c ./Parser/parser.leg
-# ./legstruct_type_inserter
-	gcc $(SRC) ./Platform/Linux/Library/library.c -o $(NATIVEOUT) $(FLAGS) $(INCLUDE_DIRS) -I ./Platform/Linux/Library/
-
-inputc:cc
-	./$(NATIVEOUT) < ./input.txt -c
-input: cc
-	./$(NATIVEOUT) < ./input.txt
 
 # build vm.js
 wasm: $(WASMOUT)

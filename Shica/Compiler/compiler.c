@@ -4,7 +4,7 @@
 
 
 
-static int emitOn(oop prog,node vars, node ast, node type);
+static int emitOn(node prog,node vars, node ast, node type);
 
 /* EVENT HANDLER */
 int compile_event_init(){
@@ -13,11 +13,7 @@ int compile_event_init(){
 	entryEH->Symbol.value = newEventH(0); // 0 argument
 	exitEH = intern("exitEH");
 	exitEH->Symbol.value =  newEventH(0); // 0 argument
-	//standard event handler
-	setEventTable(__EventTable__);
-	setStdFuncTable(__StdFuncTable__);
-	compile_eh_init();//platform/platformName/library.c
-
+	// //standard event handler
 	return 1; // return 1 to indicate success
 }
 /* STANDARD LIBRARY */
@@ -105,8 +101,8 @@ static void appendS0T1(node name, int pos,int type)
 	return;
 }
 
-static void setTransPos(oop prog){
-	int *code = prog->IntArray.elements;
+static void setTransPos(node prog){
+	int *code = prog->Intruction.elements;
 	for (int i = 0;  i < ntransitions;  ++i) {
 		node trans = transitions[i];
 		node transName = getNode(trans, Pair,a);
@@ -130,11 +126,11 @@ static void setTransPos(oop prog){
 #endif
 
 
-static void emitL (oop array, node object) 	  { intArray_append(array, Integer_value(object)); }
-static void emitI (oop array, int i     ) 	  { intArray_append(array, i); }
-static void emitII(oop array, int i, int j)      { emitI(array, i); emitI(array, j); }
-static void emitIL(oop array, int i, node object) { emitI(array, i); emitL(array, object); }
-static void emitIII(oop array, int i, int j, int k)
+static void emitL (node array, node object) 	  { Instruction_append(array, Integer_value(object)); }
+static void emitI (node array, int i     ) 	  { Instruction_append(array, i); }
+static void emitII(node array, int i, int j)      { emitI(array, i); emitI(array, j); }
+static void emitIL(node array, int i, node object) { emitI(array, i); emitL(array, object); }
+static void emitIII(node array, int i, int j, int k)
 {
 	emitI(array, i);
 	emitI(array, j);
@@ -168,7 +164,7 @@ static int parseType(node vars, node ast)
 				}
 				case StdFunc:{// standard function
 					const int funcIndex = getNode(func, StdFunc, index); // get the index of the standard function
-					struct StdFuncTable func = StdFuncTable[funcIndex];
+					struct CompStdFuncTable func = CompStdFuncTable[funcIndex];
 					return func.retType;
 				}
 				case Closure:{ // user defined function
@@ -194,7 +190,7 @@ static int parseType(node vars, node ast)
 
 // 0: success
 // 1: error
-static int parseArray(oop prog, cnode array,cnode index,cnode type, cnode vars){
+static int parseArray(node prog, cnode array,cnode index,cnode type, cnode vars){
 	if(index == nil)return 0;
 	const int size = Integer_value(getNode(index, Pair,a));
 	if(size!=getNode(array, Array,size)){
@@ -236,7 +232,7 @@ static node getElementType(cnode emitCTX,cnode id)
 	return nil;
 }
 
-static int emitOn(oop prog,node vars, node ast, node type)
+static int emitOn(node prog,node vars, node ast, node type)
 {
 	assert(getType(vars) == EmitContext);
 	int ret = 0; /* ret 0 indicates success */
@@ -276,7 +272,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 						data |= (0 & 0xFF) << (j * 8);
 					}
 				}
-				intArray_append(prog, data);
+				Instruction_append(prog, data);
 				--i;
 			}
 			return 0;
@@ -407,19 +403,19 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					closure->Closure.nArgs = nArgs; // set the number of arguments
 					closure->Closure.retType = GET_OOP_FLAG(declaredType); // set the return type
 					emitII(prog, iJUMP, 0); //jump to the end of the function // TODO: once call jump 
-					int jump4EndPos = prog->IntArray.size - 1; // remember the position of the jump // TODO: once call jump
-					closure->Closure.pos = prog->IntArray.size; // remember the position of the closure
+					int jump4EndPos = prog->Intruction.size - 1; // remember the position of the jump // TODO: once call jump
+					closure->Closure.pos = prog->Intruction.size; // remember the position of the closure
 					sym->Symbol.value = closure; // set the closure as the value of the variable
 					emitII(prog, iMKSPACE, 0); // reserve space for local variables
-					int codePos = prog->IntArray.size - 1; // remember the position of the function code
+					int codePos = prog->Intruction.size - 1; // remember the position of the function code
 					// emit function body
 					if(emitOn(prog, vars, body, declaredType)) {//declated type is the return type
 						sym->Symbol.value = NULL; // reset the variable value
 						GC_POP(closure);
 						return 1; // compile function body
 					}
-					prog->IntArray.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // set the size of local variables
-					prog->IntArray.elements[jump4EndPos] = (prog->IntArray.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
+					prog->Intruction.elements[codePos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // set the size of local variables
+					prog->Intruction.elements[jump4EndPos] = (prog->Intruction.size - 1) - jump4EndPos; // set the jump position to the end of the function // TODO: once call jump
 					GC_POP(closure);
 					getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 					return 0;
@@ -440,7 +436,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 							printTYPE(__EventObject__);
 							node args = getNode(rhs, Call, arguments);
 							int index = getNode(func, EventObject, index); // get the index of the event object
-							struct EventObjectTable eo = EventObjectTable[index];
+							struct CompEventObjectTable eo = CompEventObjectTable[index];
 							node* funcs = getNode(func, EventObject, funcs);
 #ifndef NDEBUG
 							for(int i = 0; i < eo.nFuncs; i++){
@@ -758,7 +754,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				case EventH:{// event handler
 					printTYPE(_EventH_);
 					int index = getNode(func, EventH,index);// get the index of the event handler
-					struct EventTable eh = EventTable[index];
+					struct CompEventTable eh = CompEventTable[index];
 					int nArgs = eh.nArgs;
 					char *argTypes = eh.argTypes;
 
@@ -780,7 +776,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					printTYPE(_StdFunc_);
 					int funcIndex = getNode(func, StdFunc, index); // get the index of the standard function
 					int argsCount = 0;
-					struct StdFuncTable func = StdFuncTable[funcIndex];
+					struct CompStdFuncTable func = CompStdFuncTable[funcIndex];
 					while(args != nil){
 						node arg = getNode(args, Args, value);
 						dprintf("[C] argument type expected: %d\n", func.argTypes[argsCount]);
@@ -804,7 +800,6 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					int *argTypes = getNode(func, Closure, argTypes);
 					int pos   = getNode(func, Closure,pos);
 					int argsCount = 0;
-					printf("Closure data: nArgs=%d pos=%d\n", nArgs, pos);
 					
 					for(int i=0; i<nArgs; i++){
 						if(args == nil){
@@ -821,8 +816,8 @@ static int emitOn(oop prog,node vars, node ast, node type)
 						return 1; 
 					}
 					emitIII(prog, iUCALL, 0, nArgs); // call the function
-					int iCallPos = prog->IntArray.size - 2; // remember the position of the call
-					prog->IntArray.elements[iCallPos] = pos - (prog->IntArray.size) ; // set the jump position to the function code
+					int iCallPos = prog->Intruction.size - 2; // remember the position of the call
+					prog->Intruction.elements[iCallPos] = pos - (prog->Intruction.size) ; // set the jump position to the function code
 					emitII(prog, iCLEAN, nArgs); // clean the stack after the call
 					return 0; 
 				}
@@ -885,17 +880,17 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			if(emitOn(prog, vars, condition,TYPES[Integer])) return 1; // compile condition
 
 			emitII(prog, iJUMPIF, 0); // emit jump if condition is TRUE
-			int jumpPos = prog->IntArray.size-1; // remember position for jump
+			int jumpPos = prog->Intruction.size-1; // remember position for jump
 
 			if(emitOn(prog, vars, statement1,type)) return 1; // compile first statement
 			if (statement2 !=  FALSE) {
 				emitII(prog, iJUMP, 0);
-				int jumpPos2 = prog->IntArray.size-1; // remember position for second jump
+				int jumpPos2 = prog->Intruction.size-1; // remember position for second jump
 				if(emitOn(prog, vars, statement2,type)) return 1; // compile second statement
-				prog->IntArray.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
-				prog->IntArray.elements[jumpPos2] = (prog->IntArray.size - 1) - jumpPos2; // set jump position
+				prog->Intruction.elements[jumpPos] = jumpPos2 - jumpPos; // set jump position for first jump
+				prog->Intruction.elements[jumpPos2] = (prog->Intruction.size - 1) - jumpPos2; // set jump position
 			} else {
-				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for first jump	
+				prog->Intruction.elements[jumpPos] = (prog->Intruction.size - 1) - jumpPos; // set jump position for first jump	
 			}
 			//NEXT-TODO
 			discardVariables(getNode(vars, EmitContext, local_vars), variablesSize); // discard variables
@@ -915,12 +910,12 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				if(emitOn(prog, vars, initialization, type)) return 1; // compile initialization
 				clearVoidContext();
 			}
-			int stLoopPos = prog->IntArray.size; // remember the position of the loop start
+			int stLoopPos = prog->Intruction.size; // remember the position of the loop start
 			int jumpPos = 0; // position for the jump if condition is TRUE
 			if(condition !=  FALSE) {
 				if(emitOn(prog, vars, condition, TYPES[Integer])) return 1; // compile condition
 				emitII(prog, iJUMPIF, 0); // emit jump if condition is TRUE
-				jumpPos = prog->IntArray.size - 1; // remember position for jump
+				jumpPos = prog->Intruction.size - 1; // remember position for jump
 			}
 
 			if(emitOn(prog, vars, statement, type)) return 1; // compile statement
@@ -933,9 +928,9 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				clearVoidContext();
 			}
 			emitII(prog, iJUMP, 0); // jump to the beginning of the loop
-			prog->IntArray.elements[prog->IntArray.size - 1] = stLoopPos - prog->IntArray.size; // set jump position to the start of the loop
+			prog->Intruction.elements[prog->Intruction.size - 1] = stLoopPos - prog->Intruction.size; // set jump position to the start of the loop
 			if(condition !=  FALSE) {
-				prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position for condition
+				prog->Intruction.elements[jumpPos] = (prog->Intruction.size - 1) - jumpPos; // set jump position for condition
 			}
 			//NEXT-TODO
 			discardVariables(getNode(vars, EmitContext, local_vars), variablesSize); // discard variables
@@ -966,7 +961,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			node id = getNode(ast, Transition,id);
 			emitII(prog, iTRANSITION, 0);
 			/* WARN: 実際に値を入れるときは、-1して値を挿入する */
-			appendS0T1(id, prog->IntArray.size, ATRANSITION); // append state to states
+			appendS0T1(id, prog->Intruction.size, ATRANSITION); // append state to states
 			return 0;
 		}
 		case State:{
@@ -979,7 +974,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			int eventsSize = getNode(events, Block, size);
 			dprintf("State: %s\n", getNode(id, Symbol,name));
 
-			appendS0T1(id, prog->IntArray.size, APSTATE); // append state to states
+			appendS0T1(id, prog->Intruction.size, APSTATE); // append state to states
 			int index = 0;
 			int isBreak = 0;
 			getNode(vars, EmitContext, state_vars) = newArray(0); // set state variables for the state
@@ -1017,7 +1012,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 			int process_sizes[eventsSize - index]; // number of process blocks for each event handler
 			node preid =  FALSE;
 			emitII(prog, iJUMP, 0);
-			int jumpPos = prog->IntArray.size - 1; // remember the position of the jump
+			int jumpPos = prog->Intruction.size - 1; // remember the position of the jump
 			dprintf("Block size: %d\n", eventsSize);
 			for (int i = index;  i < eventsSize;  ++i) {
 				node ele = eventList[i];
@@ -1045,7 +1040,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					return 1; // error compiling event
 				}
 			}// end for
-			prog->IntArray.elements[jumpPos] = (prog->IntArray.size - 1) - jumpPos; // set jump position to the end of the events
+			prog->Intruction.elements[jumpPos] = (prog->Intruction.size - 1) - jumpPos; // set jump position to the end of the events
 
 			// emit state event handlers
 			if(nEventHandlers == 0){
@@ -1098,7 +1093,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 					dprintf("Event List index: %d\n", ei);//remove
 					node event = eventList[ei++];//<< this makes error
 					node posPair = getNode(event, Event,block);
-					int opPos = prog->IntArray.size;
+					int opPos = prog->Intruction.size;
 					int cPos = Integer_value(getNode(posPair,Pair,b));
 					dprintf("Action pos: %d, Condition pos: %d\n", Integer_value(getNode(posPair,Pair,a)), cPos);	
 					emitIII(prog, iSETPROCESS ,
@@ -1137,7 +1132,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				}
 				int parentIndex = getNode(var.variable->Variable.value, EventObject, index);
 				node* funcs = getNode(var.variable->Variable.value, EventObject, funcs);
-				struct EventObjectTable eo = EventObjectTable[parentIndex];
+				struct CompEventObjectTable eo = CompEventObjectTable[parentIndex];
 				char* fieldName = getNode(getNode(id, GetField, field),Symbol,name);
 				id = NULL;
 				for(int i = 0; i < eo.nFuncs; ++i){
@@ -1174,7 +1169,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				return 1;
 			}
 			getNode(vars, EmitContext, local_vars) = newArray(0); // set local variables for the event
-			int nArgs = EventTable[eh->EventH.index].nArgs;
+			int nArgs = CompEventTable[eh->EventH.index].nArgs;
 			int paramSize =0;
 			int cPos      = 0;
 
@@ -1191,7 +1186,7 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				}
 				dprintf("\t finished appendVarialbe\n");
 				if(getNode(params, Eparams, cond) !=  FALSE){
-					if(cPos==0)cPos = prog->IntArray.size; // remember the position of the condition
+					if(cPos==0)cPos = prog->Intruction.size; // remember the position of the condition
 					if(emitOn(prog, vars, getNode(params, Eparams, cond), getNode(params, Eparams, type))) return 1; // compile condition if exists
 					emitI(prog,iJUDGE); // emit JUDGE instruction
 				}
@@ -1211,14 +1206,14 @@ static int emitOn(oop prog,node vars, node ast, node type)
 				popUserTypeIndex(vars);
 				return 1;
 			}
-			int aPos = prog->IntArray.size; // remember the position of the event handler
+			int aPos = prog->Intruction.size; // remember the position of the event handler
 			emitII(prog, iMKSPACE, 0); // reserve space for local variables
-			int mkspacepos = prog->IntArray.size - 1; // remember the position of MKSPACE
+			int mkspacepos = prog->Intruction.size - 1; // remember the position of MKSPACE
 
 			if(emitOn(prog, vars, block, type))return 1; // compile block
 			emitII(prog, iEOE, getNode(getNode(vars, EmitContext, local_vars), Array, size)); // emit EOE instruction to mark the end of the event handler
 
-			prog->IntArray.elements[mkspacepos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // store number of local variables
+			prog->Intruction.elements[mkspacepos] = getNode(getNode(vars, EmitContext, local_vars), Array, capacity); // store number of local variables
 			getNode(vars, EmitContext, local_vars) = NULL; // clear local variables
 			GC_PUSH(node,apos, newInteger(aPos));
 			GC_PUSH(node,cpos,newInteger(cPos));
@@ -1237,9 +1232,9 @@ static int emitOn(oop prog,node vars, node ast, node type)
 	return 1;
 }
 
-void printCode(oop code){
-	for (int i = 0; i < code->IntArray.size; ++i) {
-		int op = code->IntArray.elements[i];
+void printCode(node code){
+	for (int i = 0; i < code->Intruction.size; ++i) {
+		int op = code->Intruction.elements[i];
 		const char *inst = "UNKNOWN";
 		switch (op) {
 			case iHALT:
@@ -1248,14 +1243,14 @@ void printCode(oop code){
 				break;
 			case iPUSH:
 				inst = "LOAD";
-				int value = code->IntArray.elements[++i];
+				int value = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, value);
 				break;
 			case sPUSH:{
 				inst = "LOADS";
-				int sLen = code->IntArray.elements[++i];
+				int sLen = code->Intruction.elements[++i];
 				char sValue[sLen+1];
-				memcpy(sValue, &code->IntArray.elements[++i], sLen);
+				memcpy(sValue, &code->Intruction.elements[++i], sLen);
 				sValue[sLen] = '\0';
 				printf("%03d: %-10s \"%s\"\n", i-2, inst, sValue);
 				if(sLen % sizeof(int) == 0)
@@ -1266,7 +1261,7 @@ void printCode(oop code){
 			}
 			case iARRAY: {
 				inst = "ARRAY";
-				int nElements = code->IntArray.elements[++i];
+				int nElements = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nElements);
 				break;
 			}
@@ -1299,54 +1294,54 @@ simple:
 				break;
 			case iEOE:{
 				inst = "EOE";
-				int nVariables = code->IntArray.elements[++i];
+				int nVariables = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nVariables);
 				break;
 			}
 			case iEOS:{
 				inst = "EOS";
-				int nVariables = code->IntArray.elements[++i];// FIXME: this is not correct instruction
+				int nVariables = code->Intruction.elements[++i];// FIXME: this is not correct instruction
 				printf("%03d: %-10s %03d\n", i-1, inst, nVariables);
 				break;
 			}
 			case iGETVAR:
 				inst = "GETVAR";
-				int varIndex = code->IntArray.elements[++i];
+				int varIndex = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, varIndex);
 				break;
 			case iSETVAR:
 				inst = "SETVAR";
-				int varIndexSet = code->IntArray.elements[++i];
+				int varIndexSet = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, varIndexSet);
 				break;
 			case iGETSTATEVAR:
 				inst = "GETSTATEVAR";
-				int sVarIndex = code->IntArray.elements[++i];
+				int sVarIndex = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, sVarIndex);
 				break;
 			case iSETSTATEVAR:
 				inst = "SETSTATEVAR";
-				int sVarIndexSet = code->IntArray.elements[++i];
+				int sVarIndexSet = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, sVarIndexSet);
 				break;
 			case iGETGLOBALVAR:
 				inst = "GETGLOBALVAR";
-				int gVarIndex = code->IntArray.elements[++i];
+				int gVarIndex = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, gVarIndex);
 				break;
 			case iSETGLOBALVAR:
 				inst = "SETGLOBALVAR";
-				int gVarIndexSet = code->IntArray.elements[++i];
+				int gVarIndexSet = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, gVarIndexSet);
 				break;
 			case iINITSPACE:
 				inst = "INITSPACE";
-				int nLocals = code->IntArray.elements[++i];
+				int nLocals = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nLocals);
 				break;
 			case iMKSPACE:
 				inst = "MKSPACE";
-				int space = code->IntArray.elements[++i];
+				int space = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, space);
 				break;
 			case aPRINT: {
@@ -1376,72 +1371,72 @@ simple:
 			}
 			case iJUMP: {
 				inst = "JUMP";
-				int offset = code->IntArray.elements[++i];
+				int offset = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
 				break;
 			}
 			case iJUMPIF: {
 				inst = "JUMPIF";
-				int offset = code->IntArray.elements[++i];
+				int offset = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d(%3d)\n", i-1, inst, offset, offset + (i+1));
 				break;
 			}
 			case iCLEAN: {
 				inst = "CLEAN";
-				int nArgs = code->IntArray.elements[++i];
+				int nArgs = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nArgs);
 				break;
 			}
 			case iPCALL: {
 				inst = "PCALL";
-				int index = code->IntArray.elements[++i];
-				int nArgs = code->IntArray.elements[++i];
+				int index = code->Intruction.elements[++i];
+				int nArgs = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, index, index + (i+1), nArgs);
 				break;
 			}
 			case iSCALL: {
 				inst = "SCALL";
-				int index = code->IntArray.elements[++i];
+				int index = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, index);
 				break;
 			}
 			case iUCALL: {
 				inst = "CALL";
-				int pos = code->IntArray.elements[++i];
-				int nArgs = code->IntArray.elements[++i];
+				int pos = code->Intruction.elements[++i];
+				int nArgs = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d(%3d) %03d\n", i-2, inst, pos, (i+1)+pos, nArgs);
 				break;
 			}
 			case eCALL:{
 				inst = "eCall";
-				int index = code->IntArray.elements[++i];
+				int index = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, index);
 				break;
 			}
 			case iTRANSITION: {
 				inst = "TRANSITION";
-				int pos = code->IntArray.elements[++i];
+				int pos = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d(%d)\n", i-1, inst, pos,(i+1)+pos);
 				break;
 			}
 			case iSETSTATE: {
 				inst = "SETSTATE";
-				int nEvents = code->IntArray.elements[++i];
+				int nEvents = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d\n", i-1, inst, nEvents);
 				break;
 			}
 			case iSETEVENT: {
 				inst = "SETEVENT";
-				int eventID = code->IntArray.elements[++i];
-				int nHandlers = code->IntArray.elements[++i];
+				int eventID = code->Intruction.elements[++i];
+				int nHandlers = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d %3d\n", i-2, inst, eventID, nHandlers);
 				break;
 			}
 			case iSETPROCESS: {
 				inst = "SETPROCESS";
 				int pc = i;
-				int apos = code->IntArray.elements[++i];
-				int cpos = code->IntArray.elements[++i];
+				int apos = code->Intruction.elements[++i];
+				int cpos = code->Intruction.elements[++i];
 				printf("%03d: %-10s %03d %3d (%3d %3d)\n", i-2, inst, apos, cpos, pc + apos, pc + cpos);
 				break;
 			}
@@ -1457,10 +1452,10 @@ simple:
 }
 
 
-oop compile()
+node compile()
 {
 	dprintf("compiling...\n");
-    GC_PUSH(oop, prog, intArray_init()); // create a new program code
+    GC_PUSH(node, prog, newInstruction()); // create a new program code
 	emitII(prog, iINITSPACE, 0); // reserve space for local variables
 #if DEBUG
 int roots = getOriginalGCtxNRoots();
@@ -1476,13 +1471,13 @@ int roots = getOriginalGCtxNRoots();
 		dprintf("compiling statement %d\n", line);
 		if(emitOn(prog, vars, result, NULL))return NULL;
 		result = parserRetFlags[PARSER_READY];
-		dprintf("compiled statement %d [size %4d]\n",++line, (prog->IntArray.size)*4);
+		dprintf("compiled statement %d [size %4d]\n",++line, (prog->Intruction.size)*4);
 	}
 	if(result == parserRetFlags[PARSER_FINISH]){
 		dprintf("compilation finished\n");
 		emitI (prog, iHALT); // end of program
 		dprintf("total variable size %d\n", getNode(vars, EmitContext, global_vars)->Array.size);
-		prog->IntArray.elements[1] = getNode(vars, EmitContext, global_vars)->Array.size; // store number of variables
+		prog->Intruction.elements[1] = getNode(vars, EmitContext, global_vars)->Array.size; // store number of variables
 		setTransPos(prog); // set transition positions
 	}else if(result == parserRetFlags[PARSER_ERROR]){
 		dprintf("compilation error\n");
@@ -1499,7 +1494,7 @@ int roots = getOriginalGCtxNRoots();
 #endif
 	GC_POP(prog); // pop program code from GC roots
 
-	dprintf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->IntArray.size);
+	dprintf("\ncompile finished, %d statements, code size %d bytes\n\n", line, 4 * prog->Intruction.size);
     return prog;
 }
 

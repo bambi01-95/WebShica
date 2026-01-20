@@ -20,7 +20,7 @@ extern node exitEH;
 typedef enum Type {
     /*  0 */ Undefined = 0,
     /*  1 */ Integer, Float, String, EventObject, //Shica Atomic Type
-    
+    Intruction = 5,
     Symbol, Pair,Args, Eparams, Params, Array, Closure, StdFunc, UserFunc,
     /* 14 */ Binop, Unyop, GetVar, SetVar, GetArray, SetArray, GetField, SetType,
     /* 22 */ Call, Return, Break, Continue,
@@ -36,6 +36,7 @@ enum unyop { NEG, NOT, AINC, BINC, ADEC, BDEC,};
 
 /* before leg */
 struct Undefined { type_t _type; };
+struct Intruction{ type_t _type;            int size, capacity; int *elements; };
 struct Integer 	 { type_t _type;           int _value;  };
 struct Float   	 { type_t _type;           double _value; };
 struct String  	 { type_t _type;           char *value; };
@@ -91,6 +92,7 @@ struct Variable{
 union Node {
     enum   Type     _type;
 	struct Undefined Undefined;
+    struct Intruction Intruction;
     struct Integer  Integer;
     struct Float    Float;
     struct String   String;
@@ -146,7 +148,8 @@ extern int nobj;
 
 node newUndefine();
 
-
+node newInstruction();
+node Instruction_append(node instr, int value);
 /* Integer */
 node newInteger(int value);
 int Integer_value(node obj);
@@ -274,7 +277,34 @@ char* appendNewChar(char* arr, int size, char value);
 
 extern node TYPES[5]; // 0: Undefined, 1: Integer, 2: Float, 3: String, 4: EventObject
 void printShicaType(node type);
+//--------------------------------------------------------
+// Code Generation
+//--------------------------------------------------------
 
+//--------------------------------------------------------
+// Library
+//--------------------------------------------------------
+struct CompEventTable {
+	int nArgs; // number of arguments for the event handler
+	char *argTypes; // types of arguments for the event handler
+	int nData; // number of data for the event handler
+};
+
+struct CompStdFuncTable {
+	int nArgs; // number of arguments
+	int *argTypes; // types of arguments
+	int retType; // return type
+};
+
+struct CompEventObjectTable {
+	int nArgs; // number of arguments
+	int nFuncs; // number of functions
+	int *argTypes; // types of arguments
+};
+extern struct CompEventTable *CompEventTable;
+extern struct CompStdFuncTable *CompStdFuncTable;
+extern struct CompEventObjectTable *CompEventObjectTable;
+void initCompLibrary();
 //--------------------------------------------------------
 // GC
 //--------------------------------------------------------

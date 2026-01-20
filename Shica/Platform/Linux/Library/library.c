@@ -2,7 +2,40 @@
 #ifndef LIBRARY_C
 #define LIBRARY_C
 #include "library.h"
+
+//-------------------------------
+// COMMON CODE
+//-------------------------------
+// Event Handler Types
+enum{
+	EVENT_EH = 0x00, // Loop Handler
+	TIMER_EH = 0x01, // Timer Handler
+	CHAT_RECEIVED_EH = 0x02, // WebRTC Broadcast Event Object
+	T_TIMER_SEC_EH = 0x03, // Timer second event handler
+	T_TIMER_MIN_EH = 0x04, // Timer minute event handler
+	T_TIMER_HOUR_EH = 0x05, // Timer hour event handler
+} EventHandlerType;
+// Standard Library Function Types
+ enum {
+	EXIT_FUNC=0,   // exit function
+	CHAT_SEND_FUNC, // chat send function
+	MATH_SQRT_FUNC, // math sqrt function
+	T_TIMER_RESET_FUNC, // timer reset function
+} StdLibFuncType;
+// Event Object Types
+enum {
+	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	TIME_EO, // Timer Event Object
+	END_EO, /* DO NOT REMOVE THIS LINE */
+} EventObjectType;
+
+//-------------------------------
+// SHICA EXECUTER CODE
+//-------------------------------
+#ifdef SHICAEXEC
 #include <math.h>
+#include <time.h>
+// Event Handlers and its initializers
 int event_handler(oop exec, oop eh){
 	if(eh->EventHandler.threads[0]->Thread.inProgress == 0) {
 		oop thread = eh->EventHandler.threads[0];
@@ -18,7 +51,6 @@ int event_object_handler_init(oop eh){
 	return 1;
 }
 
-#include <time.h>
 int timer_handler(oop exec, oop eh){
 	time_t t = time(NULL);
 	int now = (int)(t % 10000);
@@ -37,16 +69,6 @@ int timer_handler_init(oop eh){//normal timer handler (not EO)
 	eh->EventHandler.data[0] = newIntVal(now); //start time
 	eh->EventHandler.data[1] = newIntVal(0);   //count
 	return 1;
-}
-
-int compile_eh_init(){
-	//standard event handler
-	node EH = NULL;
-	EH = intern("eventEH");
-	EH->Symbol.value = newEventH(EVENT_EH); // 1 argument
-    EH = intern("timerEH");
-    EH->Symbol.value = newEventH(TIMER_EH); // 1 argument
-	return 0; // return 0 to indicate success
 }
 
 int timer_sec_handler(oop exec, oop eh){
@@ -79,27 +101,16 @@ int timer_min_handler(oop exec, oop eh){
 int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
-
-struct EventTable __EventTable__[] = {
-	[EVENT_EH] = {event_handler,      event_handler_init, 0, NULL, 0},      // EVENT_EH
-	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char []){Integer}, 2},      // TIMER_EH
-	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
-	[T_TIMER_MIN_EH] = {timer_min_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
-	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
+struct ExecEventTable  __ExecEventTable__[] = {
+	[EVENT_EH] = {event_handler,      event_handler_init},      // EVENT_EH
+	[TIMER_EH] = {timer_handler,      timer_handler_init},      // TIMER_EH
+	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {timer_min_handler,    event_object_handler_init},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init},      // T_TIMER_HOUR_EH
 };
-
-
-/*
- * Standard library functions
- * These functions are used in the web code to interact with the web environment.
-*/
- enum {
-	EXIT_FUNC=0,   // exit function
-	CHAT_SEND_FUNC, // chat send function
-	MATH_SQRT_FUNC, // math sqrt function
-	T_TIMER_RESET_FUNC, // timer reset function
-};
-
+//-------------------------------
+// Standard Library Functions
+//-------------------------------
 int lib_exit(oop stack)
 {
 	int status = intArray_pop(stack); // get exit status from stack
@@ -138,34 +149,15 @@ int lib_timer_reset(oop stack)
 	GC_POP(initVal);
 	return 0;
 }
-
- struct StdFuncTable __StdFuncTable__[] =
-{
-	{lib_exit, 1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
-	{lib_chat_send, 2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
-	{lib_math_sqrt, 1, (int[]){Integer}, Integer}, // math sqrt function takes 1 argument and returns an integer
-	{lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
+struct ExecStdFuncTable  __ExecStdFuncTable__[] = {
+	[EXIT_FUNC] = {lib_exit}, // exit function
+	[CHAT_SEND_FUNC] = {lib_chat_send}, // chat send function
+	[MATH_SQRT_FUNC] = {lib_math_sqrt}, // math sqrt function
+	[T_TIMER_RESET_FUNC] = {lib_timer_reset}, // timer reset function
 };
-
-
-int compile_func_init()
-{
-	node FUNC = NULL;
-	FUNC = intern("exit");
-	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
-
-	FUNC = intern("sqrt");
-	FUNC->Symbol.value = newStdFunc(MATH_SQRT_FUNC); // math sqrt function
-
-	return 0; // return 0 to indicate success
-}
-/*=============== Event Object Table ===============*/
-enum {
-	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
-	TIME_EO, // Timer Event Object
-	END_EO, /* DO NOT REMOVE THIS LINE */
-};
-
+//-------------------------------
+//Event Object 
+//-------------------------------
 oop wifi_udp_broadcast_eo(oop stack){
 	return 0;
 }
@@ -184,19 +176,56 @@ oop time_eo(oop stack){
 	GC_POP(instance);
 	return instance;
 }
+struct ExecEventObjectTable __ExecEventObjectTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = {wifi_udp_broadcast_eo},
+	[TIME_EO] = {time_eo},
+};
+#endif // SHICAEXEC
 
-eo_func_t __EventObjectFuncTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = wifi_udp_broadcast_eo,
-	[TIME_EO] = time_eo,
+//-------------------------------
+// SHICA COMPILER CODE
+//-------------------------------
+#ifdef SHICACOMP
+int compile_eh_init(){
+	//standard event handler
+	node EH = NULL;
+	EH = intern("eventEH");
+	EH->Symbol.value = newEventH(EVENT_EH); // 1 argument
+	printf("Registered eventEH\n");
+    EH = intern("timerEH");
+    EH->Symbol.value = newEventH(TIMER_EH); // 1 argument
+	return 0; // return 0 to indicate success
+}
+struct CompEventTable __CompEventTable__[] = {
+	[EVENT_EH] = {0, NULL, 0},      // EVENT_EH
+	[TIMER_EH] = {1,(char []){Integer}, 2},      // TIMER_EH
+	[T_TIMER_SEC_EH] = {1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
+	[T_TIMER_MIN_EH] = {1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
+	[T_TIMER_HOUR_EH] = {1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
 };
 
-struct EventObjectTable __EventObjectTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
-	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
-};
+// Standard Library Functions
+int compile_func_init()
+{
+	node FUNC = NULL;
+	FUNC = intern("exit");
+	FUNC->Symbol.value = newStdFunc(EXIT_FUNC); // exit function
 
+	FUNC = intern("sqrt");
+	FUNC->Symbol.value = newStdFunc(MATH_SQRT_FUNC); // math sqrt function
+
+	return 0; // return 0 to indicate success
+}
+struct CompStdFuncTable __CompStdFuncTable__[] = {
+	[EXIT_FUNC] = {1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
+	[CHAT_SEND_FUNC] = {2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
+	[MATH_SQRT_FUNC] = {1, (int[]){Integer}, Integer}, // math sqrt function takes 1 argument and returns an integer
+	[T_TIMER_RESET_FUNC] = {1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
+};
+//-------------------------------
+// Event Object Table
+//-------------------------------
 int compile_eo_init(){
-	setEventObjectTable(__EventObjectTable__);
 	node sym = NULL;
 	node func = NULL;
 	node eo = NULL;
@@ -222,4 +251,37 @@ int compile_eo_init(){
 
 	return 0;
 }
+
+struct CompEventObjectTable  __CompEventObjectTable__[] = {
+	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
+};
+
+// struct EventTable __EventTable__[] = {
+// 	[EVENT_EH] = {event_handler,      event_handler_init, 0, NULL, 0},      // EVENT_EH
+// 	[TIMER_EH] = {timer_handler,      timer_handler_init, 1,(char []){Integer}, 2},      // TIMER_EH
+// 	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
+// 	[T_TIMER_MIN_EH] = {timer_min_handler,      event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
+// 	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init, 1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
+// };
+
+//  struct StdFuncTable __StdFuncTable__[] =
+// {
+// 	{lib_exit, 1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
+// 	{lib_chat_send, 2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
+// 	{lib_math_sqrt, 1, (int[]){Integer}, Integer}, // math sqrt function takes 1 argument and returns an integer
+// 	{lib_timer_reset, 1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
+// };
+
+// eo_func_t __EventObjectFuncTable__[] = {
+// 	[WEB_RTC_BROADCAST_EO] = wifi_udp_broadcast_eo,
+// 	[TIME_EO] = time_eo,
+// };
+// struct EventObjectTable __EventObjectTable__[] = {
+// 	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+// 	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
+// };
+
+#endif // SHICACOMP
+
 #endif // STDLIB_C

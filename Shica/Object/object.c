@@ -361,19 +361,19 @@ oop newEventHandler(int ehIndex, int nThreads)
 	return eh;
 };
 
-oop *IrCodeList = NULL;
-int nIrCode = 0; // index of getIrCode
-oop getIrCode(int index){
-	if(index < nIrCode && index >= 0){
-		return IrCodeList[index];
-	} 
-	if(index >= nIrCode){
-		IrCodeList = realloc(IrCodeList, sizeof(oop) * (index + 1));	
-		IrCodeList[index] = intArray_init();
-		nIrCode = index + 1;
-	}
-	return IrCodeList[index];
-}
+// oop *IrCodeList = NULL;
+// int nIrCode = 0; // index of getIrCode
+// oop getIrCode(int index){
+// 	if(index < nIrCode && index >= 0){
+// 		return IrCodeList[index];
+// 	} 
+// 	if(index >= nIrCode){
+// 		IrCodeList = realloc(IrCodeList, sizeof(oop) * (index + 1));	
+// 		IrCodeList[index] = intArray_init();
+// 		nIrCode = index + 1;
+// 	}
+// 	return IrCodeList[index];
+// }
 
 oop newAgent(int id, int nEvents)
 {
@@ -439,49 +439,6 @@ oop newRETFLAG(void)
 	return newEntity(RETFLAG);
 }
 
-
-// ----------------------------------------
-// Global Tables
-// ----------------------------------------
-struct EventTable *EventTable = NULL;
-void setEventTable(struct EventTable *table)
-{
-	EventTable = table;
-}
-
-struct StdFuncTable *StdFuncTable = NULL;
-void setStdFuncTable(struct StdFuncTable *table)
-{
-	StdFuncTable = table;
-}
-
-eo_func_t *EventObjectFuncTable = NULL;
-void setEventObjectFuncTable(eo_func_t *tables)
-{
-	EventObjectFuncTable = tables;
-}
-
-struct EventObjectTable *EventObjectTable = NULL;
-void setEventObjectTable(struct EventObjectTable *table)
-{
-	EventObjectTable = table;
-}
-void reinitializeEventObject(oop eh)
-{
-	// assert(getKind(eh) == EventHandler);
-// initialize event objects
-	// if(eh->EventHandler.data[0] == NULL || getKind(eh->EventHandler.data[0]) != Instance){
-	// 		return;//not event object
-	// }
-	// if(getKind(eh->EventHandler.data[0]->Instance.fields[0]) == EventHandler
-	// ){
-	// 	#ifdef DEBUG
-	// 	_reportError(WARNING,0000, "%s", "init event object");
-	// 	#endif
-	// 	eh->EventHandler.data[0]->Instance.fields[0] = NULL; // reset event handler pointer
-	// }
-	return;
-}
 
 int printAgent(oop agent)
 {
@@ -737,6 +694,33 @@ void markExecutors(oop ptr)
 	}
 	dprintf("markExecutors ERROR\n");
 	return;
+}
+
+// ----------------------------------------
+// Global Tables
+// ----------------------------------------
+struct EventTable *EventTable = NULL;
+void setEventTable(struct EventTable *table)
+{
+	EventTable = table;
+}
+
+struct StdFuncTable *StdFuncTable = NULL;
+void setStdFuncTable(struct StdFuncTable *table)
+{
+	StdFuncTable = table;
+}
+
+eo_func_t *EventObjectFuncTable = NULL;
+void setEventObjectFuncTable(eo_func_t *tables)
+{
+	EventObjectFuncTable = tables;
+}
+
+struct EventObjectTable *EventObjectTable = NULL;
+void setEventObjectTable(struct EventObjectTable *table)
+{
+	EventObjectTable = table;
 }
 
 #endif // OBJECT_C
