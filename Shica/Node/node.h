@@ -274,6 +274,12 @@ char* appendNewChar(char* arr, int size, char value);
 
 extern node TYPES[5]; // 0: Undefined, 1: Integer, 2: Float, 3: String, 4: EventObject
 void printShicaType(node type);
+
+//--------------------------------------------------------
+// GC
+//--------------------------------------------------------
+void markObject(node obj);
+
 #endif // NODE_H
 
 /*

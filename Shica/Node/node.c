@@ -1049,6 +1049,275 @@ void printShicaType(node type)
 	}
 }
 
+//--------------------------------------------------------
+// GC
+//--------------------------------------------------------
+
+void markObject(node obj){
+	switch(getType(obj)){
+case Integer :{return;}
+case String :{
+	if (obj->String.value) {
+		gc_markOnly(obj->String.value);
+	}
+	return;
+}
+case Symbol  :
+{
+	if (obj->Symbol.value) {
+		gc_mark(obj->Symbol.value);
+	}
+	return;
+}
+case Pair    :
+{
+	if (obj->Pair.a) {
+		gc_mark(obj->Pair.a);
+	}
+	if (obj->Pair.b) {
+		gc_mark(obj->Pair.b);
+	}
+	return;
+}
+case Array   :
+{
+	if (obj->Array.elements) {
+		for (int i = 0;  i < obj->Array.size;  ++i) {
+			if (obj->Array.elements[i]) {
+				gc_mark(obj->Array.elements[i]);
+			}
+		}
+	}
+	if (obj->Array.elements) {
+		gc_markOnly(obj->Array.elements);
+	}
+	return;
+}
+case Closure :{return;}
+case StdFunc:{
+	return;
+}
+case UserFunc:
+{
+	if (obj->UserFunc.parameters) {
+		gc_mark(obj->UserFunc.parameters);
+	}
+	if (obj->UserFunc.body) {
+		gc_mark(obj->UserFunc.body);
+	}
+	if (obj->UserFunc.code) {
+		gc_mark(obj->UserFunc.code);
+	}
+	return;
+}
+case Binop   :
+{
+	if (obj->Binop.lhs) {
+		gc_mark(obj->Binop.lhs);
+	}
+	if (obj->Binop.rhs) {
+		gc_mark(obj->Binop.rhs);
+	}
+	return;
+}
+case Unyop   :
+{
+	if (obj->Unyop.rhs) {
+		gc_mark(obj->Unyop.rhs);
+	}
+	return;
+}
+case GetVar  :
+{
+	if (obj->GetVar.id) {
+		gc_mark(obj->GetVar.id);
+	}
+	return;
+}
+case SetVar  :
+{
+	if (obj->SetVar.id) {
+		gc_mark(obj->SetVar.id);
+	}
+	if (obj->SetVar.rhs) {
+		gc_mark(obj->SetVar.rhs);
+	}
+	return;
+}
+case GetArray:
+{
+	if (obj->GetArray.array) {
+		gc_mark(obj->GetArray.array);
+	}
+	if (obj->GetArray.index) {
+		gc_mark(obj->GetArray.index);
+	}
+	return;
+}
+case SetArray:
+{
+	if (obj->SetArray.array) {
+		gc_mark(obj->SetArray.array);
+	}
+	if (obj->SetArray.index) {
+		gc_mark(obj->SetArray.index);
+	}
+	if (obj->SetArray.value) {
+		gc_mark(obj->SetArray.value);
+	}
+	return;
+}
+case GetField:
+{
+	if (obj->GetField.id) {
+		gc_mark(obj->GetField.id);
+	}
+	if (obj->GetField.field) {
+		gc_mark(obj->GetField.field);
+	}
+	return;
+}
+case Call    :
+{
+	if (obj->Call.function) {
+		gc_mark(obj->Call.function);
+	}
+	if (obj->Call.arguments) {
+		gc_mark(obj->Call.arguments);
+	}
+	return;
+}
+case Return  :
+{
+	if (obj->Return.value) {
+		gc_mark(obj->Return.value);
+	}
+	return;
+}
+case Break   :
+{
+	return;
+}
+case Continue:
+{
+	return;
+}
+case Print   :
+{
+	if (obj->Print.arguments) {
+		gc_mark(obj->Print.arguments);
+	}
+	return;
+}
+case If      :
+{
+	if (obj->If.condition) {
+		gc_mark(obj->If.condition);
+	}
+	if (obj->If.statement1) {
+		gc_mark(obj->If.statement1);
+	}
+	if (obj->If.statement2) {
+		gc_mark(obj->If.statement2);
+	}
+	return;
+}
+case Loop    :
+{
+	if (obj->Loop.initialization) {
+		gc_mark(obj->Loop.initialization);
+	}
+	if (obj->Loop.condition) {
+		gc_mark(obj->Loop.condition);
+	}
+	if (obj->Loop.iteration) {
+		gc_mark(obj->Loop.iteration);
+	}
+	if (obj->Loop.statement) {
+		gc_mark(obj->Loop.statement);
+	}
+	return;
+}
+case Block   :
+{
+	if (obj->Block.statements) {
+		for (int i = 0;  i < obj->Block.size;  ++i) {
+			if (obj->Block.statements[i]) {
+				gc_mark(obj->Block.statements[i]);
+			}
+		}
+	}
+	if (obj->Block.statements) {
+		gc_markOnly(obj->Block.statements);
+	}
+	return;
+}
+case Transition:
+{
+	if(obj->Transition.id){
+		gc_mark(obj->Transition.id);
+	}
+	return;
+}
+case State   :
+{
+	if (obj->State.id) {
+		gc_mark(obj->State.id);
+	}
+	if (obj->State.parameters) {
+		gc_mark(obj->State.parameters);
+	}
+	if (obj->State.events) {
+		gc_mark(obj->State.events);
+	}
+	return;
+}
+case Event   :
+{
+	if (obj->Event.id) {
+		gc_mark(obj->Event.id);
+	}
+	if (obj->Event.parameters) {
+		gc_mark(obj->Event.parameters);
+	}
+	if (obj->Event.block) {
+		gc_mark(obj->Event.block);
+	}
+	return;
+}
+case EventH :
+{  
+	return;
+}
+case Variable:
+{
+	if (obj->Variable.id) {
+		gc_mark(obj->Variable.id);
+	}
+	return;
+}
+case EmitContext:
+{
+	if (obj->EmitContext.local_vars) {
+		gc_mark(obj->EmitContext.local_vars);
+	}
+	if (obj->EmitContext.state_vars) {
+		gc_mark(obj->EmitContext.state_vars);
+	}
+	if (obj->EmitContext.global_vars) {
+		gc_mark(obj->EmitContext.global_vars);
+	}
+	return;
+}
+default:
+	fprintf(stderr, "markObject: unknown type %d\n", getType(obj));
+	return; //error
+	}
+}
+
+//--------------------------------------------------------
+// Cleanup
+//--------------------------------------------------------
 #ifdef MSGC
 #undef newAtomicObject
 #elif defined(MSGCS)

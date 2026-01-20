@@ -234,4 +234,6 @@ void reinitializeEventObject(oop eh);
 int printAgent(oop agent);
 void printObj(oop obj, int indent);
 
+// GC
+void markExecutors(oop ptr);
 #endif // OBJECT_H

@@ -598,4 +598,145 @@ void printObj(oop obj, int indent)
 	}
 	return;
 }
+
+//----------------------------------------
+// GC
+//----------------------------------------
+void markExecutors(oop ptr)
+{
+	// collect ir code
+	switch(ptr->kind){
+		case IntVal:break; // nothing to do
+		case FloVal:break; // nothing to do
+		case StrVal:{
+			dprintf("markExecutors StrVal\n");
+			if(ptr->StrVal.value != NULL){
+				gc_markOnly(ptr->StrVal.value); // mark the string value
+			}
+			dprintf("markExecutors StrVal done\n");
+			return;
+		}
+		case IntArray:{
+			dprintf("markExecutors IntArray\n");
+			if(ptr->IntArray.elements != NULL){
+				gc_markOnly(ptr->IntArray.elements); // mark the int array elements
+			}
+			dprintf("markExecutors IntArray done\n");
+			return;
+		}
+		case Stack:{
+			dprintf("markExecutors Stack\n");
+			int size = ptr->Stack.size;
+			for(int i = 0; i < size; i++){
+				if(ptr->Stack.elements[i] != NULL){	
+					gc_mark(ptr->Stack.elements[i]); 
+				}
+			}
+			gc_markOnly(ptr->Stack.elements); // mark the stack elements
+			dprintf("markExecutors Stack done\n");
+			return;
+		}
+		case Queue:{
+			dprintf("markExecutors Queue\n");
+			int pos = ptr->Queue.head;
+			for(int i = 0; i < ptr->Queue.size; i++){
+				if(ptr->Queue.que[pos] != NULL){
+					gc_mark(ptr->Queue.que[pos]); 
+				}
+				pos = (pos + 1) % ptr->Queue.capacity;
+			}
+			gc_markOnly(ptr->Queue.que); // mark the queue elements
+			dprintf("markExecutors Queue done\n");
+			return;
+		}
+		case Thread:{
+			dprintf("markExecutors Thread\n");
+			if(ptr->Thread.stack != NULL){
+				gc_mark(ptr->Thread.stack); // mark the thread stack
+			}
+			if(ptr->Thread.queue != NULL){
+				gc_mark(ptr->Thread.queue); // mark the thread queue
+			}
+			dprintf("markExecutors Thread done\n");
+			return;
+		}
+		case EventHandler:{
+			dprintf("markExecutors EventHandler\n");
+			if(ptr->EventHandler.data){
+				gc_markOnly(ptr->EventHandler.data); // mark the event handler data
+				for(int i = 0; i<ptr->EventHandler.nData; i++){
+					if(ptr->EventHandler.data[i]!=NULL){
+						gc_mark(ptr->EventHandler.data[i]); // mark the event handler data
+					}
+				}
+			}
+			if(ptr->EventHandler.threads != NULL){
+				for(int i = 0; i<ptr->EventHandler.size; i++){
+					if(ptr->EventHandler.threads[i]!=NULL){
+						gc_mark(ptr->EventHandler.threads[i]); // mark the event handler
+					}
+				}
+				gc_markOnly(ptr->EventHandler.threads); // mark the event handler queue
+			}
+			dprintf("markExecutors EventHandler done\n");
+			return;
+		}
+		case Agent:{
+			dprintf("markExecutors Agent\n");
+			if(ptr->Agent.stack){
+				gc_mark(ptr->Agent.stack);
+			}
+			if(ptr->Agent.eventHandlers != NULL){
+				gc_markOnly(ptr->Agent.eventHandlers); 
+				for(int i = 0; i < ptr->Agent.nEvents; i++){
+					if(ptr->Agent.eventHandlers[i]){
+						gc_mark(ptr->Agent.eventHandlers[i]);
+					}
+				}
+			}
+			dprintf("markExecutors Agent done\n");
+			return;
+		}
+		case Instance:{
+			dprintf("markExecutors Instance\n");
+			if(ptr->Instance.fields){
+				int nFields = ptr->Instance.nFields;
+				printf("markExecutors Instance nFields=%d\n", nFields);
+				gc_markOnly(ptr->Instance.fields); // mark the instance fields array
+				for(int i = 0; i < nFields; i++)
+				{
+					if(ptr->Instance.fields[i]){
+						gc_mark(ptr->Instance.fields[i]); // mark the instance fields
+					}
+				}
+			}
+			dprintf("markExecutors Instance done\n");
+			return;
+		}
+		case Any:{
+			printf("Any type is not supported in markExecutors\n");
+			return ;
+		}
+		case RunCtx:{
+			dprintf("markExecutors RunCtx\n");
+			if(ptr->RunCtx.agent){
+				gc_mark(ptr->RunCtx.agent); // mark the runctx agent
+			}
+			if(ptr->RunCtx.code){
+				gc_mark(ptr->RunCtx.code); // mark the runctx code
+			}
+			dprintf("markExecutors RunCtx done\n");
+			return;
+		}
+		default:{
+			dprintf("markExecutors ERROR: unknown type %d\n", ptr->kind);
+			fprintf(stderr, "markExecutors ERROR: unknown type %d\n", ptr->kind);
+			//error
+			return ;
+		}
+	}
+	dprintf("markExecutors ERROR\n");
+	return;
+}
+
 #endif // OBJECT_C
