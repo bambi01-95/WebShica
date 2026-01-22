@@ -66,12 +66,15 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DNDEBUG -O2 
+FLAGS = -DMSGCS -DNDEBUG -O2 -DRPI
+#-DMSGC    マーク＆スイープGCを有効化
+#-DMSGCS   マーク＆スイープGC（分割実行）を有効化
 #-DDEBUG
 #-DNDEBUG   assert()を無効化
 #-DSHICACOMP     コンパイラ用コードを有効化
 #-DSHICAEXEC     実行用コードを有効化
 #-DWEBSHICA WebShica用コードを有効化
+#-DRPI Raspberry Pi用コードを有効化
 
 
 

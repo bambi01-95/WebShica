@@ -597,7 +597,7 @@ Exit event handler
 				pos = sz; // default to end
 				for(int i=0; i<sz; i++){
 					node ele = ss[i];
-					printf("Checking Event at index %d\n", i);
+					dprintf("Checking Event at index %d\n", i);
 					switch(getType(ele)){
 						case Event:{
 							if(getNode(ele, Event, id)==id){
@@ -1119,6 +1119,15 @@ case Args:{
 	}
 	if(obj->Args.value){
 		gc_markOnly(obj->Args.value);
+	}
+	return;
+}
+case Eparams:{
+	if(obj->Eparams.next){
+		gc_mark(obj->Eparams.next);
+	}
+	if(obj->Eparams.id){
+		gc_mark(obj->Eparams.id);
 	}
 	return;
 }

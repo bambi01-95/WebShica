@@ -83,7 +83,9 @@ int main(int argc, char **argv)
 
 	// print bytecode 
 	dprintf("Print IR code:\n");
+#ifdef DEBUG
 	printCode(code);
+#endif
     char* outFile = "shica.stt";
     int size = code->Intruction.size;
     for(int i = 0; i<size; ++i)genBytes(code->Intruction.elements[i]);
@@ -92,6 +94,9 @@ int main(int argc, char **argv)
     memoryWriteC(outFileC);
 	memoryClear();
 	printf("Compilation done.\n");
+#ifdef DEBUG
+	// read back the written bytecode and print it
+	printf("Reading back the written bytecode from %s:\n", outFile);
 	memoryRead(outFile);
 	int *codeAddr = memoryCastIntAddr();
 	int codeSize = memoryCastIntSize();
@@ -99,6 +104,7 @@ int main(int argc, char **argv)
 	codeArray->Intruction.size = codeSize;
 	codeArray->Intruction.elements = codeAddr;
 	printCode(codeArray);
+#endif
     // garbage collection
 	gc_collect();
     return 0;

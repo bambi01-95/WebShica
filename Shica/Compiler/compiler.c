@@ -370,7 +370,6 @@ static int emitOn(node prog,node vars, node ast, node type)
 			node sym = getNode(ast, SetVar,id);
 			node rhs = getNode(ast, SetVar,rhs);
 			node declaredType = getNode(ast, SetVar,type);
-			printShicaType(declaredType);
 			
 			switch(getType(rhs)){
 				case UserFunc:{
@@ -461,7 +460,7 @@ static int emitOn(node prog,node vars, node ast, node type)
 								argsCount++;
 							}
 							if(eo.nArgs != argsCount){
-								reportError(ERROR, getNode(ast,Call,line), "event object %s expects %d arguments, but got %d", getNode(sym, Symbol,name), eo.nArgs, argsCount);
+								reportError(ERROR, getNode(ast,SetVar,line), "event object %s expects %d arguments, but got %d", getNode(sym, Symbol,name), eo.nArgs, argsCount);
 								return 1;
 							}
 							//initialize the event handler opcode
