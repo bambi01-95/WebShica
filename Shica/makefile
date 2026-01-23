@@ -32,6 +32,7 @@ EXECUTOR_SRC = ./Executor/executor.c \
                ./Object/object.c 
 # インクルードディレクトリ
 COMMON_INCLUDE_DIRS = -I ./GC \
+					  -I ./GC/msgcs \
 		   	          -I ./Error \
 				      -I ./Opcode \
 					  -I ./File \
@@ -53,6 +54,7 @@ SRC = ./GC/msgcs/msgcs.c  \
 	  ./File/file.c
 
 INCLUDE_DIRS = -I ./GC \
+			   -I ./GC/msgcs \
            	   -I ./Error \
 			   -I ./Opcode \
 			   -I ./Node \
