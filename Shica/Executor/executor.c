@@ -1,6 +1,6 @@
 #ifndef EXECUTOR_C
 #define EXECUTOR_C
-#include "./executor.h"
+#include "executor.h"
 
 #ifdef WEBSHICA
 //EXECUTOR 

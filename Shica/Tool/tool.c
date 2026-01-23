@@ -1,6 +1,6 @@
 #ifndef TOOL_C
 #define TOOL_C
-#include "./tool.h"
+#include "tool.h"
 #ifdef DEBUG
 
 #ifdef SHICAEXEC

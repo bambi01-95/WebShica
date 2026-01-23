@@ -1,7 +1,7 @@
 #ifndef OPCODE_C
 #define OPCODE_C
 
-#include "./opcode.h"
+#include "opcode.h"
 
 #ifdef DEBUG
 const char *getOpcodeName(int opcode) {

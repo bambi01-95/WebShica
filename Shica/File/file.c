@@ -1,6 +1,6 @@
 #ifndef   FILE_C
 #define   FILE_C
-
+#include "file.h" 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

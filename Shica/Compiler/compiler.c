@@ -1,6 +1,6 @@
 #ifndef COMPILER_C
 #define COMPILER_C
-#include "./compiler.h"
+#include "compiler.h"
 
 
 
