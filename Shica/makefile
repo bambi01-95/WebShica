@@ -31,7 +31,8 @@ COMPILER_SRC = ./Node/node.c\
 EXECUTOR_SRC = ./Executor/executor.c \
                ./Object/object.c 
 # インクルードディレクトリ
-COMMON_INCLUDE_DIRS = -I ./GC \
+COMMON_INCLUDE_DIRS = -I .\
+                      -I ./GC \
 					  -I ./GC/msgcs \
 		   	          -I ./Error \
 				      -I ./Opcode \
