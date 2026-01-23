@@ -116,7 +116,11 @@ void genBytes(int bytes) {
 
 void memoryClear(void) // clear the contents of memory
 {
+#if MSGCS
+    gc_free(memory);
+#else
     free(memory);
+#endif
     memory  = 0;
     memsize = 0;
     memcap  = 0;

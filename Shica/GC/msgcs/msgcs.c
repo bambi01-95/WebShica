@@ -10,6 +10,54 @@
 #include "msgcs.h"
 // #include "fatal.h"
 #include <stdarg.h>
+
+struct ExternMemory{
+    void **memory;
+    int size;
+    int capacity;
+};
+
+struct ExternMemory *newExternMemory(int size){
+    struct ExternMemory *em = gc_alloc(sizeof(struct ExternMemory));
+    em->memory = gc_alloc(sizeof(void*)*size);
+    em->size = size;
+    return em;
+}
+
+void gc_markExternMemory(struct ExternMemory *em){
+    gc_markOnly(em);
+    gc_markOnly(em->memory);
+    for(int i=0;i<em->size;i++){
+        gc_markOnly(em->memory[i]);
+    }
+}
+
+void *gc_extern_alloc(struct ExternMemory *em, int lbs)
+{
+    if(em->size + lbs < em->capacity){
+        em->memory = gc_realloc(em->memory,em->capacity*2);
+        em->capacity *= 2;
+    }
+    void *p = gc_alloc(lbs);
+    em->memory[em->size] = p;
+    return p;
+}
+
+typedef unsigned int extstr;
+extstr ExternStructMap[32];
+int     numExternStruct = 0;
+
+extstr registerExternType(extstr pointerMap){
+    if(numExternStruct < sizeof(ExternStructMap)/sizeof(extstr))
+        return 0; //error
+    for(int i = 0; i < numExternStruct; i++){
+        if(ExternStructMap[i] == pointerMap)
+            return i;
+    }
+    ExternStructMap[numExternStruct] = pointerMap;
+    return numExternStruct++;
+}
+
 void gcfatal(const char *fmt, ...)
 {
     fflush(stdout);
@@ -389,6 +437,7 @@ void gc_free(void *ptr)
     assert(here < current_gc_ctx->memend);
     assert(here->busy);
     if (here->mark) return;			// stop if already marked
+    memset((void *)here + sizeof(*here), 0, here->size - sizeof(*here)); // clear memory
     here->busy = 0;				// reclaim the block
     here->mark = 0;
     here->atom = 0;

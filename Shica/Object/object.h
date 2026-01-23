@@ -27,6 +27,7 @@ typedef enum kind{
 	Any,
 	RunCtx,
 	RETFLAG,
+	EXTRA_KIND, // for future extension
 } kind_t;
 
 kind_t getKind(oop o);
