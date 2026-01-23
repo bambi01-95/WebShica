@@ -266,11 +266,9 @@ int timer_min_handler(oop exec, oop eh){
 int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
-#if 0
+
 #ifdef RPI
 #include <pigpio.h>
-#endif // RPI
-
 int rpi_gpioRead_0_31event_handler(oop exec, oop eh){
 	uint32_t gpio_states = gpioRead_Bits_0_31();
 	if(gpio_states != 0){
@@ -292,9 +290,6 @@ int rpi_gpioRead_N_event_handler_init(oop eh){
 	int pin = IntVal_value(obj);
 
 	int level = gpioRead(pin);
-	if(level < 0){
-		reportError(DEVELOPER,0,"rpi_gpioReadN_event_handler_init: invalid GPIO pin %d", pin);
-	}
 	if(level){
 		oop stack = newStack(0);
 		enqueue(exec, eh, pushStack(stack, newIntVal(level))); // enqueue a stack with gpio level
@@ -302,14 +297,23 @@ int rpi_gpioRead_N_event_handler_init(oop eh){
 	}
 	return 0;
 }
-#endif 
+#endif // RPI
+
 // Event Handler Table
+	// int (*eh)(oop exec, oop eh); // event handler function
+	// int (*init)(oop eh); // initialize function
+	// int nArgs; // number of arguments
+	// int nData; // number of data fields
 struct ExecEventTable  __ExecEventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init,0,0 },      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init,1,2 },      // TIMER_EH
 	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init,1,1 },      // T_TIMER_SEC_EH
 	[T_TIMER_MIN_EH] = {timer_min_handler,    event_object_handler_init,1,1 },      // T_TIMER_MIN_EH
 	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init,1,1 },      // T_TIMER_HOUR_EH
+#ifdef RPI
+	[PI_GPIO_0_31_EH] = {rpi_gpioRead_0_31event_handler,      event_handler_init,2,0 },      // PI_GPIO_0_31_EH
+	[PI_GPIO_EO_N_EH] = {rpi_gpioRead_N_event_handler,      rpi_gpioRead_N_event_handler_init,1,1 },		  // PI_GPIO_EO_N_EH
+#endif
 };
 //-------------------------------
 // Standard Library Functions
@@ -352,11 +356,48 @@ int lib_timer_reset(oop stack)
 	GC_POP(initVal);
 	return 0;
 }
+#ifdef RPI
+oop lib_pi_gpio_set_output(oop stack){
+	int pin = IntVal_value(popStack(stack));
+	gpioSetMode(pin, PI_OUTPUT);
+	return 0;
+}
+oop lib_pi_gpio_write(oop stack){
+	int pin = IntVal_value(popStack(stack));
+	int value = IntVal_value(popStack(stack));
+	gpioWrite(pin, value);
+	return 0;
+}
+oop lib_pi_gpio_eo_write(oop stack){
+	oop instance = popStack(stack);
+	assert(instance->kind == Instance);
+	oop* fields = getObj(instance, Instance, fields);
+	assert(fields != NULL);
+
+	oop obj = fields[0];
+	assert(obj != NULL);
+	assert(getKind(obj) == IntVal);
+	int pin = IntVal_value(obj);
+	int mode = IntVal_value(obj+1);
+	if(mode!= PI_OUTPUT){
+		reportError(DEVELOPER,0,"lib_pi_gpio_eo_write: GPIO pin %d not set as output mode", pin);
+		return 0;
+	}
+	int value = IntVal_value(popStack(stack));
+	gpioWrite(pin, value);
+	return 0;
+}
+#endif // RPI
 struct ExecStdFuncTable  __ExecStdFuncTable__[] = {
 	[EXIT_FUNC] = {lib_exit}, // exit function
 	[CHAT_SEND_FUNC] = {lib_chat_send}, // chat send function
 	[MATH_SQRT_FUNC] = {lib_math_sqrt}, // math sqrt function
 	[T_TIMER_RESET_FUNC] = {lib_timer_reset}, // timer reset function
+#ifdef RPI
+	[PI_GPIO_SET_OUTPUT_FUNC] = {lib_pi_gpio_set_output}, // Raspberry Pi GPIO set output function
+	[PI_GPIO_WRITE_FUNC] = {lib_pi_gpio_write}, // Raspberry Pi GPIO write function
+	[PI_GPIO_EO_WRITE_FUNC] = {lib_pi_gpio_eo_write}, // Raspberry Pi GPIO Event Object write function
+#endif
 };
 //-------------------------------
 //Event Object 
@@ -379,9 +420,53 @@ oop time_eo(oop stack){
 	GC_POP(instance);
 	return instance;
 }
+#ifdef RPI
+int isInitGPIO = 0;
+oop rpi_gpio_eo(oop stack){
+/*
+0: pin
+1: mode
+2: init (pud|vol)
+*/
+	GC_PUSH(oop,instance,newInstance(3)); // gpio eo has 3 fields: pin, mode, init
+	oop* fields = getObj(instance, Instance, fields);
+	fields[0] = popStack(stack); // pin
+	fields[1] = popStack(stack); // mode
+	fields[2] = popStack(stack); // init
+	if(!isInitGPIO){
+		for(int try_init=0; try_init<5; try_init++){
+			if(gpioInitialise() >= 0){
+				isInitGPIO = 1;
+				break;
+			}
+			else{
+				reportError(DEVELOPER,0,"rpi_gpio_eo: gpioInitialise failed, retrying %d/5", try_init+1);
+				sleep(1);
+			}
+		}
+		if(!isInitGPIO){
+			reportError(DEVELOPER,0,"rpi_gpio_eo: gpioInitialise failed after 5 attempts");
+		}
+	}
+	if(IntVal_value(fields[1]) == PI_INPUT){
+		int pud = IntVal_value(fields[2]);
+		gpioSetPullUpDown(IntVal_value(fields[0]), pud);
+	}else{
+		gpioSetMode(IntVal_value(fields[0]), PI_OUTPUT);
+		gpioWrite(IntVal_value(fields[0]), IntVal_value(fields[2]));
+	}
+	GC_POP(instance);
+	return instance;
+}
+#endif // RPI
+//-------------------------------
+
 struct ExecEventObjectTable __ExecEventObjectTable__[] = {
 	[CHAT_BROADCAST_EO] = {wifi_udp_broadcast_eo},
 	[TIME_EO] = {time_eo},
+#ifdef RPI
+	[PI_GPIO_EO] = {rpi_gpio_eo},
+#endif
 };
 #endif // SHICAEXEC
 

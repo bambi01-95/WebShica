@@ -1,16 +1,22 @@
-int fib(int n) {
-    if (n <= 1) return n;
-    return fib(n - 1) + fib(n - 2);
+var button = gpioEO(17, 0, 0);
+var led = gpioEO(13, 1, 0);
+var channel = broadcastEO("room1","oops");
+state off(){
+    entryEH(){
+        led.write(0); 
+    }
+    button.readEH(int val){
+        state on;
+    }
 }
-
-state main(){
-	timerEH(int s:s==1){
-		print(fib(40));
-		state end;
-	}
-}
-state end(){
-	entryEH(){
-		print("end");
+state on(){
+    entryEH(){
+        led.write(1);
+    }
+    button.readEH(int val){
+        state off;
+    }
+	channel.receivedEH(str addr, str msg){
+		state off;
 	}
 }
