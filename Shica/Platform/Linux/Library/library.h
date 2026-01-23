@@ -3,15 +3,15 @@
 #define LIBRARY_H
 
 
-#include "../../../GC/gc.h"
+#include "GC/gc.h"
 #ifdef SHICAEXEC
-#include "../../../Object/object.h"
+#include "Object/object.h"
 extern struct ExecEventTable __ExecEventTable__[];
 extern struct ExecStdFuncTable __ExecStdFuncTable__[];
 extern struct ExecEventObjectTable  __ExecEventObjectTable__[];
 #endif
 #ifdef SHICACOMP
-#include "../../../Node/node.h"
+#include "Node/node.h"
 extern struct CompEventTable __CompEventTable__[];
 extern struct CompStdFuncTable __CompStdFuncTable__[];
 extern struct CompEventObjectTable  __CompEventObjectTable__[];

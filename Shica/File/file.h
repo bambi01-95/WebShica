@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "../GC/gc.h"
+#include "GC/gc.h"
 
 #ifndef WEBSHICA
 

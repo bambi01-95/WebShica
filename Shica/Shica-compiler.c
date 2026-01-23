@@ -15,14 +15,14 @@ UserFunc Name: should start with a lowwer letter
 #include <unistd.h>
 
 
-#include "./GC/gc.h"
-#include "./Error/error.h"
-#include "./Opcode/opcode.h"
-#include "./Node/node.h"
-#include "./Parser/parser.h"
-#include "./Compiler/compiler.h"
-#include "./File/file.h"
-#include "./Tool/tool.h"
+#include "GC/gc.h"
+#include "Error/error.h"
+#include "Opcode/opcode.h"
+#include "Node/node.h"
+#include "Parser/parser.h"
+#include "Compiler/compiler.h"
+#include "File/file.h"
+#include "Tool/tool.h"
 
 #include "./Platform/Linux/Library/library.h"
 

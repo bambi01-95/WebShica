@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../GC/gc.h"
+#include "GC/gc.h"
 #define MESSAGE_MAX_LENGTH 100
 #define DEVELOPER_EMAIL "hiroto.shikada@gmail.com"
 

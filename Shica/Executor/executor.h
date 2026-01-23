@@ -1,15 +1,15 @@
 #ifndef EXECUTOR_H
 #define EXECUTOR_H
-#include "../GC/gc.h"
-#include "../Error/error.h"
-#include "../Opcode/opcode.h"
-#include "../Object/object.h"
-#include "../Executor/executor.h"
+#include "GC/gc.h"
+#include "Error/error.h"
+#include "Opcode/opcode.h"
+#include "Object/object.h"
+#include "Executor/executor.h"
 
 #ifdef WEBSHICA
-#include "../Platform/WebShica/Library/library.h"
+#include "Platform/WebShica/Library/library.h"
 #else // LINUX
-#include "../Platform/Linux/Library/library.h"
+#include "Platform/Linux/Library/library.h"
 #endif
 
 #define TAGBITS 2
