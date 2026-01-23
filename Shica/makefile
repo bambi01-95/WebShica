@@ -31,18 +31,24 @@ COMPILER_SRC = ./Node/node.c\
 EXECUTOR_SRC = ./Executor/executor.c \
                ./Object/object.c 
 # インクルードディレクトリ
-COMMON_INCLUDE_DIRS = -I .\
+COMMON_INCLUDE_DIRS = -I . \
                       -I ./GC \
-					  -I ./GC/msgcs \
-		   	          -I ./Error \
-				      -I ./Opcode \
-					  -I ./File \
-					  -I ./Tool
-COMPILER_INCLUDE_DIRS = -I ./Node \
-					   -I ./Compiler \
-					   -I ./Parser
-EXECUTOR_INCLUDE_DIRS = -I ./Executor \
-						-I ./Object
+                      -I ./GC/msgcs \
+                      -I ./Error \
+                      -I ./Opcode \
+                      -I ./File \
+                      -I ./Tool
+
+COMPILER_INCLUDE_DIRS = $(COMMON_INCLUDE_DIRS) \
+                        -I ./Node \
+                        -I ./Compiler \
+                        -I ./Parser
+
+EXECUTOR_INCLUDE_DIRS = $(COMMON_INCLUDE_DIRS) \
+                        -I ./Executor \
+                        -I ./Object \
+                        -I ./Platform/Linux/Library
+
 # 共通ソース
 SRC = ./GC/msgcs/msgcs.c  \
 	  ./Error/error.c   \
@@ -96,13 +102,13 @@ compiler: leg
 	gcc -o ./Shica-compiler ./Shica-compiler.c \
 	 $(FLAGS) -DSHICACOMP \
 	 $(COMMON_SRC) $(COMPILER_SRC) ./Platform/Linux/Library/library.c  \
-	 $(COMMON_INCLUDE_DIRS) $(COMPILER_INCLUDE_DIRS) -I ./Platform/Linux/Library/
+	 $(COMPILER_INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 executor: 
 	gcc -o ./Shica-executor ./Shica-executor.c \
 	 $(FLAGS) -DSHICAEXEC \
 	 $(COMMON_SRC) $(EXECUTOR_SRC) ./Platform/Linux/Library/library.c  \
-	 $(COMMON_INCLUDE_DIRS) $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/
+	 $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode", "_reinitAllAgentData"
 WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
