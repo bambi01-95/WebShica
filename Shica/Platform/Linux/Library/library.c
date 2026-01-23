@@ -26,8 +26,10 @@ enum{
 // Standard Library Function Types
  enum {
 	EXIT_FUNC=0,   // exit function
-	CHAT_SEND_FUNC, // chat send function
 	MATH_SQRT_FUNC, // math sqrt function
+	CHAT_SEND_FUNC, // chat send function
+	CHAT_POST_FUNC, // chat post function
+	CHAT_SELF_FUNC, // chat self function
 	T_TIMER_RESET_FUNC, // timer reset function
 	#ifdef RPI // Raspberry Pi specific functions (from 0x08:  decimal)
 	PI_GPIO_SET_OUTPUT_FUNC, //= 0x08, // Raspberry Pi GPIO set output function
@@ -37,7 +39,7 @@ enum{
 } StdLibFuncType;
 // Event Object Types
 enum {
-	WEB_RTC_BROADCAST_EO, // WebRTC broadcast event object
+	CHAT_BROADCAST_EO = 0x00, // WebRTC Broadcast Event Object
 	TIME_EO, // Timer Event Object
 	END_EO, /* DO NOT REMOVE THIS LINE */
 	#ifdef RPI // Raspberry Pi specific event objects (from 0x08:  decimal)
@@ -70,6 +72,7 @@ int compile_eh_init(){
 struct CompEventTable __CompEventTable__[] = {
 	[EVENT_EH] = {0, NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {1,(char []){Integer}, 2},      // TIMER_EH
+	[CHAT_RECEIVED_EH] = {2,(char []){String/*sender*/, String/*msg*/}, 3},      // CHAT_RECEIVED_EH
 	[T_TIMER_SEC_EH] = {1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
 	[T_TIMER_MIN_EH] = {1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
 	[T_TIMER_HOUR_EH] = {1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
@@ -98,7 +101,9 @@ int compile_func_init()
 }
 struct CompStdFuncTable __CompStdFuncTable__[] = {
 	[EXIT_FUNC] = {1, (int[]){Integer}, Undefined}, // exit function takes 1 argument
-	[CHAT_SEND_FUNC] = {2, (int[]){String, Integer}, Undefined}, // chat send function takes 2 arguments
+	[CHAT_SEND_FUNC] = {1, (int[]){String/*msg*/}, Undefined}, // chat send function takes 2 arguments
+	[CHAT_POST_FUNC] = {1, (int[]){String/*msg*/}, Undefined}, // chat post function takes 2 arguments
+	[CHAT_SELF_FUNC] = {0, NULL, String/*id*/}, // chat self function takes 0 arguments and returns a string
 	[MATH_SQRT_FUNC] = {1, (int[]){Integer}, Integer}, // math sqrt function takes 1 argument and returns an integer
 	[T_TIMER_RESET_FUNC] = {1, (int[]){Integer}, Undefined}, // timer reset function takes 1 argument
 #ifdef RPI
@@ -116,11 +121,15 @@ int compile_eo_init(){
 	node eo = NULL;
 // Broadcast Event Object
 	sym = intern("broadcastEO");
-	eo = newEventObject(sym, WEB_RTC_BROADCAST_EO);// var chat = broadcast(channel, password);
+	eo = newEventObject(sym, CHAT_BROADCAST_EO);// var chat = broadcast(channel, password);
 	func = newEventH(CHAT_RECEIVED_EH);sym = newSymbol("receivedEH");
 	putFuncToEo(eo, func, sym, 0);// chat.received(sender, msg);
 	func = newStdFunc(CHAT_SEND_FUNC);sym = newSymbol("send");
 	putFuncToEo(eo, func, sym, 1); // chat.send(msg, recipient);
+	func = newStdFunc(CHAT_POST_FUNC);sym = newSymbol("post");
+	putFuncToEo(eo, func, sym, 2); // chat.post(msg);
+	func = newStdFunc(CHAT_SELF_FUNC);sym = newSymbol("self");
+	putFuncToEo(eo, func, sym, 3); // chat.self();
 // Timer Event Object
 	sym = intern("timerEO");
 	eo = newEventObject(sym, TIME_EO);// var t = timer(interval, label);
@@ -149,7 +158,7 @@ int compile_eo_init(){
 	// int nFuncs; // number of functions
 	// int *argTypes; // types of arguments
 struct CompEventObjectTable  __CompEventObjectTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = {3, 1, (int[]){String, Integer, String}}, // WebRTC broadcast event object with 3 arguments and 1 function
+	[CHAT_BROADCAST_EO] = {2, 4, (int[]){String/*channel*/, String/*password*/}}, // WebRTC broadcast event object with 3 arguments and 1 function
 	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
 #ifdef RPI
 	[PI_GPIO_EO] = {3, 2, (int[]){Integer/*pin*/, Integer/*mode*/, Integer/*init: pud|vol*/}}, // Raspberry Pi GPIO event object with 3 arguments and 2 functions
@@ -371,7 +380,7 @@ oop time_eo(oop stack){
 	return instance;
 }
 struct ExecEventObjectTable __ExecEventObjectTable__[] = {
-	[WEB_RTC_BROADCAST_EO] = {wifi_udp_broadcast_eo},
+	[CHAT_BROADCAST_EO] = {wifi_udp_broadcast_eo},
 	[TIME_EO] = {time_eo},
 };
 #endif // SHICAEXEC

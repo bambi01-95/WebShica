@@ -1,0 +1,22 @@
+var button = gpioEO(17, 0, 0);
+var led = gpioEO(13, 1, 0);
+var channel = broadcastEO("room1","oops");
+state off(){
+    entryEH(){
+        led.write(0); 
+    }
+    button.readEH(int val){
+        state on;
+    }
+}
+state on(){
+    entryEH(){
+        led.write(1);
+    }
+    button.readEH(int val){
+        state off;
+    }
+	channel.receivedEH(str addr, str msg){
+		state off;
+	}
+}

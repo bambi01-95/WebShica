@@ -66,7 +66,7 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DNDEBUG -O2 -DRPI
+FLAGS = -DMSGCS -DNDEBUG -Os -DRPI
 #-DMSGC    マーク＆スイープGCを有効化
 #-DMSGCS   マーク＆スイープGC（分割実行）を有効化
 #-DDEBUG

@@ -1,19 +1,16 @@
-var button = gpioEO(17,1,0);
-state init(){
-    entryEH(){
-        gpioSetOutput(13);
-    }
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
 }
-state off(){
-    entryEH(){
-        gpioWrite(13,0);
-    }
-    button.readEH(int val){
-        state on;
-    }
+
+state main(){
+	timerEH(int s:s==1){
+		print(fib(40));
+		state end;
+	}
 }
-state on(){
-    button.readEH(int val){
-        state off;
-    }
+state end(){
+	entryEH(){
+		print("end");
+	}
 }
