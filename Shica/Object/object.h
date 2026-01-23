@@ -1,8 +1,8 @@
 #ifndef OBJECT_H
 #define OBJECT_H
-#include "Opcode/opcode.h"
-#include "Error/error.h"
-#include "GC/gc.h"
+#include "opcode.h"
+#include "error.h"
+#include "gc.h"
 #include <stdint.h>
 /*
 int32_t: 4 bytes -> int: 4 bytes

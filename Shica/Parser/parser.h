@@ -1,9 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "Node/node.h"
-#include "GC/gc.h"
-#include "Error/error.h"
+#include "node.h"
+#include "gc.h"
+#include "error.h"
 
 #ifdef WEBSHICA
 #include "../Platform/WebShica/Library/library.h" // for WebText, WebTextPos

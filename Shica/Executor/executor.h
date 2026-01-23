@@ -1,10 +1,10 @@
 #ifndef EXECUTOR_H
 #define EXECUTOR_H
-#include "GC/gc.h"
-#include "Error/error.h"
-#include "Opcode/opcode.h"
-#include "Object/object.h"
-#include "Executor/executor.h"
+#include "gc.h"
+#include "error.h"
+#include "opcode.h"
+#include "object.h"
+#include "executor.h"
 
 #ifdef WEBSHICA
 #include "Platform/WebShica/Library/library.h"

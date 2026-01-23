@@ -15,16 +15,16 @@ UserFunc Name: should start with a lowwer letter
 #include <unistd.h>
 
 
-#include "GC/gc.h"
-#include "Error/error.h"
-#include "Opcode/opcode.h"
-#include "Node/node.h"
-#include "Parser/parser.h"
-#include "Compiler/compiler.h"
-#include "File/file.h"
-#include "Tool/tool.h"
+#include "gc.h"
+#include "error.h"
+#include "opcode.h"
+#include "node.h"
+#include "parser.h"
+#include "compiler.h"
+#include "file.h"
+#include "tool.h"
 
-#include "./Platform/Linux/Library/library.h"
+#include "library.h"
 
 void markEmpty(void* ptr){ return;}
 void collectEmpty(void){ return; }

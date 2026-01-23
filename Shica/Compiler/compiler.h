@@ -1,10 +1,9 @@
 #ifndef COMPILER_H
 #define COMPILER_H
 
-#include "Error/error.h"
-#include "Opcode/opcode.h"
-#include "Object/object.h"
-#include "Parser/parser.h"
+#include "error.h"
+#include "opcode.h"
+#include "parser.h"
 #ifdef WEBSHICA
 #include "Platform/WebShica/Library/library.h"
 #else // LINUX

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "GC/gc.h"
-#include "Error/error.h"
+#include "error.h"
 
 union Node;
 typedef union Node Node;
