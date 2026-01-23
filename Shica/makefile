@@ -108,7 +108,7 @@ executor:
 	gcc -o ./Shica-executor ./Shica-executor.c \
 	 $(FLAGS) -DSHICAEXEC \
 	 $(COMMON_SRC) $(EXECUTOR_SRC) ./Platform/Linux/Library/library.c  \
-	 $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/
+	 $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/ -lm
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode", "_reinitAllAgentData"
 WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
