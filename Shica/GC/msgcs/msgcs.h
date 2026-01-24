@@ -6,6 +6,10 @@
 #include <string.h>
 #include <assert.h>
 
+typedef unsigned int extstr;
+int registerExternType(unsigned int pointerMap);
+unsigned int getExternTypePointerMap(int type);
+
 #ifdef NDEBUG // NDEBUGが「定義されていない」場合（デバッグビルド）
 # define gc_debug_log(fmt, ...) (void)0
 #else // NDEBUGが「定義されている」場合（リリースビルド）

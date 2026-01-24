@@ -199,8 +199,14 @@ struct CompEventObjectTable  __CompEventObjectTable__[] = {
 //-------------------------------+
 
 
-// #define SHICAEXEC
 #ifdef SHICAEXEC
+// #include "node.h"
+// #include "gc.h"
+
+//-------------------------------
+// Network Functions
+// network.c
+//-------------------------------
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,7 +293,7 @@ void send_broadcast(int sockfd, struct sockaddr_in *broadcast_addr, const char *
     if (sendto(sockfd, data, data_size, 0, (struct sockaddr *)broadcast_addr, sizeof(*broadcast_addr)) < 0) {
         perror("sendto");
     } else {
-        printf("Broadcast sent successfully\n");
+        dprintf("Broadcast sent successfully\n");
     }
 }
 
@@ -296,14 +302,14 @@ int send_broadcast_nonblocking(int sockfd, struct sockaddr_in *broadcast_addr, c
     ssize_t ret = sendto(sockfd, data, data_size, 0, (struct sockaddr *)broadcast_addr, sizeof(*broadcast_addr));
     if (ret < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {// EAGAIN: リソースが利用可能になるまで待つ必要がある場合
-            printf("Send would block, try again later\n");
+            dprintf("Send would block, try again later\n");
             return -1;
         } else {                                    // EWOULDBLOCK: リソースが利用可能になるまで待つ必要がある場合
             perror("sendto");
             return -1;
         }
     } else {
-        DEBIF printf("Broadcast sent successfully\n");
+        dprintf("Broadcast sent successfully\n");
         return 0;
     }
 }
@@ -324,7 +330,7 @@ int create_receive_socket(int *sockfd, struct sockaddr_in *recv_addr, int BROADC
 
     // ポートにバインド
     if (bind(*sockfd, (struct sockaddr *)recv_addr, sizeof(*recv_addr)) < 0) {
-        printf("bind error\n");
+        dprintf("bind error\n");
         return -1;
         perror("bind");
         close(*sockfd);
@@ -340,10 +346,10 @@ int receive_broadcast(int sockfd, char *buffer, size_t buffer_size) {
 
     ssize_t ret = recvfrom(sockfd, buffer, buffer_size, MSG_DONTWAIT, (struct sockaddr *)&sender_addr, &addr_len);
     if (ret > 0) {
-        DEBIF printf("Received from %s: %s\n", inet_ntoa(sender_addr.sin_addr), buffer);
+        dprintf("Received from %s: %s\n", inet_ntoa(sender_addr.sin_addr), buffer);
         return 0;
     } else {
-        DEBIF perror("recvfrom");
+         dprintf("recvfrom error: %s\n", strerror(errno));
         return -1;
     }
 }
@@ -354,30 +360,18 @@ int receive_broadcast_nonblocking(int sockfd, char *buffer, size_t buffer_size) 
 
     ssize_t ret = recvfrom(sockfd, buffer, buffer_size, 0, (struct sockaddr *)&sender_addr, &addr_len);
     if(ret>0){
-        DEBIF printf("Received from %s: %s\n", inet_ntoa(sender_addr.sin_addr), buffer);
+        dprintf("Received from %s: %s\n", inet_ntoa(sender_addr.sin_addr), buffer);
         return 0;
     }else{
-        DEBIF perror("recvfrom");
+        dprintf("recvfrom error: %s\n", strerror(errno));
         return -1;
     }
 }
 
-
-
-extern enum COMMUNICATE_E{
-    COMMUNICATE_WiFi_RECEIVE_E,
-    COMMUNICATE_WiFi_BROADCAST_RECEIVE_E,
-    COMMUNICATE_WiFi_GROUP_RECEIVE_E,
-} COMMUNICATE_E;
-
-extern enum COMMUNICATE_P{
-    COMMUNICATE_WiFi_SEND_P,
-    COMMUNICATE_WiFi_BROADCAST_P,
-    COMMUNICATE_WiFi_GROUP_BROADCAST_P,
-    COMMUNICATE_WiFi_BUILD_GROUP_P,
-    COMMUNICATE_WiFi_LEAVE_GROUP_P,
-} COMMUNICATE_P;
-
+//-------------------------------
+// Agent Structure
+// agent.h
+//-------------------------------
 #define MAX_GROUP 8
 
 typedef enum AgentType{
@@ -387,10 +381,10 @@ typedef enum AgentType{
     AgentVisitor,
 }agent_t;
 
-typedef union Agent *agent_p;
+
 
 struct AgentBase{
-    enum Type type; //for gc
+    kind_t type; //for heap managed object
     agent_t agent_type;
     char myID;
     char groupID;
@@ -398,6 +392,8 @@ struct AgentBase{
 
 struct AgentReader{
     struct AgentBase base;
+	//char channelName[8];
+	//char password[8];
     char groupKey[4];//check me
     unsigned char sizeOfMember;
 };
@@ -410,15 +406,19 @@ struct AgentVisitor{
     struct AgentBase base;
 };
 
-#define STRUCT_AGENT_TYPE 0b000
-union Agent{
-    enum Type type;
+#define STRUCT_AGENT_TYPE 0b000 // all agent structures have the same pointer map
+union ChatAgent{
+    kind_t type;
     struct AgentBase base;
     struct AgentReader reader;
     struct AgentMember member;
     struct AgentVisitor visitor;
 };
+typedef union ChatAgent *agent_p;
 
+//-------------------------------
+// Agent Functions
+//-------------------------------
 agent_p _createAgent(agent_t type,int size){
     agent_p agent = (agent_p)gc_alloc(size);
     agent->base.type = registerExternType(STRUCT_AGENT_TYPE) + EXTRA_KIND;
@@ -427,11 +427,11 @@ agent_p _createAgent(agent_t type,int size){
 }
 #define createAgent(TYPE) _createAgent(TYPE,sizeof(struct TYPE))
 
-#if DEBUG
+#ifdef DEBUG
 agent_p _check_agent_type(agent_p node,enum AgentType type, char *file, int line)
 {
     if (node->base.agent_type != type) {
-        printf("%s line %d: expected type %d got type %d\n", file, line, type, node->base.type);
+        dprintf("%s line %d: expected type %d got type %d\n", file, line, type, node->base.type);
         exit(1);
     }
     return node;
@@ -439,14 +439,14 @@ agent_p _check_agent_type(agent_p node,enum AgentType type, char *file, int line
 #define getA(PTR, TYPE, FIELD)	(_check_agent_type((PTR), TYPE, __FILE__, __LINE__)->TYPE.FIELD)
 #else
 #define getA(PTR, TYPE, FIELD)  (PTR->TYPE.FIELD)
-#endif
+#endif // DEBUG
 
-#if DEBUG
+#ifdef DEBUG
 #define getAgentGroupKey(A) _getAgentGroupKey(__FILE__,__LINE__,A)
 char *_getAgentGroupKey(char *file, int line, agent_p agent)
 #else
 char *getAgentGroupKey(agent_p agent)
-#endif
+#endif // DEBUG
 {
     switch(agent->base.agent_type){
         case AgentMember:{
@@ -457,19 +457,16 @@ char *getAgentGroupKey(agent_p agent)
         }
         case AgentVisitor:
         default:{
-#if DEBUG
+#ifdef DEBUG
             DEBUG_LOG_REF("UNKNOWN AGENT TYPE \n");
             exit(1);
 #else
-            printf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
+            dprintf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
 #endif
         }
     }
     return 0;
 }
-
-
-
 void setAgentGroupKey(agent_p agent,char *groupKey){
     switch(agent->base.agent_type){
         case AgentMember:{
@@ -484,38 +481,46 @@ void setAgentGroupKey(agent_p agent,char *groupKey){
             break;
         }
         default:{
-            printf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
+            dprintf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
         }
     }
 }
 
 
+#ifdef DEBUG
 void printAgentData(agent_p agent){
     switch(agent->base.agent_type){
         case AgentMember:{
-            printf("AgentMember\n");
-            printf("myID:%d\n",agent->base.myID);
-            printf("groupID:%d\n",agent->base.groupID);
-            printf("groupKey:%*s\n",4,agent->member.groupKey);
+            dprintf("AgentMember\n");
+            dprintf("myID:%d\n",agent->base.myID);
+            dprintf("groupID:%d\n",agent->base.groupID);
+            dprintf("groupKey:%*s\n",4,agent->member.groupKey);
             break;
         }
         case AgentReader:{
-            printf("AgentReader\n");
-            printf("myID:%d\n",agent->base.myID);
-            printf("groupID:%d\n",agent->base.groupID);
-            printf("groupKey:%*s\n",4,agent->reader.groupKey);
-            printf("sizeOfMember:%d\n",agent->reader.sizeOfMember);
+            dprintf("AgentReader\n");
+            dprintf("myID:%d\n",agent->base.myID);
+            dprintf("groupID:%d\n",agent->base.groupID);
+            dprintf("groupKey:%*s\n",4,agent->reader.groupKey);
+            dprintf("sizeOfMember:%d\n",agent->reader.sizeOfMember);
             break;
         }
         case AgentVisitor:{
-            printf("AgentVisitor\n");
+            dprintf("AgentVisitor\n");
             break;
         }
         default:{
-            printf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
+            dprintf("%s line %d UNKNOWN\n",__FILE__,__LINE__);
         }
     }
 }
+#else
+#define printAgentData(AGENT) (void)0
+#endif // DEBUG
+
+// -------------------------------
+// Broadcast Data Definitions
+// -------------------------------
 
 // request type
 #define  REQUEST_UNDEFINED      0x00
@@ -530,13 +535,13 @@ void printAgentData(agent_p agent){
 
 
 // broadcast data index
-#define DATA_REQUEST_TYPE        0x00
-#define DATA_GROUP_ID            0x01
-#define DATA_REQUEST_SENDER_ID   0x02
-#define DATA_REQUEST_MEMEBER_ID  0x03
-#define DATA_SIZE_OF_MEMBER      0x04
-#define DATA_GROUP_KEY           0x05
-#define DATA_DATA                0x09
+#define DATA_REQUEST_TYPE        0x00 // (char) 8 bits
+#define DATA_GROUP_ID            0x01 // (char) 8 bits, but shlud be 64 bits in future cause channel name is 8 characters
+#define DATA_REQUEST_SENDER_ID   0x02 // (char) 8 bits
+#define DATA_REQUEST_MEMEBER_ID  0x03 // (char) 8 bits
+#define DATA_SIZE_OF_MEMBER      0x04 // (char) 8 bits
+#define DATA_GROUP_KEY           0x05 // (char[4]) 32 bits, but should be 64 bits in future, and add security
+#define DATA_DATA                0x09 // data start index
 
 // group key size
 #define SIZE_OF_DATA_GROUP_KEY   0x04
@@ -553,16 +558,16 @@ void printAgentData(agent_p agent){
 
 #define STRUCT_SOCKET_INFO_TYPE 0b000
 struct SocketInfo{
-    enum Type type;
+    kind_t type;
     int recv_sockfd, send_sockfd;
     struct sockaddr_in recv_addr, broadcast_addr, sender_addr;
     socklen_t addr_len;
     char own_ip[INET_ADDRSTRLEN];
 };
-#define STRUCT_AGENT_INFO_TYPE 0b110
+#define STRUCT_AGENT_INFO_TYPE 0b110 // is 0b011? cause kind_t type is general object header
 struct AgentInfo{
-    enum Type type;
-    union Agent* agent;//agent_p is struct Agent*
+    kind_t type;
+    agent_p agent;//agent_p is struct Agent*
     struct SocketInfo *socket;
 };
 
@@ -637,7 +642,7 @@ int timer_hour_handler(oop exec, oop eh){
 	return 0;
 }
 
-oop eve_wifi_receive(oop exec, oop eh){
+int eve_wifi_receive_handler(oop exec, oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -660,17 +665,19 @@ oop eve_wifi_receive(oop exec, oop eh){
 		// if (strcmp(sender_ip, socketInfo->own_ip) == 0) {
 		// 	return core;
 		// }
-#if DEBUG
+#ifdef DEBUG
 		DEBUG_LOG("\nReceived from %s: %s\n", sender_ip, buffer);
 #endif
 
 		if(agent->base.groupID == buffer[DATA_GROUP_ID] && memcmp(getAgentGroupKey(agent), buffer + DATA_GROUP_KEY, SIZE_OF_DATA_GROUP_KEY) == 0){
 			switch(buffer[DATA_REQUEST_TYPE]){
 				case REQUEST_JOIN:{
-					#if DEBUG
+					#ifdef DEBUG
 					DEBUG_LOG("REQUEST_JOIN");
 					printAgentData(agent);
 					#endif
+					//ignore my own request
+					if(strcmp(sender_ip, socketInfo->own_ip) == 0){break;}
 
 					if(agent->base.agent_type == AgentReader){
 						int list = agent->reader.sizeOfMember;
@@ -689,14 +696,14 @@ oop eve_wifi_receive(oop exec, oop eh){
 							if (sent < 0) {
 								perror("sendto");
 							} else {
-								SHICA_PRINTF("Replied to %s: REJECT\n", sender_ip);
+								dprintf("Replied to %s: REJECT\n", sender_ip);
 							}
 						}
 						else{
 							//send TO_BE_MEMBER
 							agent->reader.sizeOfMember |= (1U <<(newId-1));
-#if DEBUG
-							DEBUG_LOG("current Member is %d\n",agent->reader.sizeOfMember);
+#ifdef DEBUG
+							dprintf("current Member is %d\n",agent->reader.sizeOfMember);
 #endif
 							buffer[DATA_REQUEST_TYPE] = REQUEST_TO_BE_MEMBER;
 							buffer[DATA_REQUEST_SENDER_ID]        = newId;
@@ -706,7 +713,7 @@ oop eve_wifi_receive(oop exec, oop eh){
 							if (sent < 0) {
 								perror("sendto");
 							} else {
-								SHICA_PRINTF("Replied to %s: TO_BE_MEMBER given ID %d\n", sender_ip,newId);
+								dprintf("Replied to %s: TO_BE_MEMBER given ID %d\n", sender_ip,newId);
 							}
 							// printMember(buffer[DATA_SIZE_OF_MEMBER]);
 						}
@@ -715,9 +722,11 @@ oop eve_wifi_receive(oop exec, oop eh){
 				}
 
 				case REQUEST_LEAVE:{
-					#if DEBUG
+					#ifdef DEBUG
 					DEBUG_LOG("REQUEST_LEAVE\n");
 					#endif
+					//ignore my own leave request
+					if(strcmp(sender_ip, socketInfo->own_ip) == 0){break;}
 					if(agent->base.agent_type == AgentReader){
 						agent->reader.sizeOfMember &= ~(1 << buffer[DATA_REQUEST_SENDER_ID]); 
 						//send SUCCESS
@@ -727,22 +736,27 @@ oop eve_wifi_receive(oop exec, oop eh){
 						if (sent < 0) {
 							perror("sendto");
 						} else {
-							SHICA_PRINTF("Replied to %s: SUCCESS\n", sender_ip);
+							dprintf("Replied to %s: SUCCESS\n", sender_ip);
 						}
 					}
 					break;
 				}
+
 				case REQUEST_TO_BE_READER:{
-					#if DEBUG
+					#ifdef DEBUG
 					DEBUG_LOG("REQUEST_TO_BE_READER\n");
 					#endif
+					//ignore my own request
+					if(strcmp(sender_ip, socketInfo->own_ip) == 0){break;}
+					//send SUCCESS with Member info
+					//only Member can be Reader
 					if(agent->base.agent_type == AgentMember){
 						if((buffer[DATA_REQUEST_MEMEBER_ID]>> (agent->base.myID-1) & 1) == 1){//checking for me or not
 							agent_p newAgent = createAgent(AgentReader);
 							newAgent->reader.sizeOfMember = buffer[DATA_SIZE_OF_MEMBER] & ~(1 << (agent->base.myID-1));//remove my id
 							newAgent->base.myID = 0;
 							newAgent->base.groupID = buffer[DATA_GROUP_ID];
-							printf("current Member is %d\n",newAgent->reader.sizeOfMember);
+							dprintf("current Member is %d\n",newAgent->reader.sizeOfMember);
 							setAgentGroupKey(newAgent,agent->reader.groupKey);
 
 							buffer[DATA_REQUEST_TYPE] = REQUEST_SUCCESS;
@@ -751,93 +765,43 @@ oop eve_wifi_receive(oop exec, oop eh){
 							if (sent < 0) {
 								perror("sendto");
 							} else {
-								printf("Replied to %s: SUCCESS\n", sender_ip);
+								dprintf("Replied to %s: SUCCESS\n", sender_ip);
 							}
 							MY_AGENT_INFO->agent = newAgent;
-							core->SubCore.any = (void *)MY_AGENT_INFO;
+							getObj(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
 						}
 					}
-					return core;
+					return 0;
 				}
+
 				case REQUEST_TRIGER:{
-					#if DEBUG
+					#ifdef DEBUG
 					DEBUG_LOG("REQUEST_TRIGER\n");
 					#endif
+					//NOT ignore my own request
+					//check for me or not
 					if((buffer[DATA_REQUEST_MEMEBER_ID]>> (agent->base.myID-1) & 1) == 1){
 						/* trigger data */
-						int isOnce = 0;
-						evalEventArgsThread->Thread.stack->Array.size = 1;//1:basepoint
-						unsigned char value = buffer[DATA_REQUEST_MEMEBER_ID];
-						for(int thread_i = 0;thread_i<core->Core.size;thread_i++){
-							int isFalse = 0;
-							oop thread = core->Core.threads[thread_i];
-							//<引数の評価>/<Evaluation of arguments>
-							if(thread->Thread.condRelPos != 0){
-								if(isOnce == 0){
-									Array_push(evalEventArgsThread->Thread.stack,_newInteger(buffer[DATA_DATA]));//arg 3
-									if(value== ALL_MEMBER_ID){
-										Array_push(evalEventArgsThread->Thread.stack,_newInteger(0));//ALL MEMBER:0
-									}else if(value == ((1U) << (agent->base.myID -1))){
-										Array_push(evalEventArgsThread->Thread.stack,_newInteger(1));//MYSELF:1
-									}else{
-										Array_push(evalEventArgsThread->Thread.stack,_newInteger(2));//OTHER:2
-									}
-									Array_push(evalEventArgsThread->Thread.stack,_newInteger((int)buffer[DATA_REQUEST_SENDER_ID]));//arg1
-									isOnce = 1;
-								}else{
-									evalEventArgsThread->Thread.stack->Array.size = 4;
-								}
-								evalEventArgsThread->Thread.pc = thread->Thread.base + thread->Thread.condRelPos;
-								for(;;){
-									FLAG flag = sub_execute(evalEventArgsThread,GM);
-									if(flag == F_TRUE){
-										break;
-									}
-									else if(flag == F_FALSE){
-										isFalse = 1;
-										break;
-									}
-								}
-							}
-							
-							//<条件が満たされたときの処理>/<Processing when the condition is met>
-							if(!isFalse){
-								//protect t:thread
-								gc_pushRoot((void*)&core);//CHECKME: is it need?
-								oop data = newArray(3);
-								Array_push(data,_newInteger(buffer[DATA_DATA]));
-								if(value == ALL_MEMBER_ID){
-									Array_push(data,_newInteger(0));
-								}else if(value == ((1U) << (agent->base.myID -1))){
-									Array_push(data,_newInteger(1));
-								}else{
-									Array_push(data,_newInteger(2));
-								}
-								Array_push(data,_newInteger((int)buffer[DATA_REQUEST_SENDER_ID]));
-								gc_popRoots(1);
-								enqueue(thread->Thread.queue,data);
-							}
-						#if DEBUG
-							else{
-								DEBUG_LOG("not trigger\n");//remove
-							}
-						#endif
-						}
-
-						return core;
+							oop stack = newStack(0);
+							pushStack(stack, newIntVal((int)buffer[DATA_REQUEST_SENDER_ID])); //arg0
+							pushStack(stack, newIntVal((int)buffer[DATA_DATA])); //arg2
+							enqueue(exec, eh, stack); // enqueue a stack with trigger data
+							return 0;
+					}else{
+						//ignore others' trigger request
+						break;
 					}
 				}
 				default:{
-					#if DEBUG
+					#ifdef DEBUG
 					DEBUG_LOG("UNSPUPPORTED REQUEST %d\n",buffer[DATA_REQUEST_TYPE]);
 					#endif
 					break;
 				}
-
 			}
 		}else{
 			printAgentData(agent);
-			#if DEBUG
+			#ifdef DEBUG
 			if(agent->base.groupID != buffer[DATA_GROUP_ID]){
 			DEBUG_LOG("UNSPUPPORTED GROUP %d (!= %d)\n",buffer[DATA_GROUP_ID],agent->base.groupID);
 			}
@@ -848,7 +812,7 @@ oop eve_wifi_receive(oop exec, oop eh){
 			#endif
 		}
 	}
-return core;
+return 0;
 }
 
 #ifdef RPI
@@ -891,6 +855,7 @@ int rpi_gpioRead_N_event_handler_init(oop eh){
 struct ExecEventTable  __ExecEventTable__[] = {
 	[EVENT_EH] = {event_handler,      event_handler_init,0,0 },      // EVENT_EH
 	[TIMER_EH] = {timer_handler,      timer_handler_init,1,2 },      // TIMER_EH
+	[CHAT_RECEIVED_EH] = {eve_wifi_receive_handler,      event_object_handler_init,2,1 },      // CHAT_RECEIVED_EH
 	[T_TIMER_SEC_EH] = {timer_sec_handler,      event_object_handler_init,1,1 },      // T_TIMER_SEC_EH
 	[T_TIMER_MIN_EH] = {timer_min_handler,    event_object_handler_init,1,1 },      // T_TIMER_MIN_EH
 	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init,1,1 },      // T_TIMER_HOUR_EH
@@ -909,14 +874,6 @@ int lib_exit(oop stack)
 	return 0; // return 0 to indicate success
 }
 
-int lib_chat_send(oop stack)
-{
-	oop chat = popStack(stack); // get chat object from stack
-	char *msg = StrVal_value(popStack(stack)); // get message from stack
-	int recipient = IntVal_value(popStack(stack)); // get recipient from stack
-	return 0; // return 0 to indicate success
-}
-
 int lib_math_sqrt(oop stack)
 {
 	int value = IntVal_value(popStack(stack)); // get value from stack
@@ -929,7 +886,7 @@ int lib_timer_reset(oop stack)
 {
 	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
 	oop instance = popStack(stack); // get timer object from stack
-	printf("timer reset called with initVal: %d\n", IntVal_value(initVal));
+	dprintf("timer reset called with initVal: %d\n", IntVal_value(initVal));
 	assert(getKind(instance) == Instance);
 	assert(getKind(initVal) == IntVal);
 	//DEBUG POINT
@@ -941,18 +898,18 @@ int lib_timer_reset(oop stack)
 	return 0;
 }
 #ifdef RPI
-oop lib_pi_gpio_set_output(oop stack){
+int lib_pi_gpio_set_output(oop stack){
 	int pin = IntVal_value(popStack(stack));
 	gpioSetMode(pin, PI_OUTPUT);
 	return 0;
 }
-oop lib_pi_gpio_write(oop stack){
+int lib_pi_gpio_write(oop stack){
 	int pin = IntVal_value(popStack(stack));
 	int value = IntVal_value(popStack(stack));
 	gpioWrite(pin, value);
 	return 0;
 }
-oop lib_pi_gpio_eo_write(oop stack){
+int lib_pi_gpio_eo_write(oop stack){
 	oop instance = popStack(stack);
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -971,24 +928,22 @@ oop lib_pi_gpio_eo_write(oop stack){
 	gpioWrite(pin, value);
 	return 0;
 }
+#endif // RPI
+//-------------------------------
+// WiFi Group Communication Functions
+//-------------------------------
+int communicate_wifi_group_send(oop stack){
+	GC_PUSH(oop, initVal, popStack(stack)); // get initial value from stack (IntVal)
+	oop instance = popStack(stack); // get timer object from stack
+	assert(getKind(instance) == Instance);
 
-void communicate_wifi_group_send(oop process,oop GM){
-    oop subcore = Array_pop(mstack);
-    void* any = subcore->SubCore.any;
-    if(any == 0){
-        fatal("should be initialize wifiGroupReceive()\n");
-        return;
-    }
-    getInt(mpc);int size_args = int_value;
-    int sendToId = api();
-    int value = api();
-#if DEBUG
-    DEBUG_LOG("sendToId:%d value:%d\n",sendToId,value);
-#endif
-    struct AgentInfo *MY_AGENT_INFO = (struct AgentInfo *)any;
+    // int sendToId = IntVal_value(popStack(stack)); // get sendToId from stack
+    int value = IntVal_value(initVal);
+
+    struct AgentInfo *MY_AGENT_INFO = (struct AgentInfo *)getInstanceField(instance, 0);
     if(MY_AGENT_INFO == 0){
-        SHICA_PRINTF("It doesn't belong to some group now\n");
-        return;
+        dprintf("It doesn't belong to some group now\n");
+        return 0;
     }
     struct SocketInfo *socketInfo = MY_AGENT_INFO->socket;
     agent_p agent = MY_AGENT_INFO->agent;
@@ -997,12 +952,8 @@ void communicate_wifi_group_send(oop process,oop GM){
     buf[DATA_REQUEST_TYPE] = REQUEST_TRIGER;
     buf[DATA_GROUP_ID] = agent->base.groupID;
     buf[DATA_REQUEST_SENDER_ID] = agent->base.myID;
-    printf("myid %d\n",agent->base.myID);
-    if(sendToId < 0){
-        buf[DATA_REQUEST_MEMEBER_ID] = ALL_MEMBER_ID;//all member: 11111111
-    }else{
-        buf[DATA_REQUEST_MEMEBER_ID] = (char)sendToId;//0:reader or other: member
-    }   
+    dprintf("myid %d\n",agent->base.myID);
+	buf[DATA_REQUEST_MEMEBER_ID] = ALL_MEMBER_ID;//all member: 11111111
     buf[DATA_SIZE_OF_MEMBER] = 1;
     memcpy(buf + DATA_GROUP_KEY, getAgentGroupKey(agent), 4);
     buf[DATA_DATA] = (char)value;
@@ -1013,29 +964,25 @@ void communicate_wifi_group_send(oop process,oop GM){
         perror("send_broadcast_nonblocking");
         close(socketInfo->recv_sockfd);
         close(socketInfo->send_sockfd);
-        SHICA_PRINTF("%s line %d\n",__FILE__,__LINE__);
+        dprintf("%s line %d\n",__FILE__,__LINE__);
         exit(1);
         MY_AGENT_INFO = 0;
-        return;
+        return 0;
     }
 // CHECK ME:
 // if it possible, check the return value of send_broadcast_nonblocking
 // it is success, or not 
-    return;
+    return 0;
 }
 
-void communicate_wifi_build_group(oop process,oop GM){
-   SHICA_FPRINTF(stderr, "now unsupported function\n");
-   exit(1);
-    return;
-}
 
-#endif // RPI
 struct ExecStdFuncTable  __ExecStdFuncTable__[] = {
 	[EXIT_FUNC] = {lib_exit}, // exit function
-	[CHAT_SEND_FUNC] = {lib_chat_send}, // chat send function
+	[CHAT_SEND_FUNC] = {communicate_wifi_group_send}, // WiFi group communicate send function
+	[CHAT_POST_FUNC] = {0}, // WiFi group communicate post function (not implemented)
 	[MATH_SQRT_FUNC] = {lib_math_sqrt}, // math sqrt function
 	[T_TIMER_RESET_FUNC] = {lib_timer_reset}, // timer reset function
+
 #ifdef RPI
 	[PI_GPIO_SET_OUTPUT_FUNC] = {lib_pi_gpio_set_output}, // Raspberry Pi GPIO set output function
 	[PI_GPIO_WRITE_FUNC] = {lib_pi_gpio_write}, // Raspberry Pi GPIO write function
@@ -1062,20 +1009,20 @@ oop time_eo(oop stack){
 }
 
 //-------------------------------
-void broadcast_eo(oop stack) {
+oop broadcast_eo(oop stack) {
 	GC_PUSH(oop,instance,newInstance(1)); // broadcast eo has 4 fields: ipAddr, portNum, groupID, groupKey
     char *ipAddr  = "255.255.255.255";
     int portNum  = 5000;
-    int groupID  = newIntval(popStack(stack));//Shuld be 8 character
+    int groupID  = IntVal_value(popStack(stack));//Shuld be 8 character
     char *groupKey = StrVal_value(popStack(stack));
 
     // 引数チェック
     if (ipAddr == NULL || groupKey == NULL) {
-        SHICA_FPRINTF(stderr, "Invalid argument\n");
-        SHICA_PRINTF("%s line %d\n",__FILE__,__LINE__);
+        fprintf(stderr, "Invalid argument\n");
+        dprintf("%s line %d\n",__FILE__,__LINE__);
         exit(1);
     }
-#if DEBUG
+#ifdef DEBUG
     DEBUG_LOG("ipAddr:%s portNum:%d groupID:%d groupKey:%s\n",ipAddr,portNum,groupID,groupKey);
 #endif
 
@@ -1090,15 +1037,15 @@ void broadcast_eo(oop stack) {
 
     // 自身のネットワークIPアドレスを取得
     if (get_network_ip(socketInfo->own_ip, sizeof(socketInfo->own_ip)) != 0) {
-        SHICA_FPRINTF(stderr, "Failed to get own IP address\n");
-        SHICA_PRINTF("%s line %d\n",__FILE__,__LINE__);
+        fprintf(stderr, "Failed to get own IP address\n");
+        dprintf("%s line %d\n",__FILE__,__LINE__);
         exit(1);
-		get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+		getObj(instance,Instance,fields)[0] = 0;
 		GC_POP(instance);
-        return ;
+        return instance;
     }
 
-#if DEBUG
+#ifdef DEBUG
     DEBUG_LOG("Own IP: %s\n", socketInfo->own_ip);
 #endif
 
@@ -1106,21 +1053,21 @@ void broadcast_eo(oop stack) {
     if (create_receive_socket(&socketInfo->recv_sockfd, &socketInfo->recv_addr,portNum) == 0) {
         set_nonblocking(socketInfo->recv_sockfd);
     } else {
-        SHICA_PRINTF("%s line %d\n",__FILE__,__LINE__);
+        dprintf("%s line %d\n",__FILE__,__LINE__);
         exit(1);
-		get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+		getObj(instance,Instance,fields)[0] = 0;
 		GC_POP(instance);
-        return ;
+        return instance;
     }
 
     // 送信ソケット作成とブロードキャストアドレス設定
     if (create_broadcast_socket(&socketInfo->send_sockfd, &socketInfo->broadcast_addr,ipAddr,portNum) != 0) {
         close(socketInfo->recv_sockfd);
-        SHICA_PRINTF("%s line %d\n",__FILE__,__LINE__);
+        dprintf("%s line %d\n",__FILE__,__LINE__);
         exit(1);
-		get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+		getObj(instance,Instance,fields)[0] = 0;
 		GC_POP(instance);
-        return ;
+        return instance;
     }
 
 
@@ -1142,18 +1089,18 @@ void broadcast_eo(oop stack) {
     
     // グループ参加リクエストの送信
     int ret = send_broadcast_nonblocking(socketInfo->send_sockfd, &socketInfo->broadcast_addr, buf, BUF_SIZE);
-    printf("send_broadcast_nonblocking\n");
+    dprintf("send_broadcast_nonblocking\n");
     if (ret < 0) {
-        printf("send_broadcast_nonblocking\n");
+        dprintf("send_broadcast_nonblocking\n");
         agent_p agent = createAgent(AgentReader);
         agent->base.myID = 0;
         agent->base.groupID = groupID;
         agent->reader.sizeOfMember = (1U);
         memcpy(agent->reader.groupKey, groupKey,SIZE_OF_DATA_GROUP_KEY + 1);
         MY_AGENT_INFO->agent = agent;//remove me after adapt em
-		get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+		getObj(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
 		GC_POP(instance);
-		return;
+		return instance;
     }
     // グループ参加リクエストの受信
     time_t start = time(NULL);
@@ -1164,15 +1111,15 @@ void broadcast_eo(oop stack) {
             char *sender_ip = inet_ntoa(socketInfo->sender_addr.sin_addr);
             // 自分自身の送信データを無視
             if (strcmp(sender_ip, socketInfo->own_ip) == 0) {
-#if DEBUG
+#ifdef DEBUG
                 DEBUG_LOG("same ip\n");
 #endif
                 continue;
             }
-#if DEBUG
+#ifdef DEBUG
             DEBUG_LOG("\nReceived from %s: %s\n", sender_ip, buf);
 #else
-            SHICA_PRINTF("\nReceived from %s: %s\n", sender_ip, buf);
+            dprintf("\nReceived from %s: %s\n", sender_ip, buf);
 #endif
             if(buf[DATA_GROUP_ID] == groupID && memcmp(buf + DATA_GROUP_KEY, groupKey, SIZE_OF_DATA_GROUP_KEY) == 0){
                 switch(buf[DATA_REQUEST_TYPE]){
@@ -1181,25 +1128,25 @@ void broadcast_eo(oop stack) {
                         agent->base.myID    = buf[DATA_REQUEST_SENDER_ID];
                         agent->base.groupID = buf[DATA_GROUP_ID];
                         memcpy(agent->member.groupKey,buf + DATA_GROUP_KEY,SIZE_OF_DATA_GROUP_KEY + 1);
-#if DEBUG
+#ifdef DEBUG
                         DEBUG_LOG("Join Group Success: my id is %d\n",agent->base.myID);
 #endif
-                        printf("Join Group Success: my id is %d\n",agent->base.myID);
+                        dprintf("Join Group Success: my id is %d\n",agent->base.myID);
                         MY_AGENT_INFO->agent = agent;//remove me after adapt em
-						get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+						getObj(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
 						GC_POP(instance);
-                        return;
+                        return instance;
                     }
                     case REQUEST_REJECT:{
-#if DEBUG
+#ifdef DEBUG
                         DEBUG_LOG("Join Group Reject\n");
 #endif
                         close(socketInfo->recv_sockfd);
                         close(socketInfo->send_sockfd);
                         MY_AGENT_INFO = 0;//remove me after em
-                        get(instance,Instance,fields)[0] = 0;
+                        getObj(instance,Instance,fields)[0] = 0;
 						GC_POP(instance);
-                        return;
+                        return instance;
                     }
                 }
                 break;
@@ -1207,16 +1154,16 @@ void broadcast_eo(oop stack) {
         }
     }
     // タイムアウト
-    printf("BUILD GROUP\n");
+    dprintf("BUILD GROUP\n");
     agent_p agent = createAgent(AgentReader);
     agent->base.myID = 1;
     agent->base.groupID = groupID;
     agent->reader.sizeOfMember = (1U);
     setAgentGroupKey(agent,groupKey);
     MY_AGENT_INFO->agent = agent;//remove me after adapt em
-    get(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
+    getObj(instance,Instance,fields)[0] = (void *)MY_AGENT_INFO;
 	GC_POP(instance);
-    return;
+    return instance;
 #undef TIMEOUT
 }
 

@@ -11,45 +11,19 @@
 // #include "fatal.h"
 #include <stdarg.h>
 
-struct ExternMemory{
-    void **memory;
-    int size;
-    int capacity;
-};
+// EXTERN STRUCTURE REGISTRATION
 
-struct ExternMemory *newExternMemory(int size){
-    struct ExternMemory *em = gc_alloc(sizeof(struct ExternMemory));
-    em->memory = gc_alloc(sizeof(void*)*size);
-    em->size = size;
-    return em;
-}
 
-void gc_markExternMemory(struct ExternMemory *em){
-    gc_markOnly(em);
-    gc_markOnly(em->memory);
-    for(int i=0;i<em->size;i++){
-        gc_markOnly(em->memory[i]);
+static extstr ExternStructMap[32];
+static int     numExternStruct = 0;
+
+int registerExternType(extstr pointerMap){
+    if(numExternStruct >= sizeof(ExternStructMap)/sizeof(extstr)){
+#if NDEBUG
+        printf("Exceeded maximum number of extern struct types\n");
+#endif
+        return -1;
     }
-}
-
-void *gc_extern_alloc(struct ExternMemory *em, int lbs)
-{
-    if(em->size + lbs < em->capacity){
-        em->memory = gc_realloc(em->memory,em->capacity*2);
-        em->capacity *= 2;
-    }
-    void *p = gc_alloc(lbs);
-    em->memory[em->size] = p;
-    return p;
-}
-
-typedef unsigned int extstr;
-extstr ExternStructMap[32];
-int     numExternStruct = 0;
-
-extstr registerExternType(extstr pointerMap){
-    if(numExternStruct < sizeof(ExternStructMap)/sizeof(extstr))
-        return 0; //error
     for(int i = 0; i < numExternStruct; i++){
         if(ExternStructMap[i] == pointerMap)
             return i;
@@ -57,6 +31,17 @@ extstr registerExternType(extstr pointerMap){
     ExternStructMap[numExternStruct] = pointerMap;
     return numExternStruct++;
 }
+
+extstr getExternTypePointerMap(int type){
+    if(type < 0 || type >= numExternStruct){
+#if NDEBUG
+        printf("Invalid extern type: %d\n", type);
+#endif
+        return -1; //error
+    }
+    return ExternStructMap[type];
+}
+// FATAL ERROR HANDLER
 
 void gcfatal(const char *fmt, ...)
 {

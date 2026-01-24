@@ -552,7 +552,19 @@ void printObj(oop obj, int indent)
 		printf("RETFLAG\n");
 		break;
 	}
+	case EXTRA_KIND:{
+		printf("extp\n");
+		extstr map = getExternTypePointerMap(obj->kind - EXTRA_KIND);
+		break;
 	}
+	default:{
+		if(getKind(obj) >= EXTRA_KIND){
+			printf("ExtraKind\n");
+			extstr map = getExternTypePointerMap(obj->kind - EXTRA_KIND);
+			break;
+		}break;
+	}
+}
 	return;
 }
 //----------------------------------------
@@ -706,11 +718,24 @@ void markExecutors(oop ptr)
 			dprintf("markExecutors RunCtx done\n");
 			return;
 		}
-		default:{
-			dprintf("markExecutors ERROR: unknown type %d\n", ptr->kind);
-			fprintf(stderr, "markExecutors ERROR: unknown type %d\n", ptr->kind);
-			//error
-			return ;
+		case RETFLAG:{
+			dprintf("markExecutors RETFLAG\n");
+			// nothing to do
+			dprintf("markExecutors RETFLAG done\n");
+			return;
+		}
+		default:
+		{
+			extstr map = getExternTypePointerMap(ptr->kind - EXTRA_KIND);
+			void *p = (void *)ptr->kind;
+			while(map){
+				if(map&&0b1){
+					gc_mark(*((oop *)p));
+				}
+				p = (void *)((intptr_t)p + sizeof(oop));
+				map >>= 1;
+			}
+			return;
 		}
 	}
 	dprintf("markExecutors ERROR\n");
