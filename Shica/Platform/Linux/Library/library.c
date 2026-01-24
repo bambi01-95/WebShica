@@ -861,7 +861,7 @@ struct ExecEventTable  __ExecEventTable__[] = {
 	[T_TIMER_HOUR_EH] = {timer_hour_handler,    event_object_handler_init,1,1 },      // T_TIMER_HOUR_EH
 #ifdef RPI
 	[PI_GPIO_0_31_EH] = {rpi_gpioRead_0_31event_handler,      event_handler_init,2,0 },      // PI_GPIO_0_31_EH
-	[PI_GPIO_EO_N_EH] = {rpi_gpioRead_N_event_handler,      rpi_gpioRead_N_event_handler_init,1,1 },		  // PI_GPIO_EO_N_EH
+	[PI_GPIO_EO_N_EH] = {rpi_gpioRead_N_event_handler,      event_handler_init,1,1 },		  // PI_GPIO_EO_N_EH
 #endif
 };
 //-------------------------------
