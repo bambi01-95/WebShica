@@ -826,7 +826,7 @@ int rpi_gpioRead_0_31event_handler(oop exec, oop eh){
 	}
 	return 0;
 }
-int rpi_gpioRead_N_event_handler_init(oop eh){
+int rpi_gpioRead_N_event_handler_init(oop exec, oop eh){
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
