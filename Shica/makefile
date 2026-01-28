@@ -99,7 +99,7 @@ inputc: cc
 input: cc
 	./$(NATIVEOUT) < ./input.txt
 
-compiler: leg
+compiler:
 	gcc -o ./Shica-compiler ./Shica-compiler.c \
 	 $(FLAGS) -DSHICACOMP \
 	 $(COMMON_SRC) $(COMPILER_SRC) ./Platform/Linux/Library/library.c  \

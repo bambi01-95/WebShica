@@ -1,18 +1,15 @@
-var button = gpioEO(27, 0, 0);
-var led = gpioEO(17, 1, 0);
-state off(){
-    entryEH(){
-        led.write(0); 
-    }
-    button.readEH(int val){
-        state on;
-    }
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
 }
-state on(){
-    entryEH(){
-        led.write(1);
-    }
-    button.readEH(int val){
-        state off;
-    }
+state main(){
+	entryEH(){
+		print(fib(20));
+		state end;
+	}
+}
+state end(){
+	entryEH(){
+		print("end");
+	}
 }
