@@ -1176,7 +1176,8 @@ oop rpi_gpio_eo(oop stack){
 0: pin
 1: mode
 2: init (pud|vol)
-*/
+*/	
+	printf("rpi_gpio_eo called\n");
 	GC_PUSH(oop,instance,newInstance(3)); // gpio eo has 3 fields: pin, mode, init
 	oop* fields = getObj(instance, Instance, fields);
 	fields[0] = popStack(stack); // pin
@@ -1197,6 +1198,7 @@ oop rpi_gpio_eo(oop stack){
 			reportError(DEVELOPER,0,"rpi_gpio_eo: gpioInitialise failed after 5 attempts");
 		}
 	}
+	printf("ALL VALUES: pin=%d, mode=%d, init=%d\n", IntVal_value(fields[0]), IntVal_value(fields[1]), IntVal_value(fields[2]));
 	if(IntVal_value(fields[1]) == PI_INPUT){
 		int pud = IntVal_value(fields[2]);
 		gpioSetPullUpDown(IntVal_value(fields[0]), pud);
@@ -1205,6 +1207,7 @@ oop rpi_gpio_eo(oop stack){
 		gpioWrite(IntVal_value(fields[0]), IntVal_value(fields[2]));
 	}
 	GC_POP(instance);
+	printf("rpi_gpio_eo end\n");
 	return instance;
 }
 #endif // RPI
