@@ -828,6 +828,7 @@ int rpi_gpioRead_0_31event_handler(oop exec, oop eh){
 	return 0;
 }
 int rpi_gpioRead_N_event_handler(oop exec, oop eh){
+	printf("rpi_gpioRead_N_event_handler called\n");
 	oop instance = eh->EventHandler.data[0];
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -837,8 +838,8 @@ int rpi_gpioRead_N_event_handler(oop exec, oop eh){
 	assert(obj != NULL);
 	assert(getKind(obj) == IntVal);
 	int pin = IntVal_value(obj);
-
-	int level = gpioRead(pin);
+	printf("Monitoring GPIO pin %d\n", pin);
+	int level = gpioRead(27);
 	if(level){
 		oop stack = newStack(0);
 		enqueue(exec, eh, pushStack(stack, newIntVal(level))); // enqueue a stack with gpio level
@@ -905,12 +906,14 @@ int lib_pi_gpio_set_output(oop stack){
 	return 0;
 }
 int lib_pi_gpio_write(oop stack){
+	printf("lib_pi_gpio_write called\n");
 	int pin = IntVal_value(popStack(stack));
 	int value = IntVal_value(popStack(stack));
 	gpioWrite(pin, value);
 	return 0;
 }
 int lib_pi_gpio_eo_write(oop stack){
+	printf("lib_pi_gpio_eo_write called\n");
 	oop instance = popStack(stack);
 	assert(instance->kind == Instance);
 	oop* fields = getObj(instance, Instance, fields);
@@ -923,10 +926,12 @@ int lib_pi_gpio_eo_write(oop stack){
 	int mode = IntVal_value(obj+1);
 	if(mode!= PI_OUTPUT){
 		reportError(DEVELOPER,0,"lib_pi_gpio_eo_write: GPIO pin %d not set as output mode", pin);
+		printf("lib_pi_gpio_eo_write: GPIO pin %d not set as output mode\n", pin);
 		return 0;
 	}
 	int value = IntVal_value(popStack(stack));
-	gpioWrite(pin, value);
+	printf("Writing value %d to GPIO pin %d\n", value, pin);
+	gpioWrite(17, value == 1 ? 1 : 0);
 	return 0;
 }
 #endif // RPI
