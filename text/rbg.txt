@@ -1,6 +1,6 @@
 var button = gpioEO(17, 0, 0);
 var led = gpioEO(13, 1, 0);
-var channel = broadcastEO("room1","oops");
+var channel = broadcastEO(1,"oops");
 state off(){
     entryEH(){
         led.write(0); 
@@ -16,7 +16,7 @@ state on(){
     button.readEH(int val){
         state off;
     }
-	channel.receivedEH(str addr, str msg){
+	channel.receivedEH(int addr,int msg){
 		state off;
 	}
 }

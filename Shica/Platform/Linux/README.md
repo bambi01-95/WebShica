@@ -4,7 +4,7 @@
 ## Event Object
 
 <!-- ------------------------- -->
-### broadcastEO((str)channel_name, (str)password);
+### broadcastEO((int)channel_id, (str)password);
 
 ```js:Shica
 var channel = broadcastEO("room1", "oops");

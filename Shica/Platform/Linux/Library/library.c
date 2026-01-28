@@ -76,7 +76,7 @@ int compile_eh_init(){
 struct CompEventTable __CompEventTable__[] = {
 	[EVENT_EH] = {0, NULL, 0},      // EVENT_EH
 	[TIMER_EH] = {1,(char []){Integer}, 2},      // TIMER_EH
-	[CHAT_RECEIVED_EH] = {2,(char []){String/*sender*/, String/*msg*/}, 3},      // CHAT_RECEIVED_EH
+	[CHAT_RECEIVED_EH] = {2,(char []){Integer/*sender*/, Integer/*msg*/}, 3},      // CHAT_RECEIVED_EH
 	[T_TIMER_SEC_EH] = {1,(char []){Integer}, 1},      // T_TIMER_SEC_EH
 	[T_TIMER_MIN_EH] = {1,(char []){Integer}, 1},      // T_TIMER_MIN_EH
 	[T_TIMER_HOUR_EH] = {1,(char []){Integer}, 1},      // T_TIMER_HOUR_EH
@@ -162,7 +162,7 @@ int compile_eo_init(){
 	// int nFuncs; // number of functions
 	// int *argTypes; // types of arguments
 struct CompEventObjectTable  __CompEventObjectTable__[] = {
-	[CHAT_BROADCAST_EO] = {2, 4, (int[]){String/*channel*/, String/*password*/}}, // WebRTC broadcast event object with 3 arguments and 1 function
+	[CHAT_BROADCAST_EO] = {2, 4, (int[]){String/*channel*/, Integer/*password*/}}, // WebRTC broadcast event object with 3 arguments and 1 function
 	[TIME_EO] = {0, 4, NULL}, // Timer event object with 0 arguments and 4 functions
 #ifdef RPI
 	[PI_GPIO_EO] = {3, 2, (int[]){Integer/*pin*/, Integer/*mode*/, Integer/*init: pud|vol*/}}, // Raspberry Pi GPIO event object with 3 arguments and 2 functions
@@ -198,10 +198,11 @@ struct CompEventObjectTable  __CompEventObjectTable__[] = {
 // SHICA EXECUTER CODE.          |
 //-------------------------------+
 
-
-#ifdef SHICAEXEC
+// #define SHICAEXEC
 // #include "node.h"
 // #include "gc.h"
+#ifdef SHICAEXEC
+
 
 //-------------------------------
 // Network Functions

@@ -4,8 +4,8 @@ int fib(int n) {
 }
 
 state main(){
-	timerEH(int s:s==1){
-		print(fib(40));
+	entryEH(){
+		print(fib(42));
 		state end;
 	}
 }

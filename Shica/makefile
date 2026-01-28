@@ -75,7 +75,8 @@ WASMOUT = ./Platform/WebShica/shica.js
 # shica-native
 NATIVEOUT = shica
 
-FLAGS = -DMSGCS -DNDEBUG -Os -DRPI 
+FLAGS = -DMSGCS -DNDEBUG -Os -DRPI
+# -DRPI 
 #-DMSGC    マーク＆スイープGCを有効化
 #-DMSGCS   マーク＆スイープGC（分割実行）を有効化
 #-DDEBUG
@@ -109,6 +110,7 @@ executor:
 	 $(FLAGS) -DSHICAEXEC \
 	 $(COMMON_SRC) $(EXECUTOR_SRC) ./Platform/Linux/Library/library.c  \
 	 $(EXECUTOR_INCLUDE_DIRS) -I ./Platform/Linux/Library/ -lm -lpigpio -lrt -lpthread
+#-lm -lpigpio -lrt -lpthread
 
 WEB_SHICA_FUNC = "_memory_init","_initWebCodes","_compileWebCode","_addWebCode","_deleteWebCode","_initWebAgents","_executeWebCodes","_stopWebCodes","_initWebTimerPtr","_initWebClickSTTPtr","_initALLAgentDataPtr", "_getAnAgentDataPtr", "_getCompiledWebCode", "_reinitAllAgentData"
 WEB_SHICA_LIB_FUNC = "__web_rtc_broadcast_receive_"
