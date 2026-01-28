@@ -1,5 +1,5 @@
-var button = gpioEO(17, 0, 0);
-var led = gpioEO(13, 1, 0);
+var button = gpioEO(27, 0, 0);
+var led = gpioEO(17, 1, 0);
 state off(){
     entryEH(){
         led.write(0); 
